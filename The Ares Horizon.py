@@ -13,6 +13,8 @@ full_path = os.path.join(script_directory, file_name)
 playsound (full_path, block=False)
 
 gamestart="yes"
+
+#Player Points
 crew_safety= 100
 mission_budget= 100
 science_points= 0
@@ -41,7 +43,9 @@ while gamestart=="yes":
 
     choice_1= input(" Enter 1 or 2: ").strip()
 
+    #=================
     #BRANCH 1 Choice 1
+    #=================
     if choice_1 == "1":
         print("IGNITION! The rocket vibrates violently as it puches through the wind")
         print("Minutes later you reach the edge of the atmosphere and enter orbit, but the stress caused by the wind resulted in an issue")
@@ -51,17 +55,29 @@ while gamestart=="yes":
         crew_safety -= 20
         mission_budget -= 10
 
-        #STAGE 2
-        print("\nSTAGE-2: THE ORBIT")
+        #Display Points after choice
         print("")
-        print(f"Status-> Safety {crew_safety} % | Budget {mission_budget} %")
+        print(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} %")
 
+        #Choice 1 Stage 2
+        print("\nSTAGE-2: THE ORBIT")
+
+    #=================
     #BRANCH 1 Choice 2
-    elif choice_1 == 2:
+    #=================
+    elif choice_1 == "2":
         print("\nYou stand down on the launch. The crew exits the spacecraft")
         print("Weeks later, you launch on a much longer and not as ideal route")
         print("Deep in space, a massive radiation storm knocks down your primary navigation computer")
-        
+
+        #Crew stays secure but delays drain cash
+        mission_budget -= 40
+
+        #Display points after choice
+        print(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} %")
+    #=======================  
+    #BRANCH 1 Invalid Choice
+    #=======================
     else:
         print("INVALID CHOICE")
 
