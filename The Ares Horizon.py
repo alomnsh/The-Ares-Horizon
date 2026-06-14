@@ -1,3 +1,17 @@
+#package
+#from replit import audio
+from playsound import playsound
+import os
+import time
+
+script_directory= os.path.dirname(__file__)
+
+file_name= "Dream Sequence.mp3"
+
+full_path = os.path.join(script_directory, file_name)
+
+playsound (full_path, block=False)
+
 gamestart="yes"
 crew_safety= 100
 mission_budget= 100
