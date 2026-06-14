@@ -15,15 +15,19 @@ full_path = os.path.join(script_directory, file_name)
 
 playsound (full_path, block=False)
 
-#Typewriter effect function + change color function so that we don't lose the typewriter effect
-def typewriter(text, color = None):
-    if color:
-        text = termcolor.colored(text, color)
+# Typewriter effect function + change color function so that we don't lose the typewriter effect
+def typewriter(text, color=None, bold=False):
+    attributes = ["bold"] if bold else []
+    
+    # Check if either color or bold styling is active
+    if color or bold:
+        text = termcolor.colored(text, color=color, attrs=attributes)
 
     for letter in text:
         print(letter, end="", flush=True)
-        time.sleep (0.05)
+        time.sleep(0.05)
     print()
+
 
 gamestart="yes"
     
@@ -32,24 +36,24 @@ crew_safety= 100
 mission_budget= 100
 science_points= 0
 
-typewriter("Welcome to The Ares Horizon Game!")
-print("======================================================================")
+typewriter("Welcome to The Ares Horizon Game!", bold = True)
+print(termcolor.colored("======================================================================", attrs=["bold"]))
 
 while gamestart=="yes":
     typewriter("In this game you are a Flight Director at NASA Mission Control!")
     typewriter("The Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!")
     typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.")
-    print("======================================================================")
+    print(termcolor.colored("======================================================================", attrs=["bold"]))
 
     #Game Starts (Stage 1)
-    typewriter("\nSTAGE-1: T-MMINUS COUNTDOWN")
+    typewriter("\nSTAGE-1: T-MMINUS COUNTDOWN", bold = True)
     typewriter("")
     typewriter("The Orion-X awaits launch")
     typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color="red")
     typewriter("Director! The Upper Atmosphere winds just excedded 8% past our safety limits!", color= "red")
     
     #Branch 1 Choice  
-    typewriter("\nWhat do you do?")
+    typewriter("\nWhat do you do?", bold = True)
     typewriter("1) Launch Now- Push through the high speed winds and save time")
     typewriter("2) Delay Launch- Abort the window and wait for a backup plan")
     typewriter("")
@@ -73,7 +77,7 @@ while gamestart=="yes":
         typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}")
 
         #Choice 1 Stage 2
-        typewriter("\nSTAGE-2: THE ORBITAL ANOMALY")
+        typewriter("\nSTAGE-2: THE ORBITAL ANOMALY", bold = True)
         typewriter("1) PUSH ENGINES- Fire the second stage anyway to immediatly clear the orbit", color= "red")
         typewriter("2) ABORT MISSION- Aactivate the escape tower to bring the crew back to Earth safely", color= "red")
 
@@ -93,7 +97,7 @@ while gamestart=="yes":
             typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}")
 
             #Choice 1 Stage 3
-            typewriter("\nSTAGE-3: MARS LANDING")
+            typewriter("\nSTAGE-3: MARS LANDING", bold = True)
             print("")
             typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates")
             typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing")
@@ -120,7 +124,7 @@ while gamestart=="yes":
             elif choice_3a == "2":
                 typewriter("\nCRASH DOWN! The system clips a massicve hidden boulder")
                 typewriter("The lander tips and loses pressure. Space is not forgiving.")
-                typewriter("MISSION FAILED")
+                typewriter("MISSION FAILED", bold = True)
 
                 #Total loss of both the crew and the spacecraft
                 crew_safety = 0
@@ -131,7 +135,7 @@ while gamestart=="yes":
 
             #Stage 3 Invalid Choice
             else:
-                typewriter("INVALID CHOICE", color= "red")
+                typewriter("INVALID CHOICE", color= "red", bold = True)
 
         #Stage 2 Choice 2
         elif chocie_2a == "2":
@@ -146,7 +150,7 @@ while gamestart=="yes":
 
         #Stage 2 Invalid Choice
         else:
-            typewriter("INVALID CHOICE. The countdown grid locks up and the engine explodes", color= "red")
+            typewriter("INVALID CHOICE. The countdown grid locks up and the engine explodes", color= "red", bold = True)
 
     #=================
     #BRANCH 1 Choice 2
@@ -163,7 +167,7 @@ while gamestart=="yes":
         typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}")
 
         #Choice 2 Stage 2
-        typewriter("\nSTAGE-2: LOST IN SPACE")
+        typewriter("\nSTAGE-2: LOST IN SPACE", bold = True)
         typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!")
         typewriter("1) UPLOAD A PATCH- Push an unverified software fix to reboot the system")
         typewriter("2) MANUAL TRAJECTORY- Force the crew to calculate engine burns using manual star maps and control th ship")
@@ -182,7 +186,7 @@ while gamestart=="yes":
             typewriter(f"\nStatus-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}")
 
             #Choice 2 Stage 3
-            typewriter("\nSTAGE-3: THE LANDING")
+            typewriter("\nSTAGE-3: THE LANDING", bold = True)
             typewriter("\nWith the low power, you cannot run both the heaters and the landing thrusters")
             typewriter("1) DEPLOY SOLAR SAILS- Wait in orbit for 3 days to charge batteries using solar panels")
             typewriter("2) EMERGENCY BURN- Cut the life support heaters to power a descent")
@@ -207,7 +211,7 @@ while gamestart=="yes":
 
             #Stage 3 Invalid Choice
             else:
-                typewriter("\nINVALID CHOICE. The ship loses total electrical power and becomes a ghost satellite.")
+                typewriter("\nINVALID CHOICE. The ship loses total electrical power and becomes a ghost satellite.", bold = True)
 
                 #Penalize for crew death
                 crew_safety = 0
@@ -225,13 +229,13 @@ while gamestart=="yes":
 
         #Stage 2 Invalid Choice
         else:
-            typewriter("\n INVALID CHOICE, the spacecraft drifts without and instructions for recovery")
+            typewriter("\n INVALID CHOICE, the spacecraft drifts without and instructions for recovery", bold = True)
 
     #=======================  
     #BRANCH 1 Invalid Choice
     #=======================
     else:
-        typewriter("INVALID CHOICE", color= "red")
+        typewriter("INVALID CHOICE", color="red", bold=True)
 
 print("=======================================================")
 gameStart = input("Would you like to restart the mission? (yes/no): ").lower().strip()
