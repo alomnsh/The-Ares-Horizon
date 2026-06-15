@@ -30,16 +30,17 @@ def typewriter(text, color=None, bold=False):
 
 
 gamestart="yes"
-    
-#Player Points
-crew_safety= 100
-mission_budget= 100
-science_points= 0
 
 typewriter("Welcome to The Ares Horizon Game!", bold = True)
 print(termcolor.colored("======================================================================", attrs=["bold"]))
 
 while gamestart=="yes":
+
+    #Player Points
+    crew_safety = 100
+    mission_budget = 100
+    science_points = 0
+
     typewriter("In this game you are a Flight Director at NASA Mission Control!")
     typewriter("The Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!")
     typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.")
@@ -58,7 +59,12 @@ while gamestart=="yes":
     typewriter("2) Delay Launch- Abort the window and wait for a backup plan")
     typewriter("")
 
-    choice_1= input(" Enter 1 or 2: ").strip()
+    #Invalid choice check
+    while True:
+        choice_1= input(" Enter 1 or 2: ").strip()
+        if choice_1 in ["1", "2"]:
+            break
+        typewriter("INVALID CHOICE. Please type exactly 1 or 2.", color= "yellow")
 
     #=================
     #BRANCH 1 Choice 1
@@ -81,10 +87,15 @@ while gamestart=="yes":
         typewriter("1) PUSH ENGINES- Fire the second stage anyway to immediatly clear the orbit", color= "red")
         typewriter("2) ABORT MISSION- Aactivate the escape tower to bring the crew back to Earth safely", color= "red")
 
-        chocie_2a = input("Enter 1 or 2: ").strip()
+        #Invalid choice check
+        while True:
+            choice_2a= input(" Enter 1 or 2: ").strip()
+            if choice_2a in ["1", "2"]:
+                break
+            typewriter("INVALID CHOICE. Please type exactly 1 or 2.", color= "yellow")
 
         #Stage 2 Choice 1
-        if chocie_2a == "1":
+        if choice_2a == "1":
             typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.")
             typewriter("Months pass in deep space, and the crew finally arrives at the Red Planet")
 
@@ -105,7 +116,12 @@ while gamestart=="yes":
             typewriter("1) MANUAL CONTROL- Order the commander to take joystick control and land manually", color= "red")
             typewriter("2) AUTO-PILOT- Trust the computer to maneuver around the boulders", color= "red")
 
-            choice_3a = input("Enter 1 or 2: ").strip()
+            #Invalid choice check
+            while True:
+                choice_3a= input(" Enter 1 or 2: ").strip()
+                if choice_3a in ["1", "2"]:
+                    break
+                typewriter("INVALID CHOICE. Please type exactly 1 or 2.", color= "yellow")
 
             #Stage 3 Choice 1
             if choice_3a == "1":
@@ -133,12 +149,8 @@ while gamestart=="yes":
                 #Display Final Points
                 typewriter(f"The crew is no longer with us, and neither is the space craft. Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points} ")
 
-            #Stage 3 Invalid Choice
-            else:
-                typewriter("INVALID CHOICE", color= "red", bold = True)
-
         #Stage 2 Choice 2
-        elif chocie_2a == "2":
+        elif choice_2a == "2":
             typewriter("The emergency escape system rips apart from the capsule")
             typewriter("The crew safely splash down in the atlantic ocean")
             typewriter("The mission is over but the crew lives")
@@ -147,10 +159,6 @@ while gamestart=="yes":
             mission_budget = 0
 
             typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}")
-
-        #Stage 2 Invalid Choice
-        else:
-            typewriter("INVALID CHOICE. The countdown grid locks up and the engine explodes", color= "red", bold = True)
 
     #=================
     #BRANCH 1 Choice 2
@@ -172,7 +180,12 @@ while gamestart=="yes":
         typewriter("1) UPLOAD A PATCH- Push an unverified software fix to reboot the system")
         typewriter("2) MANUAL TRAJECTORY- Force the crew to calculate engine burns using manual star maps and control th ship")
 
-        choice_2b = input("Enter 1 or 2: ").strip()
+        #Invalid choice check
+        while True:
+            choice_2b= input(" Enter 1 or 2: ").strip()
+            if choice_2b in ["1", "2"]:
+                break
+            typewriter("INVALID CHOICE. Please type exactly 1 or 2.", color= "yellow")
 
         #Stage 2 Choice 1
         if choice_2b == "1":
@@ -191,7 +204,12 @@ while gamestart=="yes":
             typewriter("1) DEPLOY SOLAR SAILS- Wait in orbit for 3 days to charge batteries using solar panels")
             typewriter("2) EMERGENCY BURN- Cut the life support heaters to power a descent")
 
-            choice_3b = input("Enter 1 or 2: ").strip()
+            #Invalid choice check
+            while True:
+                choice_3b= input(" Enter 1 or 2: ").strip()
+                if choice_3b in ["1", "2"]:
+                    break
+                typewriter("INVALID CHOICE. Please type exactly 1 or 2.", color= "yellow")
 
             #Stage 3 Choice 1 
             if choice_3b == "1":
@@ -209,13 +227,6 @@ while gamestart=="yes":
                 typewriter("MISSION FAILED")
                 crew_safety = 0
 
-            #Stage 3 Invalid Choice
-            else:
-                typewriter("\nINVALID CHOICE. The ship loses total electrical power and becomes a ghost satellite.", bold = True)
-
-                #Penalize for crew death
-                crew_safety = 0
-
         #Stage 2 Choice 2
         elif choice_2b == "2":
             typewriter("LOSt ORBIT! The math is too complex with the light-lag delay")
@@ -227,17 +238,7 @@ while gamestart=="yes":
 
             typewriter(f"\nStatus-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}")
 
-        #Stage 2 Invalid Choice
-        else:
-            typewriter("\n INVALID CHOICE, the spacecraft drifts without and instructions for recovery", bold = True)
-
-    #=======================  
-    #BRANCH 1 Invalid Choice
-    #=======================
-    else:
-        typewriter("INVALID CHOICE", color="red", bold=True)
-
-print("=======================================================")
-gameStart = input("Would you like to restart the mission? (yes/no): ").lower().strip()
+    print("=======================================================")
+    gameStart = input("Would you like to restart the mission? (yes/no): ").lower().strip()
 
 typewriter("\nThank you for playing! Mission Control signing off. 🛰️")
