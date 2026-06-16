@@ -35,6 +35,18 @@ crew_safety = 100
 mission_budget = 100
 science_points = 0
 
+active_timers = []
+
+def cancel_all_timers():
+    """Wipes out any ticking background timers to prevent crash errors."""
+    global active_timers
+    for timer_id in active_timers:
+        try:
+            root.after_cancel(timer_id)
+        except Exception:
+            pass
+    active_timers.clear()
+
 root = tk.Tk()
 root.title("The Ares Horizon — Mission Control Terminal")
 root.geometry("950x720")  
@@ -77,22 +89,59 @@ scroller.config(command=output_text.yview)
 
 # Text animations 
 def typewriter(text, text_widget, color=text_color, bold=False):
-    """Animates text into the GUI Text widget with custom colors and weights."""
-    text_widget.config(state=tk.NORMAL)
+    """Animates text into the GUI Text widget safely, checking if it exists first."""
+    try:
+        # Check if the text widget was destroyed or closed
+        if not text_widget.winfo_exists():
+            return
+    except Exception:
+        return
 
-    # Create a unique tag name using the current timestamp
+    text_widget.config(state=tk.NORMAL)
     tag_name = f"style_{time.time()}"
     font_style = ("Courier", 14, "bold" if bold else "normal")
     text_widget.tag_configure(tag_name, foreground=color, font=font_style)
     
     for letter in text:
-        text_widget.insert(tk.END, letter, tag_name)
-        text_widget.see(tk.END)
-        text_widget.update()
-        time.sleep(0.05) 
+        try:
+            # Safety check before inserting every single letter
+            if not text_widget.winfo_exists():
+                return
+            text_widget.insert(tk.END, letter, tag_name)
+            text_widget.see(tk.END)
+            text_widget.update()
+            time.sleep(0.035) 
+        except Exception:
+            return
         
-    text_widget.insert(tk.END, "\n")
+    try:
+        text_widget.insert(tk.END, "\n")
+        text_widget.config(state=tk.DISABLED)
+    except Exception:
+        return
+
+def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline=False):
+    """Updates the terminal loading bar in place by instantly overwriting the previous line."""
+    try:
+        if not text_widget.winfo_exists(): return
+    except Exception: return
+    
+    text_widget.config(state=tk.NORMAL)
+    # Delete the current last line of text to prevent stacking
+    text_widget.delete("end-2c linestart", "end-1c")
+    
+    tag_name = f"progress_{time.time()}"
+    font_style = ("Courier", 14, "bold" if bold else "normal")
+    text_widget.tag_configure(tag_name, foreground=color, font=font_style)
+    
+    # Insert the updated bar instantly so it doesn't have to re-type the whole line
+    text_widget.insert(tk.END, text, tag_name)
+    if add_newline:
+        text_widget.insert(tk.END, "\n") # Moves cursor down only when 100% complete
+        
+    text_widget.see(tk.END)
     text_widget.config(state=tk.DISABLED)
+    text_widget.update()
 
 #Buttons interactions
 def make_button_interactive(button):
@@ -119,37 +168,42 @@ restart_frame = tk.Frame(root, bg=BG_main)
 
 #Updating GUI
 def update_gui():
-    """Updates the progress bars and points text in the dashboard"""
-    safety_bar['value'] = crew_safety
-    budget_bar['value'] = mission_budget
-    points_label.config(text=f"SCIENCE POINTS ACCUMULATED: {science_points}")
+    """Updates the progress bars and points text safely within a try block."""
+    try:
+        safety_bar['value'] = crew_safety
+        budget_bar['value'] = mission_budget
+        points_label.config(text=f"SCIENCE POINTS ACCUMULATED: {science_points}")
 
-    # Visual Warning
-    if crew_safety <= 40:
-        style.configure("Safety.Horizontal.TProgressbar", background=color_red)
-    else:
-        style.configure("Safety.Horizontal.TProgressbar", background=color_cyan)
+        if crew_safety <= 40:
+            style.configure("Safety.Horizontal.TProgressbar", background=color_red)
+        else:
+            style.configure("Safety.Horizontal.TProgressbar", background=color_cyan)
+    except Exception:
+        pass
 
 def run_boot_sequence():
-    """Plays a beautifully timed mainframe boot animation sequentially."""
-    welcome_frame.pack_forget()  # Hide button frame right away
+    """Plays the mainframe boot animation with a custom in-place updating console loading bar."""
+    cancel_all_timers() 
+    welcome_frame.pack_forget()  
+    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
     
-    # Carefully spaced out delays so strings print one after another cleanly
-    root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan))
-    root.after(900, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green))
-    root.after(1700, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green))
+    # Initial diagnostic logs
+    active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
+    active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
+    active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
     
-    # Draw out a crisp sci-fi ASCII Title Logo
-    root.after(2500, lambda: typewriter("\n      ▲  ====  ===  ===  ===   ===   ===  ===  ===  ===  ▲", output_text, color=color_yellow, bold=True))
-    root.after(2700, lambda: typewriter("     /_\\ |==|  |==  |==  |==   |==   |==  |==  |==  |== /_\\", output_text, color=color_yellow, bold=True))
-    root.after(2900, lambda: typewriter("    /___\\|==|  |==  |==  |==   |==   |==  |==  |==  |==/___\\", output_text, color=color_yellow, bold=True))
-    root.after(3100, lambda: typewriter("         ====  ===  ===  ===   ===   ===  ===  ===  ===", output_text, color=color_yellow, bold=True))
-    root.after(3300, lambda: typewriter("                  --- THE ARES HORIZON v3.0 ---", output_text, color=color_cyan, bold=True))
-    root.after(3500, lambda: typewriter("      ▼=================================================▼\n", output_text, color=color_yellow, bold=True))
+    # Initialize the Progress Bar header row
+    active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
+    active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
+    active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
+    active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
+    active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
     
-    # Wait for the logo to finish typing, then clear screen and start game
-    root.after(5000, trigger_game_start)
-
+    # Final step finishes the bar, locks it to green, and pushes the cursor down with add_newline=True
+    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [CORE INITIALIZED]", output_text, color=color_green, bold=True, add_newline=True)))
+    
+    # Wait for completion, then clear screen and trigger Chapter 1
+    active_timers.append(root.after(17500, trigger_game_start))
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
@@ -163,7 +217,6 @@ def trigger_game_start():
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0)) 
     update_gui()
 
-    # Now type the welcome text safely onto a fresh screen
     typewriter("Welcome to The Ares Horizon Game!", output_text, bold=True)
     typewriter("======================================================================", output_text, bold=True)
     typewriter("In this game you are a Flight Director at NASA Mission Control!", output_text)
@@ -230,24 +283,33 @@ def handle_choice1(choice):
 
 def end_game_session():
     typewriter("\n=======================================================", output_text)
-    typewriter(f"Final Session Archive Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
+    typewriter(f"\nFinal Session Archive Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
     restart_frame.pack(pady=15)
 
 def reboot_mission():
     global crew_safety, mission_budget, science_points
+    cancel_all_timers()
     restart_frame.pack_forget()
     
+    # Reset tracking state metrics
     crew_safety = 100
     mission_budget = 100
     science_points = 0
     update_gui()
     
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
+    try:
+        dashboard.pack_forget()  
+        log_container.pack_forget()
+        
+        # Clear out any leftover typed text
+        output_text.config(state=tk.NORMAL)
+        output_text.delete("1.0", tk.END)
+        output_text.config(state=tk.DISABLED)
+    except Exception:
+        pass
     
-    welcome_frame.pack(pady=40)
-
+    welcome_frame.pack(fill=tk.BOTH, expand=True)
+    btn_start.pack(expand=True)
 
 # ==========================================
 # POPULATE WIDGETS INTO THE FRAMES
@@ -267,8 +329,53 @@ btn_start = tk.Button(welcome_frame,
                       activebackground="#21262D", 
                       cursor="hand2", 
                       command=run_boot_sequence)
-btn_start.pack(expand=True) # This is what locks it to the horizontal and vertical center!
+btn_start.pack(expand=True) 
 make_button_interactive(btn_start)
+
+# 2. Stage 1 Elements (RESTORED)
+tk.Label(stage1_frame, text="AWAITING STRATEGIC DIRECTIVE INSTRUCTIONS...", bg=BG_main, fg=color_yellow, font=("Courier", 10, "bold")).pack(pady=4)
+b1_1 = tk.Button(stage1_frame, text="1) Launch Now - Push past high winds and save time", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice1("1"))
+b1_1.pack(in_=stage1_frame, fill=tk.X, pady=2)
+b1_2 = tk.Button(stage1_frame, text="2) Delay Launch - Abort current window and wait", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice1("2"))
+b1_2.pack(in_=stage1_frame, fill=tk.X, pady=2)
+make_button_interactive(b1_1); make_button_interactive(b1_2)
+
+# 3. Stage 2A Elements
+tk.Label(stage2a_frame, text="CRITICAL PRESSURE DROP DETECTED. CHOOSE ROUTE:", bg=BG_main, fg=color_yellow, font=("Courier", 10, "bold")).pack(pady=4)
+b2a_1 = tk.Button(stage2a_frame, text="1) PUSH ENGINES - Fire second stage anyway to clear orbit", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2a("1"))
+b2a_1.pack(in_=stage2a_frame, fill=tk.X, pady=2)
+b2a_2 = tk.Button(stage2a_frame, text="2) ABORT MISSION - Activate the emergency escape tower", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2a("2"))
+b2a_2.pack(in_=stage2a_frame, fill=tk.X, pady=2)
+make_button_interactive(b2a_1); make_button_interactive(b2a_2)
+
+# 4. Stage 3A Elements
+tk.Label(stage3a_frame, text="AUTOMATED LANDING FAILURE! CHOOSE FLIGHT CONTROLS:", bg=BG_main, fg=color_yellow, font=("Courier", 10, "bold")).pack(pady=4)
+b3a_1 = tk.Button(stage3a_frame, text="1) MANUAL CONTROL - Commander flies manual flight joystick", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3a("1"))
+b3a_1.pack(in_=stage3a_frame, fill=tk.X, pady=2)
+b3a_2 = tk.Button(stage3a_frame, text="2) AUTO-PILOT - Trust flight computer mapping systems", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3a("2"))
+b3a_2.pack(in_=stage3a_frame, fill=tk.X, pady=2)
+make_button_interactive(b3a_1); make_button_interactive(b3a_2)
+
+# 5. Stage 2B (Lost in Space) Elements
+tk.Label(stage2b_frame, text="STAGE-2: LOST IN SPACE // ARRAY REBOOT INTERFACE:", bg=BG_main, fg=color_yellow, font=("Courier", 10, "bold")).pack(pady=4)
+b2b_1 = tk.Button(stage2b_frame, text="1) UPLOAD A PATCH - Push an unverified software fix to reboot the system", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2b("1"))
+b2b_1.pack(in_=stage2b_frame, fill=tk.X, pady=2)
+b2b_2 = tk.Button(stage2b_frame, text="2) MANUAL TRAJECTORY - Force crew to navigate manually using star maps", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2b("2"))
+b2b_2.pack(in_=stage2b_frame, fill=tk.X, pady=2)
+make_button_interactive(b2b_1); make_button_interactive(b2b_2)
+
+# 6. Stage 3B (Low Power Descent) Elements
+tk.Label(stage3b_frame, text="STAGE-3: THE LANDING // ROUTE AVAILABLE BATTERY POWER:", bg=BG_main, fg=color_yellow, font=("Courier", 10, "bold")).pack(pady=4)
+b3b_1 = tk.Button(stage3b_frame, text="1) DEPLOY SOLAR SAILS - Wait in orbit for 3 days to charge batteries", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3b("1"))
+b3b_1.pack(in_=stage3b_frame, fill=tk.X, pady=2)
+b3b_2 = tk.Button(stage3b_frame, text="2) EMERGENCY BURN - Cut the life support heaters to power a descent", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3b("2"))
+b3b_2.pack(in_=stage3b_frame, fill=tk.X, pady=2)
+make_button_interactive(b3b_1); make_button_interactive(b3b_2)
+
+# 7. Restart Elements
+btn_restart = tk.Button(restart_frame, text="REINITIALIZE OPERATIONS CORE ARCHIVE", font=("Courier", 10, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", command=reboot_mission)
+btn_restart.pack(in_=restart_frame, pady=5)
+make_button_interactive(btn_restart)
 
 
 def handle_choice2a(choice):
@@ -367,7 +474,6 @@ def handle_choice3b(choice):
     if choice == "1":
         typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
         typewriter("The crew lands flawlessly with power to spare. You saved them with patience!", output_text, color="green")
-        crew_safety += 10
         science_points += 40
         update_gui()
 
@@ -383,5 +489,13 @@ def handle_choice3b(choice):
 
 # Run structural sync data metrics counters
 update_gui()
+
+def on_close_window():
+    """Intercepts clicking the 'X' button to kill background timer threads instantly."""
+    cancel_all_timers()
+    root.destroy()
+
+# Tell Tkinter to run our cleanup function when the window closes
+root.protocol("WM_DELETE_WINDOW", on_close_window)
 
 root.mainloop()
