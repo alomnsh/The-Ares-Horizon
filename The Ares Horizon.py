@@ -27,7 +27,7 @@ color_cyan = "#58a6ff"
 color_yellow = "#f2cc60" 
 color_red = "#db2b1f"
 color_green = "#7EE787"
-font_console = ("Courier", 11)
+font_console = ("Courier", 14)
 
 #Game Stats and Point
 gamestart="yes"
