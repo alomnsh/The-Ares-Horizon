@@ -200,7 +200,7 @@ def run_boot_sequence():
     active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
     
     # Final step finishes the bar, locks it to green, and pushes the cursor down with add_newline=True
-    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [CORE INITIALIZED]", output_text, color=color_green, bold=True, add_newline=True)))
+    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
     
     # Wait for completion, then clear screen and trigger Chapter 1
     active_timers.append(root.after(17500, trigger_game_start))
@@ -218,11 +218,11 @@ def trigger_game_start():
     update_gui()
 
     typewriter("Welcome to The Ares Horizon Game!", output_text, bold=True)
-    typewriter("======================================================================", output_text, bold=True)
+    print("======================================================================", output_text)
     typewriter("In this game you are a Flight Director at NASA Mission Control!", output_text)
     typewriter("The Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!", output_text)
     typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.", output_text)
-    typewriter("======================================================================", output_text, bold=True)
+    print("======================================================================", output_text)
 
     typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", output_text, bold=True)
     typewriter("", output_text)
@@ -282,7 +282,7 @@ def handle_choice1(choice):
         stage2b_frame.pack(pady=10)
 
 def end_game_session():
-    typewriter("\n=======================================================", output_text)
+    print("\n=======================================================", output_text)
     typewriter(f"\nFinal Session Archive Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
     restart_frame.pack(pady=15)
 
