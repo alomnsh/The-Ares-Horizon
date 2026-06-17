@@ -87,61 +87,55 @@ output_text = tk.Text(log_container, wrap=tk.WORD, state=tk.DISABLED, bg=BG_main
 output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scroller.config(command=output_text.yview)
 
-# Text animations 
-def typewriter(text, text_widget, color=text_color, bold=False):
-    """Animates text into the GUI Text widget safely, checking if it exists first."""
+# Text animations
+def typewriter(text, text_widget, color=text_color, bold=False, index=0, tag_name=None):
+    """Animates text into the GUI Text widget safely using Tkinter's event loop."""
     try:
-        # Check if the text widget was destroyed or closed
         if not text_widget.winfo_exists():
             return
     except Exception:
         return
 
-    text_widget.config(state=tk.NORMAL)
-    tag_name = f"style_{time.time()}"
-    font_style = ("Courier", 14, "bold" if bold else "normal")
-    text_widget.tag_configure(tag_name, foreground=color, font=font_style)
-    
-    for letter in text:
+    # Setup configurations on the first letter instance
+    if index == 0:
+        text_widget.config(state=tk.NORMAL)
+        tag_name = f"style_{time.time()}"
+        font_style = ("Courier", 14, "bold" if bold else "normal")
+        text_widget.tag_configure(tag_name, foreground=color, font=font_style)
+
+    if index < len(text):
         try:
-            # Safety check before inserting every single letter
-            if not text_widget.winfo_exists():
-                return
-            text_widget.insert(tk.END, letter, tag_name)
+            text_widget.insert(tk.END, text[index], tag_name)
             text_widget.see(tk.END)
-            text_widget.update()
-            time.sleep(0.035) 
+            
+            # Schedule the next character safely without freezing the screen
+            timer_id = root.after(35, lambda: typewriter(text, text_widget, color, bold, index + 1, tag_name))
+            global active_timers
+            active_timers.append(timer_id)
         except Exception:
             return
-        
-    try:
-        text_widget.insert(tk.END, "\n")
-        text_widget.config(state=tk.DISABLED)
-    except Exception:
-        return
+    else:
+        try:
+            text_widget.insert(tk.END, "\n")
+            text_widget.config(state=tk.DISABLED)
+        except Exception:
+            return
 
 def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline=False):
     """Updates the terminal loading bar in place by instantly overwriting the previous line."""
     try:
         if not text_widget.winfo_exists(): return
     except Exception: return
-    
     text_widget.config(state=tk.NORMAL)
-    # Delete the current last line of text to prevent stacking
     text_widget.delete("end-2c linestart", "end-1c")
-    
     tag_name = f"progress_{time.time()}"
     font_style = ("Courier", 14, "bold" if bold else "normal")
     text_widget.tag_configure(tag_name, foreground=color, font=font_style)
-    
-    # Insert the updated bar instantly so it doesn't have to re-type the whole line
     text_widget.insert(tk.END, text, tag_name)
     if add_newline:
-        text_widget.insert(tk.END, "\n") # Moves cursor down only when 100% complete
-        
+        text_widget.insert(tk.END, "\n")
     text_widget.see(tk.END)
     text_widget.config(state=tk.DISABLED)
-    text_widget.update()
 
 #Buttons interactions
 def make_button_interactive(button):
