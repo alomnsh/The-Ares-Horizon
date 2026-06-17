@@ -66,15 +66,15 @@ dashboard.columnconfigure(1, weight=1)
 dashboard.columnconfigure(2, weight=1)
 dashboard.columnconfigure(3, weight=1)
 
-tk.Label(dashboard, text="CREW SAFETY STATUS:", font=("Courier", 10, "bold"), bg=BG_panel, fg=text_color).grid(row=0, column=0, padx=(15, 2), pady=8, sticky="e")
+tk.Label(dashboard, text="CREW SAFETY STATUS:", font=("Courier", 13, "bold"), bg=BG_panel, fg=text_color).grid(row=0, column=0, padx=(15, 2), pady=8, sticky="e")
 safety_bar = ttk.Progressbar(dashboard, orient="horizontal", length=180, mode="determinate", style="Safety.Horizontal.TProgressbar")
 safety_bar.grid(row=0, column=1, padx=(2, 15), pady=8, sticky="w")
 
-tk.Label(dashboard, text="MISSION BUDGET MAP:", font=("Courier", 10, "bold"), bg=BG_panel, fg=text_color).grid(row=0, column=2, padx=(15, 2), pady=8, sticky="e")
+tk.Label(dashboard, text="MISSION BUDGET:", font=("Courier", 13, "bold"), bg=BG_panel, fg=text_color).grid(row=0, column=2, padx=(15, 2), pady=8, sticky="e")
 budget_bar = ttk.Progressbar(dashboard, orient="horizontal", length=180, mode="determinate", style="Budget.Horizontal.TProgressbar")
 budget_bar.grid(row=0, column=3, padx=(2, 15), pady=8, sticky="w")
 
-points_label = tk.Label(dashboard, text="", font=("Courier", 10, "bold"), bg=BG_panel, fg=color_green)
+points_label = tk.Label(dashboard, text="", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_green)
 points_label.grid(row=1, column=0, columnspan=4, pady=(2, 6))
 
 # Scrollable Output Log Space
