@@ -373,7 +373,7 @@ b3b_2.pack(in_=stage3b_frame, fill=tk.X, pady=2)
 make_button_interactive(b3b_1); make_button_interactive(b3b_2)
 
 # 7. Restart Elements
-btn_restart = tk.Button(restart_frame, text="REINITIALIZE OPERATIONS CORE ARCHIVE", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", command=reboot_mission)
+btn_restart = tk.Button(restart_frame, text="TRY AGAIN?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", command=reboot_mission)
 btn_restart.pack(in_=restart_frame, pady=5)
 make_button_interactive(btn_restart)
 
