@@ -30,10 +30,10 @@ Play the game on your own computer by doing the following steps:
    ``` 
 
 ## Feature
-**Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew saftey points and the mission budget remaining
-**Background Audio:** The code has `playsound` to automatically play a custom made background music when the game is being played
-**Typewriter Effect:** It feels like someone is typing on your screen letter-by-letter to give a cinematic feels to the game
-**The Interface:** Old text and choice are automatically removed and the color of the buttons change when hovering over them
+* **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew saftey points and the mission budget remaining
+* **Background Audio:** The code has `playsound` to automatically play a custom made background music when the game is being played
+* **Typewriter Effect:** It feels like someone is typing on your screen letter-by-letter to give a cinematic feels to the game
+* **The Interface:** Old text and choice are automatically removed and the color of the buttons change when hovering over them
 
 ## How it Works
 
