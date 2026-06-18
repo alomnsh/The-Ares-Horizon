@@ -16,17 +16,9 @@ Play the game on your own computer by doing the following steps:
    
 3. **Install the Packages**
    ```bash
-   pip install playsound==1.2.2
+   pip install playsound==1.2.2 termcolor
    ```
-   (Note: Version 1.2.2 of playsound is recommended to play the audio)
-   ```bash
-   pip install termcolor
-   ```
-   (termcolor to add color to the game)
-   ```bash
-   pip install tkinter
-   ```
-   (tkinter for GUI)
+   (Note: Version 1.2.2 of playsound is recommended to play the audio and the termcolor package is for colors!!)
 
 3. **Launch the game**
    ```bash
