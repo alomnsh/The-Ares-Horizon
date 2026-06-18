@@ -1,23 +1,25 @@
 #Importing packages
-#from replit import audio
 
 from playsound import playsound
+import threading
 import os
 import time
 import termcolor
 import tkinter as tk
 from tkinter import ttk
 
-script_directory= os.path.dirname(__file__)
+def play_music_loop():
+    script_directory = os.path.dirname(__file__)
+    file_name = "Dream Sequence.mp3"
+    full_path = os.path.join(script_directory, file_name)
 
-file_name= "Dream Sequence.mp3"
+    while True:
+        try:
+            playsound(full_path, block=False)
+        except Exception:
+            break
 
-full_path = os.path.join(script_directory, file_name)
-
-try:
-    playsound(full_path, block=False)
-except Exception:
-    pass
+threading.Thread(target=play_music_loop, daemon=True).start()
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
