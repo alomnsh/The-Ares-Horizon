@@ -1,4 +1,4 @@
-# The Ares Horizon Adventure-Game
+# The Ares Horizon-Adventure Game
 A choice python adventure game where the player takes a high-stake role of a Flight Director at NASA. There objective is to successfully launch, navigate and land a spacecraft on the surface of Mars
 
 <!Gameplay Screenshot>
@@ -36,5 +36,9 @@ Play the game on your own computer by doing the following steps:
 * **The Interface:** Old text and choice are automatically removed and the color of the buttons change when hovering over them
 
 ## How it Works
+* The game uses tkinter for the GUI. It is a custom made GUI
+* **Non-Blocking GUI Loop:** Instead of using `time.sleep()` which blocks the exectution loop and cause crashes, the text-scrolling updates the text frame by frame using the tkinter (`root.after`)
+* **Machine Branching:** Each phase is isolated in a state block. When a player make thier choice a function is triggred that wipes out the old buttons, and text and calculates the score, updates the labels and starts the next choice branch
 
 ## Credits
+* How to get started and how to make the GUI from [Jams](https://jams.hackclub.com/jam/story-game)
