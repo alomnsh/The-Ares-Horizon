@@ -7,11 +7,14 @@ import time
 import termcolor
 import tkinter as tk
 from tkinter import ttk
+import sys
 
-script_directory= os.path.dirname(__file__)
+if hasattr(sys, '_MEIPASS'):
+    script_directory = sys._MEIPASS
+else:
+    script_directory = os.path.dirname(os.path.abspath(__file__))
 
-file_name= "Dream Sequence.mp3"
-
+file_name = "Dream Sequence.mp3"
 full_path = os.path.join(script_directory, file_name)
 
 try:
