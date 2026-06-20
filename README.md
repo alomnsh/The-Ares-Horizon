@@ -3,9 +3,14 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 
 <img width="1918" height="983" alt="Image" src="https://github.com/user-attachments/assets/37832fe0-860f-4aac-8f54-0d5724ae079d" />
 
-**[Download and Play the Game](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/archive/refs/heads/main.zip)**
+## How to Play
 
-## Quick Start
+### Option 1: Quick Play (Windows Only - No Setup Required)
+1. Head over to the **[Releases](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/releases/tag/v1.0.0)** page.
+2. Download the `The Ares Horizon.exe` file from the latest release assets.
+3. Double-click to run and play instantly!
+
+### Option 2: Run via Source Code (Cross-Platform)
 Play the game on your own computer by doing the following steps:
 (The game is a desktop based GUI, so it has to be hosted on your computer and cannot run on cloud)
 
