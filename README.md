@@ -46,5 +46,5 @@ Play the game on your own computer by doing the following steps:
 * How to get started and how to make the GUI from [Jams](https://jams.hackclub.com/jam/story-game)
 
 ## AI Disclosure
-* Used Google's AI to help with fixing bugs with my typewriter funtion and bugs with my boot sequence
+* Used Google's AI to help with fixing bugs with my typewriter function and bugs with my boot sequence
 * AI usage was less than 10% of the code
