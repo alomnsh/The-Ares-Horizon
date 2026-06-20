@@ -3,7 +3,7 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 
 <!Gameplay Screenshot>
 
-**[Download and Play the Game](link)**
+**[Download and Play the Game](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/archive/refs/heads/main.zip)**
 
 ## Quick Start
 Play the game on your own computer by doing the following steps:
