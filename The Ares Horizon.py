@@ -1,6 +1,7 @@
 #Importing packages
 
 from playsound import playsound
+import threading
 import os
 import time
 import termcolor
@@ -87,39 +88,38 @@ output_text = tk.Text(log_container, wrap=tk.WORD, state=tk.DISABLED, bg=BG_main
 output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scroller.config(command=output_text.yview)
 
-# Text animations
-def typewriter(text, text_widget, color=text_color, bold=False, index=0, tag_name=None):
-    """Animates text into the GUI Text widget safely using Tkinter's event loop."""
+# Text animations 
+def typewriter(text, text_widget, color=text_color, bold=False):
+    """Animates text into the GUI Text widget safely, checking if it exists first."""
     try:
+        # Check if the text widget was destroyed or closed
         if not text_widget.winfo_exists():
             return
     except Exception:
         return
 
-    # Setup configurations on the first letter instance
-    if index == 0:
-        text_widget.config(state=tk.NORMAL)
-        tag_name = f"style_{time.time()}"
-        font_style = ("Courier", 14, "bold" if bold else "normal")
-        text_widget.tag_configure(tag_name, foreground=color, font=font_style)
-
-    if index < len(text):
+    text_widget.config(state=tk.NORMAL)
+    tag_name = f"style_{time.time()}"
+    font_style = ("Courier", 14, "bold" if bold else "normal")
+    text_widget.tag_configure(tag_name, foreground=color, font=font_style)
+    
+    for letter in text:
         try:
-            text_widget.insert(tk.END, text[index], tag_name)
+            # Safety check before inserting every single letter
+            if not text_widget.winfo_exists():
+                return
+            text_widget.insert(tk.END, letter, tag_name)
             text_widget.see(tk.END)
-            
-            # Schedule the next character safely without freezing the screen
-            timer_id = root.after(35, lambda: typewriter(text, text_widget, color, bold, index + 1, tag_name))
-            global active_timers
-            active_timers.append(timer_id)
+            text_widget.update()
+            time.sleep(0.035) 
         except Exception:
             return
-    else:
-        try:
-            text_widget.insert(tk.END, "\n")
-            text_widget.config(state=tk.DISABLED)
-        except Exception:
-            return
+        
+    try:
+        text_widget.insert(tk.END, "\n")
+        text_widget.config(state=tk.DISABLED)
+    except Exception:
+        return
 
 def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline=False):
     """Updates the terminal loading bar in place by instantly overwriting the previous line."""
@@ -201,22 +201,23 @@ def run_boot_sequence():
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
+    # ADD THESE TWO LINES AT THE VERY START OF THE FUNCTION:
+    if not root.winfo_exists():
+        return
+
     output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)  
+    output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
     
-    # Forces the dashboard panel to the absolute TOP of the window layout
     log_container.pack_forget()
     dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
-    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0)) 
+    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0))
     update_gui()
 
     typewriter("Welcome to The Ares Horizon Game!", output_text, bold=True)
-    print("======================================================================", output_text)
     typewriter("In this game you are a Flight Director at NASA Mission Control!", output_text)
     typewriter("The Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!", output_text)
     typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.", output_text)
-    print("======================================================================", output_text)
 
     typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", output_text, bold=True)
     typewriter("", output_text)
@@ -224,7 +225,10 @@ def trigger_game_start():
     typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", output_text, color=color_red)
     typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
     
-    stage1_frame.pack(pady=10)
+    try:
+        stage1_frame.pack(pady=10)
+    except Exception:
+        return
     
 def handle_choice1(choice):
     stage1_frame.pack_forget()
