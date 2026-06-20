@@ -8,16 +8,16 @@ import termcolor
 import tkinter as tk
 from tkinter import ttk
 
-def play_music_loop():
-    script_directory = os.path.dirname(__file__)
-    file_name = "Dream Sequence.mp3"
-    full_path = os.path.join(script_directory, file_name)
+script_directory= os.path.dirname(__file__)
 
-    while True:
-        try:
-            playsound(full_path, block=False)
-        except Exception:
-            break
+file_name= "Dream Sequence.mp3"
+
+full_path = os.path.join(script_directory, file_name)
+
+try:
+    playsound(full_path, block=False)
+except Exception:
+    pass
 
 threading.Thread(target=play_music_loop, daemon=True).start()
 
