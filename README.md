@@ -1,7 +1,7 @@
 # The Ares Horizon-Adventure Game
 A choice python adventure game where the player takes a high-stake role of a Flight Director at NASA. Their objective is to successfully launch, navigate and land a spacecraft on the surface of Mars
 
-<!Gameplay Screenshot>
+<img width="1918" height="983" alt="Image" src="https://github.com/user-attachments/assets/37832fe0-860f-4aac-8f54-0d5724ae079d" />
 
 **[Download and Play the Game](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/archive/refs/heads/main.zip)**
 
