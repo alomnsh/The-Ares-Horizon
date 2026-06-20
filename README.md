@@ -27,7 +27,8 @@ Play the game on your own computer by doing the following steps:
    (If you are on MacOS or linux, use:)
    ```bash
    python3 "The Ares Horizon.py"
-   ``` 
+   ```
+**(NOTE: PLS KEEP VOLUME OF YOUR DEVICE TO 20% SO YOU DON'T BLOW YOUR EARS)**
 
 ## Feature
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
