@@ -7,6 +7,7 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 
 ## Quick Start
 Play the game on your own computer by doing the following steps:
+(The game is a desktop based GUI, so it has to be hosted on your computer and cannot run on cloud)
 
 1. **Clone the repository**
    ```bash
@@ -28,7 +29,7 @@ Play the game on your own computer by doing the following steps:
    ```bash
    python3 "The Ares Horizon.py"
    ```
-**(NOTE: PLS KEEP VOLUME OF YOUR DEVICE TO 20% SO YOU DON'T BLOW YOUR EARS)**
+**(NOTE: PLS KEEP VOLUME OF YOUR DEVICE TO AROUNF 30% SO YOU DON'T BLOW YOUR EARS AND THE AUDIO IS PLEASANT)**
 
 ## Feature
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
@@ -43,3 +44,7 @@ Play the game on your own computer by doing the following steps:
 
 ## Credits
 * How to get started and how to make the GUI from [Jams](https://jams.hackclub.com/jam/story-game)
+
+## AI Disclosure
+* Used Google's AI to help with fixing bugs with my typewriter function and bugs with my boot sequence
+* AI usage was less than 10% of the code
