@@ -1,7 +1,6 @@
 #Importing packages
 
 from playsound import playsound
-import threading
 import os
 import time
 import termcolor
@@ -19,7 +18,6 @@ try:
 except Exception:
     pass
 
-threading.Thread(target=play_music_loop, daemon=True).start()
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
