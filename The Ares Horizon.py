@@ -283,8 +283,7 @@ def handle_choice1(choice):
         stage2b_frame.pack(pady=10)
 
 def end_game_session():
-    print("\n=======================================================", output_text)
-    typewriter(f"\nFinal Session Archive Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
+    typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
     restart_frame.pack(pady=15)
 
 def reboot_mission():
