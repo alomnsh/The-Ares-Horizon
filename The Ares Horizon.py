@@ -265,7 +265,7 @@ def trigger_game_start():
     typewriter("", output_text)
     typewriter("The Orion-X awaits launch", output_text)
 
-    trigger_warning_sound
+    trigger_warning_sound()
 
     typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", output_text, color=color_red)
     typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
@@ -276,7 +276,7 @@ def trigger_game_start():
         return
     
 def handle_choice1(choice):
-    stop_warning_sound
+    stop_warning_sound()
 
     stage1_frame.pack_forget()
     global crew_safety, mission_budget, science_points
