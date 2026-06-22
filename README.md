@@ -36,7 +36,7 @@ Play the game on your own computer by doing the following steps:
    ```
 **(NOTE: PLS KEEP VOLUME OF YOUR DEVICE TO AROUNF 30% SO YOU DON'T BLOW YOUR EARS AND THE AUDIO IS PLEASANT)**
 
-## Feature
+## Features
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
 * **Background Audio:** The code has `playsound` to automatically play a custom made background music when the game is being played
 * **Typewriter Effect:** It feels like someone is typing on your screen letter-by-letter to give a cinematic feels to the game
