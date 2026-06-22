@@ -9,53 +9,58 @@ import tkinter as tk
 from tkinter import ttk
 import sys
 import threading
+import ctypes
 
 #Sound Effects
-if hasattr(sys, '_MEIPASS'):
-    script_directory = sys._MEIPASS
-else:
-    script_directory = os.path.dirname(os.path.abspath(__file__))
+
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+def send_mci_command(command):
+    """Helper function to talk directly to the Windows audio engine."""
+    buffer = ctypes.create_string_buffer(255)
+    ctypes.windll.winmm.mciSendStringA(command.encode('utf-8'), buffer, 254, 0)
+    return buffer.value.decode('utf-8')
 
 file_name = "Dream Sequence.mp3"
-full_path = os.path.join(script_directory, file_name)
+full_path = f'"{os.path.join(script_directory, file_name)}"'
 
-try:
-    playsound(full_path, block=False)
-except Exception:
+try: 
+    send_mci_command(f"open {full_path} type mpegvideo alias bg_music")
+    send_mci_command("play bg_music repeat")
+except Exception: 
     pass
 
-warning_sound= False
-warning_file = "Warning.mp3"
+# --- SOUND EFFECT TRACK FILE DIRECTORIES ---
+warning_file = f'"{os.path.join(script_directory, "Warning.mp3")}"'
+pull_up_file = f'"{os.path.join(script_directory, "Pull Up.mp3")}"'
+roger_that_file = f'"{os.path.join(script_directory, "Roger That.mp3")}"'
+space_warning_file = f'"{os.path.join(script_directory, "Spacecraft Warning.mp3")}"'
 
+# Track state toggles
+warning_sound = False
 pull_up_sound = False
-pull_up_file = "Pull Up.mp3"
-
 roger_that_sound = False
-roger_that_file = "Roger That.mp3"
-
 space_warning_sound = False
-space_warning_file= "Spacecraft Warning.mp3"
 
 #Warning Sound Effect Setup
-def loop_warning_sound(warning_path):
-    global warning_sound
-    while warning_sound:
-        try:
-            playsound(warning_path, block=True)
-        except:
-            break
-
 def trigger_warning_sound():
     global warning_sound
     if not warning_sound:
         warning_sound = True
-        warning_path = os.path.join(script_directory, warning_file)
-        alarm_thread = threading.Thread(target=loop_warning_sound, args=(warning_path,), daemon=True)
-        alarm_thread.start()
+        try:
+            send_mci_command(f"open {warning_file} type mpegvideo alias sf_warning")
+            send_mci_command("play sf_warning repeat")
+        except Exception:
+            pass
 
-def stop_warning_alarm():
+def stop_warning_sound():
     global warning_sound
     warning_sound = False
+    try:
+        send_mci_command("stop sf_warning")
+        send_mci_command("close sf_warning")
+    except Exception:
+        pass
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
@@ -259,6 +264,9 @@ def trigger_game_start():
     typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", output_text, bold=True)
     typewriter("", output_text)
     typewriter("The Orion-X awaits launch", output_text)
+
+    trigger_warning_sound
+
     typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", output_text, color=color_red)
     typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
     
@@ -268,6 +276,8 @@ def trigger_game_start():
         return
     
 def handle_choice1(choice):
+    stop_warning_sound
+
     stage1_frame.pack_forget()
     global crew_safety, mission_budget, science_points
 
