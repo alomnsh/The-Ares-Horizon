@@ -8,7 +8,9 @@ import termcolor
 import tkinter as tk
 from tkinter import ttk
 import sys
+import threading
 
+#Sound Effects
 if hasattr(sys, '_MEIPASS'):
     script_directory = sys._MEIPASS
 else:
@@ -22,6 +24,38 @@ try:
 except Exception:
     pass
 
+warning_sound= False
+warning_file = "Warning.mp3"
+
+pull_up_sound = False
+pull_up_file = "Pull Up.mp3"
+
+roger_that_sound = False
+roger_that_file = "Roger That.mp3"
+
+space_warning_sound = False
+space_warning_file= "Spacecraft Warning.mp3"
+
+#Warning Sound Effect Setup
+def loop_warning_sound(warning_path):
+    global warning_sound
+    while warning_sound:
+        try:
+            playsound(warning_path, block=True)
+        except:
+            break
+
+def trigger_warning_sound():
+    global warning_sound
+    if not warning_sound:
+        warning_sound = True
+        warning_path = os.path.join(script_directory, warning_file)
+        alarm_thread = threading.Thread(target=loop_warning_sound, args=(warning_path,), daemon=True)
+        alarm_thread.start()
+
+def stop_warning_alarm():
+    global warning_sound
+    warning_sound = False
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
