@@ -270,6 +270,7 @@ def update_gui():
 
 def run_boot_sequence():
     """Plays the mainframe boot animation with a custom in-place updating console loading bar."""
+    trigger_click_sound()
     cancel_all_timers() 
     welcome_frame.pack_forget()  
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
@@ -328,6 +329,7 @@ def trigger_game_start():
     
 def handle_choice1(choice):
     stop_all_sounds()
+    trigger_click_sound()
 
     stage1_frame.pack_forget()
     global crew_safety, mission_budget, science_points
@@ -483,6 +485,7 @@ def handle_choice2a(choice):
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
     stop_all_sounds()
+    trigger_click_sound()
 
     if choice == "1":
         typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.", output_text)
@@ -515,6 +518,7 @@ def handle_choice3a(choice):
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
     stop_all_sounds()
+    trigger_click_sound()
 
     if choice == "1":
         typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
@@ -543,6 +547,7 @@ def handle_choice2b(choice):
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
     stop_all_sounds()
+    trigger_click_sound()
 
     if choice == "1":
         typewriter("The patch works! The navigation is back up again", output_text)
@@ -572,6 +577,7 @@ def handle_choice3b(choice):
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
     stop_all_sounds()
+    trigger_click_sound()
 
     if choice == "1":
         typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
