@@ -328,6 +328,7 @@ def handle_choice1(choice):
     if choice == "1":
         typewriter("\nIGNITION! The rocket vibrates violently as it puches through the wind", output_text)
         typewriter("Minutes later you reach the edge of the atmosphere and enter orbit, but the stress caused by the wind resulted in an issue", output_text)
+        trigger_spacecraft_warning_sound()
         typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", output_text, color= "red")
 
         #Penalty for taking risk and damage
@@ -360,6 +361,7 @@ def handle_choice1(choice):
 
         #Choice 2 Stage 2
         typewriter("\nSTAGE-2: LOST IN SPACE", output_text, bold = True)
+        trigger_warning_sound()
         typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!", output_text, color= "red")
         stage2b_frame.pack(pady=10)
 
@@ -466,7 +468,8 @@ def handle_choice2a(choice):
     output_text.config(state=tk.NORMAL)
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
-    
+    stop_all_sounds()
+
     if choice == "1":
         typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.", output_text)
         typewriter("Months pass in deep space, and the crew finally arrives at the Red Planet", output_text)
@@ -497,7 +500,8 @@ def handle_choice3a(choice):
     output_text.config(state=tk.NORMAL)
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
-    
+    stop_all_sounds()
+
     if choice == "1":
         typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
         typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
@@ -507,6 +511,7 @@ def handle_choice3a(choice):
         update_gui()
 
     elif choice == "2":
+        trigger_pullup_sound()
         typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", output_text, color="red")
         typewriter("The lander tips and loses pressure. Space is not forgiving.", output_text, color="red")
         typewriter("MISSION FAILED", output_text, bold=True, color="red")
@@ -523,7 +528,8 @@ def handle_choice2b(choice):
     output_text.config(state=tk.NORMAL)
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
-    
+    stop_all_sounds()
+
     if choice == "1":
         typewriter("The patch works! The navigation is back up again", output_text)
         typewriter("However the reboot drained 60% of your spacecraft power reserves", output_text, color="red")
@@ -551,7 +557,8 @@ def handle_choice3b(choice):
     output_text.config(state=tk.NORMAL)
     output_text.delete("1.0", tk.END)
     output_text.config(state=tk.DISABLED)
-          
+    stop_all_sounds()
+
     if choice == "1":
         typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
         typewriter("The crew lands flawlessly with power to spare. You saved them with patience!", output_text, color="green")
@@ -573,6 +580,7 @@ update_gui()
 
 def on_close_window():
     """Intercepts clicking the 'X' button to kill background timer threads instantly."""
+    stop_all_sounds()
     cancel_all_timers()
     root.destroy()
 
