@@ -32,6 +32,7 @@ pull_up_file = f'"{os.path.join(script_directory, "Pull Up.mp3")}"'
 roger_that_file = f'"{os.path.join(script_directory, "Roger That.mp3")}"'
 space_warning_file = f'"{os.path.join(script_directory, "Spacecraft Warning.mp3")}"'
 click_file = f'"{os.path.join(script_directory, "Click.mp3")}"'
+mission_success_file = f'"{os.path.join(script_directory, "Mission Success.mp3")}"'
 
 # Track state toggles
 warning_sound = False
@@ -39,6 +40,7 @@ pull_up_sound = False
 roger_that_sound = False
 space_warning_sound = False
 click_sound = False
+mission_success_sound = False
 
 #Warning Sound Effect Setup
 def trigger_warning_sound():
@@ -94,10 +96,21 @@ def trigger_click_sound():
             send_mci_command("play sf_click from 0")
         except Exception:
             pass
+
+#Mission Success Sound Effect
+def trigger_mission_success_sound():
+    global mission_success_sound
+    if not mission_success_sound:
+        mission_success_sound = True
+        try:
+            send_mci_command(f"open {mission_success_file} type mpegvideo alias sf_success")
+            send_mci_command("play sf_success from 0")
+        except Exception:
+            pass
     
 #Stop all sounds
 def stop_all_sounds():
-    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound
+    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound, mission_success_sound
 
     space_warning_sound = False
     warning_sound = False
@@ -105,7 +118,7 @@ def stop_all_sounds():
     pull_up_sound = False
     click_sound = False
 
-    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click"]
+    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click", "sf_success"]
     for alias in aliases:
         try:
             send_mci_command(f"stop {alias}")
@@ -521,6 +534,7 @@ def handle_choice3a(choice):
     trigger_click_sound()
 
     if choice == "1":
+        trigger_mission_success_sound()
         typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
         typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
         typewriter("Excellent Work, Director", output_text, color="green")
@@ -581,6 +595,7 @@ def handle_choice3b(choice):
 
     if choice == "1":
         typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
+        trigger_mission_success_sound()
         typewriter("The crew lands flawlessly with power to spare. You saved them with patience!", output_text, color="green")
         science_points += 40
         update_gui()
