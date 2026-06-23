@@ -67,29 +67,37 @@ def trigger_roger_sound():
         roger_that_sound = True
         try:
             send_mci_command(f"open {roger_that_file} type mpegvideo alias sf_roger")
-            send_mci_command("play sf_roger from 0")
+            send_mci_command("play sf_roger from 0") #only runs audio once
+        except Exception:
+            pass
+
+#Pull Up Sound effect
+def trigger_pullup_sound():
+    global pull_up_sound
+    if not pull_up_sound:
+        pull_up_sound = True
+        try:
+            send_mci_command(f"open {pull_up_file} type mpegvideo alias sf_pullup")
+            send_mci_command("play sf_pullup from 0")
         except Exception:
             pass
     
 #Stop all sounds
 def stop_all_sounds():
-    global space_warning_sound
-    global warning_sound
-    global roger_that_sound
+    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound
 
     space_warning_sound = False
     warning_sound = False
     roger_that_sound = False
+    pull_up_sound = False
 
-    try:
-        send_mci_command("stop sf_spacecraft_warning")
-        send_mci_command("close sf_spacecraft_warning")
-        send_mci_command("stop sf_warning")
-        send_mci_command("close sf_warning")
-        send_mci_command("stop sf_roger")
-        send_mci_command("close sf_roger")
-    except Exception:
-        pass
+    aliases = ["sf_warning", "sf_pull_up", "sf_roger", "sf_space_warn"]
+    for alias in aliases:
+        try:
+            send_mci_command(f"stop {alias}")
+            send_mci_command(f"close {alias}")
+        except Exception:
+            pass
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
