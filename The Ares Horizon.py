@@ -1,14 +1,10 @@
 #Importing packages
-
-from playsound import playsound
-import threading
 import os
 import time
 import termcolor
 import tkinter as tk
 from tkinter import ttk
 import sys
-import threading
 import ctypes
 
 #Sound Effects
