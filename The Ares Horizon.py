@@ -33,6 +33,7 @@ roger_that_file = f'"{os.path.join(script_directory, "Roger That.mp3")}"'
 space_warning_file = f'"{os.path.join(script_directory, "Spacecraft Warning.mp3")}"'
 click_file = f'"{os.path.join(script_directory, "Click.mp3")}"'
 mission_success_file = f'"{os.path.join(script_directory, "Mission Success.mp3")}"'
+mission_failed_file = f'"{os.path.join(script_directory, "Mission Failed.mp3")}"'
 
 # Track state toggles
 warning_sound = False
@@ -41,6 +42,7 @@ roger_that_sound = False
 space_warning_sound = False
 click_sound = False
 mission_success_sound = False
+mission_failed_sound = False
 
 #Warning Sound Effect Setup
 def trigger_warning_sound():
@@ -82,7 +84,7 @@ def trigger_pullup_sound():
         pull_up_sound = True
         try:
             send_mci_command(f"open {pull_up_file} type mpegvideo alias sf_pullup")
-            send_mci_command("play sf_pullup from 0")
+            send_mci_command("play sf_pullup from 0 wait")
         except Exception:
             pass
 
@@ -107,10 +109,21 @@ def trigger_mission_success_sound():
             send_mci_command("play sf_success from 0")
         except Exception:
             pass
+
+#Mission Failed Sound Effect
+def trigger_mision_failed_sound():
+    global mission_failed_sound
+    if not mission_failed_sound:
+        mission_failed_sound = True
+        try:
+            send_mci_command(f"open {mission_failed_file} type mpegvideo alias sf_failed")
+            send_mci_command("play sf_failed from 0")
+        except Exception:
+            pass
     
 #Stop all sounds
 def stop_all_sounds():
-    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound, mission_success_sound
+    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound, mission_success_sound, mission_failed_sound
 
     space_warning_sound = False
     warning_sound = False
@@ -118,7 +131,7 @@ def stop_all_sounds():
     pull_up_sound = False
     click_sound = False
 
-    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click", "sf_success"]
+    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click", "sf_success", "sf_failed"]
     for alias in aliases:
         try:
             send_mci_command(f"stop {alias}")
@@ -546,6 +559,7 @@ def handle_choice3a(choice):
         trigger_pullup_sound()
         typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", output_text, color="red")
         typewriter("The lander tips and loses pressure. Space is not forgiving.", output_text, color="red")
+        trigger_mision_failed_sound()
         typewriter("MISSION FAILED", output_text, bold=True, color="red")
         crew_safety = 0
         mission_budget = 0
@@ -578,6 +592,7 @@ def handle_choice2b(choice):
     elif choice == "2":
         typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
         typewriter("The crew misses the Mars window completely, drifting into the solar system with no way of communication", output_text, color="red")
+        trigger_mision_failed_sound()
         crew_safety = 0
         mission_budget = 0
         update_gui()
@@ -603,6 +618,7 @@ def handle_choice3b(choice):
     elif choice == "2":
         typewriter("\n BURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
         typewriter("The engines fail 100 meters up. The ship impacts the surface.", output_text, color="red")
+        trigger_mision_failed_sound()
         typewriter("MISSION FAILED", output_text, color="red", bold=True)
         crew_safety = 0
         update_gui()
