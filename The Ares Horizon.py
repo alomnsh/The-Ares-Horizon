@@ -53,15 +53,6 @@ def trigger_warning_sound():
         except Exception:
             pass
 
-def stop_warning_sound():
-    global warning_sound
-    warning_sound = False
-    try:
-        send_mci_command("stop sf_warning")
-        send_mci_command("close sf_warning")
-    except Exception:
-        pass
-
 #Spacecraft warning setup
 def trigger_spacecraft_warning_sound():
     global space_warning_sound
@@ -72,13 +63,20 @@ def trigger_spacecraft_warning_sound():
             send_mci_command("play sf_spacecraft_warning repeat")
         except Exception:
             pass
-
-def stop_spacecraft_warning_sound():
+    
+#Stop all sounds
+def stop_all_sounds():
     global space_warning_sound
+    global warning_sound
+
     space_warning_sound = False
+    warning_sound = False
+
     try:
         send_mci_command("stop sf_spacecraft_warning")
         send_mci_command("close sf_spacecraft_warning")
+        send_mci_command("stop sf_warning")
+        send_mci_command("close sf_warning")
     except Exception:
         pass
 
@@ -296,7 +294,7 @@ def trigger_game_start():
         return
     
 def handle_choice1(choice):
-    stop_warning_sound()
+    stop_all_sounds()
 
     stage1_frame.pack_forget()
     global crew_safety, mission_budget, science_points
