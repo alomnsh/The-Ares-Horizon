@@ -48,8 +48,8 @@ def trigger_warning_sound():
     if not warning_sound:
         warning_sound = True
         try:
-            send_mci_command(f"open {warning_file} type mpegvideo alias sf_warning")
-            send_mci_command("play sf_warning repeat")
+            send_mci_command(f"open {warning_file} type mpegvideo alias sf_warning") #opens the audio file
+            send_mci_command("play sf_warning repeat") #plays on repeat until the stop function is activated
         except Exception:
             pass
 
@@ -59,6 +59,26 @@ def stop_warning_sound():
     try:
         send_mci_command("stop sf_warning")
         send_mci_command("close sf_warning")
+    except Exception:
+        pass
+
+#Spacecraft warning setup
+def trigger_spacecraft_warning_sound():
+    global space_warning_sound
+    if not space_warning_sound:
+        space_warning_sound = True
+        try:
+            send_mci_command(f"open {space_warning_file} type mpegvideo alias sf_spacecraft_warning")
+            send_mci_command("play sf_spacecraft_warning repeat")
+        except Exception:
+            pass
+
+def stop_spacecraft_warning_sound():
+    global space_warning_sound
+    space_warning_sound = False
+    try:
+        send_mci_command("stop sf_spacecraft_warning")
+        send_mci_command("close sf_spacecraft_warning")
     except Exception:
         pass
 
