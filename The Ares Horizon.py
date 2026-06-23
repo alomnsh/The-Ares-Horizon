@@ -31,12 +31,14 @@ warning_file = f'"{os.path.join(script_directory, "Warning.mp3")}"'
 pull_up_file = f'"{os.path.join(script_directory, "Pull Up.mp3")}"'
 roger_that_file = f'"{os.path.join(script_directory, "Roger That.mp3")}"'
 space_warning_file = f'"{os.path.join(script_directory, "Spacecraft Warning.mp3")}"'
+click_file = f'"{os.path.join(script_directory, "Click.mp3")}"'
 
 # Track state toggles
 warning_sound = False
 pull_up_sound = False
 roger_that_sound = False
 space_warning_sound = False
+click_sound = False
 
 #Warning Sound Effect Setup
 def trigger_warning_sound():
@@ -81,17 +83,29 @@ def trigger_pullup_sound():
             send_mci_command("play sf_pullup from 0")
         except Exception:
             pass
+
+#Click Sound effect
+def trigger_click_sound():
+    global click_sound
+    if not click_sound:
+        click_sound = True
+        try:
+            send_mci_command(f"open {click_file} type mpegvideo alias sf_click")
+            send_mci_command("play sf_click from 0")
+        except Exception:
+            pass
     
 #Stop all sounds
 def stop_all_sounds():
-    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound
+    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound
 
     space_warning_sound = False
     warning_sound = False
     roger_that_sound = False
     pull_up_sound = False
+    click_sound = False
 
-    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning"]
+    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click"]
     for alias in aliases:
         try:
             send_mci_command(f"stop {alias}")
