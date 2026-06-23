@@ -91,7 +91,7 @@ def stop_all_sounds():
     roger_that_sound = False
     pull_up_sound = False
 
-    aliases = ["sf_warning", "sf_pull_up", "sf_roger", "sf_space_warn"]
+    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning"]
     for alias in aliases:
         try:
             send_mci_command(f"stop {alias}")
