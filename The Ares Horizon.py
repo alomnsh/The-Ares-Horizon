@@ -59,20 +59,35 @@ def trigger_spacecraft_warning_sound():
             send_mci_command("play sf_spacecraft_warning repeat")
         except Exception:
             pass
+
+#Roger That sound effect
+def trigger_roger_sound():
+    global roger_that_sound
+    if not roger_that_sound:
+        roger_that_sound = True
+        try:
+            send_mci_command(f"open {roger_that_file} type mpegvideo alias sf_roger")
+            send_mci_command("play sf_roger from 0")
+        except Exception:
+            pass
     
 #Stop all sounds
 def stop_all_sounds():
     global space_warning_sound
     global warning_sound
+    global roger_that_sound
 
     space_warning_sound = False
     warning_sound = False
+    roger_that_sound = False
 
     try:
         send_mci_command("stop sf_spacecraft_warning")
         send_mci_command("close sf_spacecraft_warning")
         send_mci_command("stop sf_warning")
         send_mci_command("close sf_warning")
+        send_mci_command("stop sf_roger")
+        send_mci_command("close sf_roger")
     except Exception:
         pass
 
