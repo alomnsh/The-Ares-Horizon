@@ -370,8 +370,6 @@ def handle_choice1(choice):
     if choice == "1":
         typewriter("\nIGNITION! The rocket vibrates violently as it puches through the wind", output_text)
         typewriter("Minutes later you reach the edge of the atmosphere and enter orbit, but the stress caused by the wind resulted in an issue", output_text)
-        trigger_spacecraft_warning_sound()
-        typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", output_text, color= "red")
 
         #Penalty for taking risk and damage
         crew_safety -= 20
@@ -384,6 +382,8 @@ def handle_choice1(choice):
 
         #Choice 1 Stage 2
         typewriter("\nSTAGE-2: THE ORBITAL ANOMALY", output_text, bold = True)
+        trigger_spacecraft_warning_sound()
+        typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", output_text, color= "red")
         stage2a_frame.pack(pady=10)
 
         #=================
@@ -392,7 +392,6 @@ def handle_choice1(choice):
     elif choice == "2":
         typewriter("\nYou stand down on the launch. The crew exits the spacecraft", output_text)
         typewriter("Weeks later, you launch on a much longer and not as ideal route", output_text)
-        typewriter("Deep in space, a massive radiation storm knocks down your primary navigation computer", output_text, color= "red")
 
         #Crew stays secure but delays drain cash
         mission_budget -= 40
@@ -404,8 +403,146 @@ def handle_choice1(choice):
         #Choice 2 Stage 2
         typewriter("\nSTAGE-2: LOST IN SPACE", output_text, bold = True)
         trigger_warning_sound()
+        typewriter("Deep in space, a massive radiation storm knocks down your primary navigation computer", output_text, color= "red")
         typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!", output_text, color= "red")
         stage2b_frame.pack(pady=10)
+
+def handle_choice2a(choice):
+    stage2a_frame.pack_forget()
+    global crew_safety, mission_budget, science_points
+    
+    output_text.config(state=tk.NORMAL)
+    output_text.delete("1.0", tk.END)
+    output_text.config(state=tk.DISABLED)
+    stop_all_sounds()
+    trigger_click_sound()
+
+    if choice == "1":
+        typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.", output_text)
+        typewriter("Months pass in deep space, and the crew finally arrives at the Red Planet", output_text)
+        crew_safety -= 10
+        science_points += 30
+        update_gui()
+        handle_landing_choice_branch_1()
+
+    elif choice == "2":
+        typewriter("The emergency escape system rips apart from the capsule", output_text)
+        typewriter("The crew safely splash down in the atlantic ocean", output_text)
+        typewriter("The mission is over but the crew lives", output_text)
+        mission_budget = 0
+        update_gui()
+        end_game_session()
+
+def handle_landing_choice_branch_1():
+    typewriter("", output_text)
+    typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}", output_text, color="cyan")
+
+    typewriter("\nSTAGE-3: MARS LANDING", output_text, bold=True)
+    typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates", output_text)
+    typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing", output_text, color="red")
+    stage3a_frame.pack(pady=10)
+
+def handle_landing_choice_branch_2():
+    typewriter("", output_text)
+    typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}", output_text, color="cyan")
+
+    typewriter("\nSTAGE-4: MARS LANDING", output_text, bold=True)
+    typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates", output_text)
+    typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing", output_text, color="red")
+    stage3a_frame.pack(pady=10)
+
+def handle_choice3a(choice):
+    stage3a_frame.pack_forget()
+    global crew_safety, mission_budget, science_points
+        
+    output_text.config(state=tk.NORMAL)
+    output_text.delete("1.0", tk.END)
+    output_text.config(state=tk.DISABLED)
+    stop_all_sounds()
+    trigger_click_sound()
+
+    if choice == "1":
+        trigger_mission_success_sound()
+        typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
+        typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
+        typewriter("Excellent Work, Director", output_text, color="green")
+        if crew_safety == 100:
+            crew_safety = 100
+        else:
+            crew_safety += 10
+
+        science_points += 50
+        update_gui()
+
+    elif choice == "2":
+        trigger_pullup_sound()
+        typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", output_text, color="red")
+        typewriter("The lander tips and loses pressure. Space is not forgiving.", output_text, color="red")
+        trigger_mision_failed_sound()
+        typewriter("MISSION FAILED", output_text, bold=True, color="red")
+        crew_safety = 0
+        mission_budget = 0
+        update_gui()
+
+    end_game_session()
+
+def handle_choice2b(choice):
+    stage2b_frame.pack_forget()
+    global crew_safety, mission_budget, science_points
+    
+    output_text.config(state=tk.NORMAL)
+    output_text.delete("1.0", tk.END)
+    output_text.config(state=tk.DISABLED)
+    stop_all_sounds()
+    trigger_click_sound()
+
+    if choice == "1":
+        typewriter("The patch works! The navigation is back up again", output_text)
+        typewriter("However the reboot drained 60% of your spacecraft power reserves", output_text, color="red")
+        science_points += 20
+        update_gui()
+
+        typewriter(f"\nStatus-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}", output_text, color="cyan")
+        typewriter("\nSTAGE-3: LOW POWER", output_text, bold=True)
+        trigger_spacecraft_warning_sound()
+        typewriter("The crew arrive at Mars in a critically underpowered ship", output_text, color="red")
+        typewriter("With the low power, you cannot run both the heaters and the landing thrusters", output_text, color="red")
+        stage3b_frame.pack(pady=10)
+
+    elif choice == "2":
+        typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
+        typewriter("The crew misses the Mars window completely, drifting into the solar system with no way of communication", output_text, color="red")
+        trigger_mision_failed_sound()
+        crew_safety = 0
+        mission_budget = 0
+        update_gui()
+        end_game_session()
+
+def handle_choice3b(choice):
+    stage3b_frame.pack_forget()
+    global crew_safety, mission_budget, science_points
+          
+    output_text.config(state=tk.NORMAL)
+    output_text.delete("1.0", tk.END)
+    output_text.config(state=tk.DISABLED)
+    stop_all_sounds()
+    trigger_click_sound()
+
+    if choice == "1":
+        typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
+        science_points += 40
+        update_gui()
+        handle_landing_choice_branch_2()
+
+    elif choice == "2":
+        typewriter("\n BURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
+        typewriter("The engines fail 100 meters up. The ship impacts the surface.", output_text, color="red")
+        trigger_mision_failed_sound()
+        typewriter("MISSION FAILED", output_text, color="red", bold=True)
+        crew_safety = 0
+        update_gui()
+
+    end_game_session()
 
 def end_game_session():
     typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
@@ -501,130 +638,6 @@ make_button_interactive(b3b_1); make_button_interactive(b3b_2)
 btn_restart = tk.Button(restart_frame, text="TRY AGAIN?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", command=reboot_mission)
 btn_restart.pack(in_=restart_frame, pady=5)
 make_button_interactive(btn_restart)
-
-
-def handle_choice2a(choice):
-    stage2a_frame.pack_forget()
-    global crew_safety, mission_budget, science_points
-    
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
-    stop_all_sounds()
-    trigger_click_sound()
-
-    if choice == "1":
-        typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.", output_text)
-        typewriter("Months pass in deep space, and the crew finally arrives at the Red Planet", output_text)
-        crew_safety -= 10
-        science_points += 30
-        update_gui()
-
-        typewriter("", output_text)
-        typewriter(f"Status-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Point Gathered {science_points}", output_text, color="cyan")
-
-        typewriter("\nSTAGE-3: MARS LANDING", output_text, bold=True)
-        typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates", output_text)
-        typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing", output_text, color="red")
-        stage3a_frame.pack(pady=10)
-
-    elif choice == "2":
-        typewriter("The emergency escape system rips apart from the capsule", output_text)
-        typewriter("The crew safely splash down in the atlantic ocean", output_text)
-        typewriter("The mission is over but the crew lives", output_text)
-        mission_budget = 0
-        update_gui()
-        end_game_session()
-
-def handle_choice3a(choice):
-    stage3a_frame.pack_forget()
-    global crew_safety, mission_budget, science_points
-        
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
-    stop_all_sounds()
-    trigger_click_sound()
-
-    if choice == "1":
-        trigger_mission_success_sound()
-        typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
-        typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
-        typewriter("Excellent Work, Director", output_text, color="green")
-        crew_safety += 10
-        science_points += 50
-        update_gui()
-
-    elif choice == "2":
-        trigger_pullup_sound()
-        typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", output_text, color="red")
-        typewriter("The lander tips and loses pressure. Space is not forgiving.", output_text, color="red")
-        trigger_mision_failed_sound()
-        typewriter("MISSION FAILED", output_text, bold=True, color="red")
-        crew_safety = 0
-        mission_budget = 0
-        update_gui()
-
-    end_game_session()
-
-def handle_choice2b(choice):
-    stage2b_frame.pack_forget()
-    global crew_safety, mission_budget, science_points
-    
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
-    stop_all_sounds()
-    trigger_click_sound()
-
-    if choice == "1":
-        typewriter("The patch works! The navigation is back up again", output_text)
-        typewriter("However the reboot drained 60% of your spacecraft power reserves", output_text, color="red")
-        typewriter("The crew arrive at Mars in a critically underpowered ship", output_text)
-        science_points += 20
-        update_gui()
-
-        typewriter(f"\nStatus-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}", output_text, color="cyan")
-        typewriter("\nSTAGE-3: THE LANDING", output_text, bold=True)
-        typewriter("\nWith the low power, you cannot run both the heaters and the landing thrusters", output_text)
-        stage3b_frame.pack(pady=10)
-
-    elif choice == "2":
-        typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
-        typewriter("The crew misses the Mars window completely, drifting into the solar system with no way of communication", output_text, color="red")
-        trigger_mision_failed_sound()
-        crew_safety = 0
-        mission_budget = 0
-        update_gui()
-        end_game_session()
-
-def handle_choice3b(choice):
-    stage3b_frame.pack_forget()
-    global crew_safety, mission_budget, science_points
-          
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
-    stop_all_sounds()
-    trigger_click_sound()
-
-    if choice == "1":
-        typewriter("The solar sails catch enough sunlight to recharge", output_text, color="green")
-        trigger_mission_success_sound()
-        typewriter("The crew lands flawlessly with power to spare. You saved them with patience!", output_text, color="green")
-        science_points += 40
-        update_gui()
-
-    elif choice == "2":
-        typewriter("\n BURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
-        typewriter("The engines fail 100 meters up. The ship impacts the surface.", output_text, color="red")
-        trigger_mision_failed_sound()
-        typewriter("MISSION FAILED", output_text, color="red", bold=True)
-        crew_safety = 0
-        update_gui()
-
-    end_game_session()
-
 
 # Run structural sync data metrics counters
 update_gui()
