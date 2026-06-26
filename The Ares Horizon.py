@@ -645,6 +645,7 @@ def check_cave_collision():
     return "NONE"
 
 def run_physics_frame():
+    global game_canvas
     global altitude, velocity_y, ship_angle, ship_fuel
     
     # Safeguard check: If the canvas doesn't exist (game ended), break the loop
