@@ -257,7 +257,7 @@ def typewriter(text, text_widget, color=text_color, bold=False):
             text_widget.insert(tk.END, letter, tag_name)
             text_widget.see(tk.END)
             text_widget.update()
-            time.sleep(0.035) 
+            time.sleep(0.0000001) 
         except Exception:
             return
         
@@ -489,6 +489,7 @@ def handle_choice3a(choice):
     trigger_click_sound()
 
     if choice == "1":
+        landing_minigame_difficulty()
         trigger_mission_success_sound()
         typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
         typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
@@ -511,7 +512,7 @@ def handle_choice3a(choice):
         mission_budget = 0
         update_gui()
 
-    end_game_session()
+        end_game_session()
 
 def handle_choice2b(choice):
     stage2b_frame.pack_forget()
@@ -722,15 +723,18 @@ def start_landing_simulation_canvas():
     run_physics_frame()
 
 def landing_minigame_difficulty():
-    # 2. Master backdrop container utilizing your main deep-space hue
+    # 1. Create a master full-screen overlay frame
+    # Instead of packing it normally, we place it absolutely to cover any old text story frames
     menu_backdrop = tk.Frame(root, bg=BG_main)
-    menu_backdrop.pack(fill=tk.BOTH, expand=True)
+    menu_backdrop.place(x=0, y=0, width=950, height=720)
 
-    # 3. Inner terminal control box matching your slate panel aesthetic
+    # 2. Create the inner container for your elements
     button_container = tk.Frame(menu_backdrop, bg=BG_panel, bd=2, relief=tk.RIDGE)
-    button_container.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
+    
+    # Force the absolute center coordinate positioning (950 / 2 = X:475, 720 / 2 = Y:360)
+    button_container.place(x=475, y=360, anchor=tk.CENTER)
 
-    # 4. Centered prompt utilizing your exact font tuple properties
+    # 3. Add your centered title text
     title_label = tk.Label(
         button_container, 
         text="[SELECT ORBITAL PILOT SYSTEM]", 
@@ -740,7 +744,7 @@ def landing_minigame_difficulty():
     )
     title_label.pack(pady=(25, 20), padx=30)
 
-    # 5. Core handler loop variables initialization
+    # 4. Core inner difficulty click logic handler
     def select_mode(mode):
         global current_gravity, current_pad_width, ship_fuel, max_safe_speed, max_safe_angle
         
@@ -765,39 +769,23 @@ def landing_minigame_difficulty():
             max_safe_speed = 1.2
             max_safe_angle = 5
 
-        # Tear down menu layout elements
-        menu_backdrop.pack_forget()
+        # Tear down the overlay menu via place_forget
+        menu_backdrop.place_forget()
         start_landing_simulation_canvas()
 
-    # 6. Action selection buttons mapped with your exact terminal colors
+    # 5. Build and pack the buttons with explicit alignment boundaries
     btn_easy = tk.Button(button_container, text="> EASY_MODE_INIT", font=font_console, 
-                         bg=color_cyan, fg="black", activebackground=text_color,
-                         command=lambda: select_mode("EASY"))
+                         bg=color_cyan, fg="black", command=lambda: select_mode("EASY"))
     btn_easy.pack(pady=10, fill=tk.X, ipady=6, padx=30)
 
     btn_medium = tk.Button(button_container, text="> MED_MODE_INIT", font=font_console, 
-                           bg=color_yellow, fg="black", activebackground=text_color,
-                           command=lambda: select_mode("MEDIUM"))
+                           bg=color_yellow, fg="black", command=lambda: select_mode("MEDIUM"))
     btn_medium.pack(pady=10, fill=tk.X, ipady=6, padx=30)
 
     btn_hard = tk.Button(button_container, text="> HARD_MODE_INIT", font=font_console, 
-                         bg=color_red, fg=text_color, activebackground=color_yellow,
-                         command=lambda: select_mode("HARD"))
+                         bg=color_red, fg=text_color, command=lambda: select_mode("HARD"))
     btn_hard.pack(pady=10, fill=tk.X, ipady=6, padx=30)
 
-
-    # 6. Build and pack the buttons vertically inside the centered container
-    btn_easy = tk.Button(button_container, text="EASY MODE", font=("Courier", 12, "bold"), 
-                         button_color="#00ffcc", fg="black", command=lambda: select_mode("EASY"))
-    btn_easy.pack(pady=10, fill=tk.X, ipady=5)
-
-    btn_medium = tk.Button(button_container, text="MEDIUM MODE", font=("Courier", 12, "bold"), 
-                           button_color="#ffcc00", fg="black", command=lambda: select_mode("MEDIUM"))
-    btn_medium.pack(pady=10, fill=tk.X, ipady=5)
-
-    btn_hard = tk.Button(button_container, text="HARD MODE", font=("Courier", 12, "bold"), 
-                         button_color="#ff3333", fg="white", command=lambda: select_mode("HARD"))
-    btn_hard.pack(pady=10, fill=tk.X, ipady=5)
 
 def end_game_session():
     typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
