@@ -702,13 +702,14 @@ def run_physics_frame():
     # 5. Collision Evaluation Loop
     status = check_cave_collision()
     if status == "CRASH":
-        print("💥 CRASH: Space shuttle hull compromised!")
         for key in key_states:
             key_states[key] = False
         root.unbind("<KeyPress>")
         root.unbind("<KeyRelease>")
         game_canvas.pack_forget()
         game_canvas = None
+
+        space_ship_crash()
     else:
         root.after(16, run_physics_frame)
 
@@ -826,6 +827,10 @@ def landing_minigame_difficulty():
                          bg=color_red, fg=text_color, command=lambda: select_mode("HARD"))
     btn_hard.pack(pady=10, fill=tk.X, ipady=6, padx=30)
 
+#CRASH SCREEN
+def space_ship_crash():
+    typewriter ("💥 CRASH: Space shuttle hull compromised!")
+    end_game_session()
 
 def end_game_session():
     typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
