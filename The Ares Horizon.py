@@ -13,6 +13,7 @@ import random
 altitude = 0.0
 velocity_y = 0.0
 ship_angle = 0.0
+ship_fuel = 100
 
 game_canvas = None
 ship_image_ref = None
@@ -583,8 +584,7 @@ def generate_random_terrain():
     total_obstacles = 20  
     
     for i in range(total_obstacles):
-        # Space obstacles out vertically starting from Y=900
-        world_y = 900 + (i * 280)
+        world_y = 500 + (i * 280)
         
         # Randomly choose one of your 3 tiers
         size = random.choice(["SMALL", "MEDIUM", "LARGE"])
@@ -647,7 +647,7 @@ def check_cave_collision():
 
 def run_physics_frame():
     global game_canvas
-    global altitude, velocity_y, ship_angle, ship_fuel
+    global altitude, velocity_y, ship_angle, ship_fuel, current_gravity
     
     if game_canvas is None:
         return  
@@ -702,16 +702,19 @@ def run_physics_frame():
     # 5. Collision Evaluation Loop
     status = check_cave_collision()
     if status == "CRASH":
+        # Reset all button holds immediately
         for key in key_states:
             key_states[key] = False
+        # Remove keyboard listeners
         root.unbind("<KeyPress>")
         root.unbind("<KeyRelease>")
-        game_canvas.pack_forget()
+        # Clear the overlay gameplay canvas
+        game_canvas.place_forget()
         game_canvas = None
-
         space_ship_crash()
     else:
         root.after(16, run_physics_frame)
+
 
 
 def start_landing_simulation_canvas():
