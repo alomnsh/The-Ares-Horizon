@@ -9,6 +9,17 @@ import ctypes
 import math
 import random
 
+#Landing Mini Game Variables
+altitude = 0.0
+velocity_y = 0.0
+ship_angle = 0.0
+
+game_canvas = None
+ship_image_ref = None
+spike_small_ref = None
+spike_medium_ref = None
+spike_large_ref = None
+
 #Disabling controls for the mini game when game begins
 key_states = {"Up": False, "Down": False, "Left": False, "Right": False}
 
@@ -560,25 +571,176 @@ def handle_choice3b(choice):
 
     end_game_session()
 
-def landing_minigame_difficulty():
+#===========================================================================
+#LANDING MINI GAME
+#===========================================================================
+def generate_random_terrain():
+    global active_map_layout
+    active_map_layout = []
     
-    # 2. Create the master full-screen backdrop frame
-    menu_backdrop = tk.Frame(root, BG_main)
+    total_obstacles = 20  
+    
+    for i in range(total_obstacles):
+        # Space obstacles out vertically starting from Y=900
+        world_y = 900 + (i * 280)
+        
+        # Randomly choose one of your 3 tiers
+        size = random.choice(["SMALL", "MEDIUM", "LARGE"])
+        
+        # Apply the exact widths we mapped out for your 60px tall assets
+        if size == "SMALL":
+            width = 200
+        elif size == "MEDIUM":
+            width = 400
+        else:
+            width = 600
+            
+        # Alternate sides to force a fun zig-zag flight pattern
+        side = "LEFT" if i % 2 == 0 else "RIGHT"
+        
+        if side == "LEFT":
+            x_position = 0
+        else:
+            x_position = 950 - width
+            
+        active_map_layout.append({
+            "size": size,
+            "width": width,
+            "side": side,
+            "x": x_position,
+            "world_y": world_y
+        })
+
+thrust_power = -0.4   # Upwards acceleration (reduces fall speed)
+drop_power = 0.2      # Downwards acceleration
+roll_speed = 3        # How fast the angle shifts per frame
+
+def run_physics_frame():
+    global altitude, velocity_y, ship_angle, ship_fuel
+    
+    # Safeguard check: If the canvas doesn't exist (game ended), break the loop
+    if game_canvas is None:
+        return  
+        
+    # 1. Continuous Input Acceleration Math & Fuel Drain Logic
+    if key_states["Up"] and ship_fuel > 0:
+        velocity_y += thrust_power 
+        ship_fuel -= 0.2  # Drain fuel while burning thrusters
+    elif key_states["Down"]:
+        velocity_y += drop_power   
+
+    # 2. Continuous Gravity and Camera Roll Calculations
+    velocity_y += current_gravity
+    altitude -= velocity_y  # Move the world relative to your ship
+
+    if key_states["Left"]:
+        ship_angle -= roll_speed  
+    elif key_states["Right"]:
+        ship_angle += roll_speed  
+
+    # 3. Render and Redraw the Obstacles at their new scrolling positions
+    game_canvas.delete("obstacle")  # Wipe last frame's obstacles
+    ship_screen_y = 360             
+    
+    for obs in active_map_layout:
+        # Calculate screen coordinate based on how far the player has flown
+        screen_y = ship_screen_y + (obs["world_y"] - altitude)
+        
+        # Only draw the asset if it's currently passing through the visible screen
+        if -100 < screen_y < 820:
+            if obs["size"] == "SMALL":
+                img = spike_small_ref
+            elif obs["size"] == "MEDIUM":
+                img = spike_medium_ref
+            else:
+                img = spike_large_ref
+                
+            game_canvas.create_image(
+                obs["x"], 
+                screen_y, 
+                image=img, 
+                anchor=tk.NW, 
+                tags="obstacle"
+            )
+
+    # 4. Update the Heads-Up Display Texts Real-Time
+    # Caps fuel at 0 so it doesn't show negative numbers
+    display_fuel = max(0, int(ship_fuel))
+    game_canvas.itemconfig("hud_fuel", text=f"FUEL RESERVES: {display_fuel}")
+    game_canvas.itemconfig("hud_speed", text=f"DESCENT RATE: {velocity_y:.1f} m/s")
+    game_canvas.itemconfig("hud_angle", text=f"ROLL DIRECTION: {int(ship_angle)}°")
+
+    # 5. Collision Check (We will define check_cave_collision() next)
+    # For now, we will add a basic check to keep the loop moving safely
+    collision_hit = False 
+    
+    if not collision_hit:
+        # Loop frame clock cycle repeats roughly every 16 milliseconds (~60 FPS)
+        root.after(16, run_physics_frame)
+
+
+def start_landing_simulation_canvas():
+    global game_canvas, ship_image_ref, spike_small_ref, spike_medium_ref, spike_large_ref
+    global altitude, velocity_y, ship_angle
+    
+    # 1. Reset pilot flight telemetry variables
+    altitude = 0.0
+    velocity_y = 0.0
+    ship_angle = 0
+    
+    # 2. Build the main 950x720 dark gaming window area
+    game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
+    game_canvas.pack(fill=tk.BOTH, expand=True)
+    
+    spike_small_ref = tk.PhotoImage(file="Small Spike.png")
+    
+    # Automatically generate medium and large sizes by multiplying the width scale
+    spike_medium_ref = spike_small_ref.zoom(2, 1)  # Stretches width 2x (400x60)
+    spike_large_ref = spike_small_ref.zoom(3, 1)
+    
+    # 4. Freeze your player ship asset dead-center on the canvas screen (950/2 = 475, 720/2 = 360)
+    game_canvas.create_image(475, 360, image=ship_image_ref, tags="fixed_ship")
+    
+    # 5. Draw the live Flight Telemetry HUD overlay text elements using your font choice
+    game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console,
+                            text="FUEL RESERVES: 100%", tags="hud_fuel")
+                            
+    game_canvas.create_text(25, 50, anchor=tk.NW, fill=text_color, font=font_console,
+                            text="DESCENT RATE: 0.0 m/s", tags="hud_speed")
+                            
+    game_canvas.create_text(25, 75, anchor=tk.NW, fill=text_color, font=font_console,
+                            text="ROLL DIRECTION: 0°", tags="hud_angle")
+    
+    # 6. Bind your multi-press keyboard input listener routines
+    root.bind("<KeyPress>", handle_press)
+    root.bind("<KeyRelease>", handle_release)
+    
+    # 7. Generate your procedural map layout array entries
+    generate_random_terrain()
+    
+    # 8. Fire up the core game loop frame sequence clocks!
+    run_physics_frame()
+
+def landing_minigame_difficulty():
+    # 2. Master backdrop container utilizing your main deep-space hue
+    menu_backdrop = tk.Frame(root, bg=BG_main)
     menu_backdrop.pack(fill=tk.BOTH, expand=True)
 
-    # 3. Create the tight inner container for your elements
-    button_container = tk.Frame(menu_backdrop, BG_panel)
-    # Pin the exact middle of the container to the exact middle of the screen
+    # 3. Inner terminal control box matching your slate panel aesthetic
+    button_container = tk.Frame(menu_backdrop, bg=BG_panel, bd=2, relief=tk.RIDGE)
     button_container.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
-    # 4. Add your centered title text
+    # 4. Centered prompt utilizing your exact font tuple properties
     title_label = tk.Label(
         button_container, 
+        text="[SELECT ORBITAL PILOT SYSTEM]", 
+        font=font_console,
+        bg=BG_panel,
+        fg=text_color
     )
-    title_label.pack(pady=(0, 30))
+    title_label.pack(pady=(25, 20), padx=30)
 
-    # 5. Define your inner click handler right inside the function.
-    # This reads the difficulty string, sets your global variables, and shifts screens.
+    # 5. Core handler loop variables initialization
     def select_mode(mode):
         global current_gravity, current_pad_width, ship_fuel, max_safe_speed, max_safe_angle
         
@@ -603,8 +765,26 @@ def landing_minigame_difficulty():
             max_safe_speed = 1.2
             max_safe_angle = 5
 
-        # Tear down the menu frame so the buttons vanish
+        # Tear down menu layout elements
         menu_backdrop.pack_forget()
+        start_landing_simulation_canvas()
+
+    # 6. Action selection buttons mapped with your exact terminal colors
+    btn_easy = tk.Button(button_container, text="> EASY_MODE_INIT", font=font_console, 
+                         bg=color_cyan, fg="black", activebackground=text_color,
+                         command=lambda: select_mode("EASY"))
+    btn_easy.pack(pady=10, fill=tk.X, ipady=6, padx=30)
+
+    btn_medium = tk.Button(button_container, text="> MED_MODE_INIT", font=font_console, 
+                           bg=color_yellow, fg="black", activebackground=text_color,
+                           command=lambda: select_mode("MEDIUM"))
+    btn_medium.pack(pady=10, fill=tk.X, ipady=6, padx=30)
+
+    btn_hard = tk.Button(button_container, text="> HARD_MODE_INIT", font=font_console, 
+                         bg=color_red, fg=text_color, activebackground=color_yellow,
+                         command=lambda: select_mode("HARD"))
+    btn_hard.pack(pady=10, fill=tk.X, ipady=6, padx=30)
+
 
     # 6. Build and pack the buttons vertically inside the centered container
     btn_easy = tk.Button(button_container, text="EASY MODE", font=("Courier", 12, "bold"), 
