@@ -9,6 +9,20 @@ import ctypes
 import math
 import random
 
+#Disabling controls for the mini game when game begins
+key_states = {"Up": False, "Down": False, "Left": False, "Right": False}
+
+#If key is pressed it is true, if it is released it is false
+def handle_press(event):
+    # Check if the pressed key is one we care about
+    if event.keysym in key_states:
+        key_states[event.keysym] = True
+
+def handle_release(event):
+    if event.keysym in key_states:
+        key_states[event.keysym] = False
+
+
 #Sound Effects
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
