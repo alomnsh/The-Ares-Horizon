@@ -616,6 +616,34 @@ thrust_power = -0.1   # Upwards acceleration (reduces fall speed)
 drop_power = 0.05      # Downwards acceleration
 roll_speed = 0.1        # How fast the angle shifts per frame
 
+def check_cave_collision():
+    ship_x = 475  # Center of your 950px wide screen
+    ship_y = 360  # Center of your 720px tall screen
+    
+    for obs in active_map_layout:
+        obs_screen_y = 360 + (obs["world_y"] - altitude)
+        
+        # 1. Vertical Row Check: Match the 90px height of your space shuttle asset
+        if obs_screen_y <= ship_y <= (obs_screen_y + 90):
+            
+            # 2. Horizontal Check: Check if any part of the 50px wide booster/wing base overlaps the obstacle
+            # Left edge is ship_x - 25, right edge is ship_x + 25
+            if obs["x"] <= (ship_x + 25) and (ship_x - 25) <= (obs["x"] + obs["width"]):
+                
+                # Use your ship's center point to find where it aligns with the slope triangle
+                relative_x = ship_x - obs["x"]
+                
+                if obs["side"] == "LEFT":
+                    slope_height = 60 * (1 - (relative_x / obs["width"]))
+                else:
+                    slope_height = 60 * (relative_x / obs["width"])
+                
+                # Final physical boundary trigger evaluation
+                if ship_y <= (obs_screen_y + slope_height):
+                    return "CRASH"
+                    
+    return "NONE"
+
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_fuel
     
@@ -664,19 +692,32 @@ def run_physics_frame():
                 tags="obstacle"
             )
 
-    # 4. Update the Heads-Up Display Texts Real-Time
-    # Caps fuel at 0 so it doesn't show negative numbers
+        # 4. Update the Heads-Up Display Texts Real-Time
     display_fuel = max(0, int(ship_fuel))
     game_canvas.itemconfig("hud_fuel", text=f"FUEL RESERVES: {display_fuel}")
     game_canvas.itemconfig("hud_speed", text=f"DESCENT RATE: {velocity_y:.1f} m/s")
     game_canvas.itemconfig("hud_angle", text=f"ROLL DIRECTION: {int(ship_angle)}°")
 
-    # 5. Collision Check (We will define check_cave_collision() next)
-    # For now, we will add a basic check to keep the loop moving safely
-    collision_hit = False 
+    # 5. NEW: Define status by running your collision checking math function
+    status = check_cave_collision()
     
-    if not collision_hit:
-        # Loop frame clock cycle repeats roughly every 16 milliseconds (~60 FPS)
+    if status == "CRASH":
+        print("💥 CRASH: Space shuttle hull compromised!")
+        
+        # Turn off active key holds so the ship stops accelerating on respawn
+        for key in key_states:
+            key_states[key] = False
+            
+        # Unbind keyboard controls so they don't break your main story menus
+        root.unbind("<KeyPress>")
+        root.unbind("<KeyRelease>")
+        
+        # Remove the minigame canvas layout from the screen
+        game_canvas.pack_forget()
+        game_canvas = None
+        
+    else:
+        # If status is "NONE", keep cycling the game engine clock (~60 FPS)
         root.after(16, run_physics_frame)
 
 
@@ -694,6 +735,7 @@ def start_landing_simulation_canvas():
     game_canvas.pack(fill=tk.BOTH, expand=True)
     
     spike_small_ref = tk.PhotoImage(file="Small Spike.png")
+    ship_image_ref = tk.PhotoImage(file="Spaceship.png" )
     
     # Automatically generate medium and large sizes by multiplying the width scale
     spike_medium_ref = spike_small_ref.zoom(2, 1)  # Stretches width 2x (400x60)
