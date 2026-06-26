@@ -832,7 +832,8 @@ def landing_minigame_difficulty():
 
 #CRASH SCREEN
 def space_ship_crash():
-    typewriter ("💥 CRASH: Space shuttle hull compromised!")
+    typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text)
+    trigger_mision_failed_sound
     end_game_session()
 
 def end_game_session():
