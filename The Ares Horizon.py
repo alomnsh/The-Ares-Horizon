@@ -25,11 +25,12 @@ key_states = {"Up": False, "Down": False, "Left": False, "Right": False}
 
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
-    # Check if the pressed key is one we care about
+    global key_states
     if event.keysym in key_states:
         key_states[event.keysym] = True
 
 def handle_release(event):
+    global key_states
     if event.keysym in key_states:
         key_states[event.keysym] = False
 
@@ -490,16 +491,16 @@ def handle_choice3a(choice):
 
     if choice == "1":
         landing_minigame_difficulty()
-        trigger_mission_success_sound()
-        typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
-        typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
-        typewriter("Excellent Work, Director", output_text, color="green")
-        if crew_safety == 100:
-            crew_safety = 100
-        else:
-            crew_safety += 10
+        #trigger_mission_success_sound()
+        #typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
+        #typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
+        #typewriter("Excellent Work, Director", output_text, color="green")
+        #if crew_safety == 100:
+            #crew_safety = 100
+        #else:
+            #crew_safety += 10
 
-        science_points += 50
+        #science_points += 50
         update_gui()
 
     elif choice == "2":
@@ -648,35 +649,34 @@ def run_physics_frame():
     global game_canvas
     global altitude, velocity_y, ship_angle, ship_fuel
     
-    # Safeguard check: If the canvas doesn't exist (game ended), break the loop
     if game_canvas is None:
         return  
         
     # 1. Continuous Input Acceleration Math & Fuel Drain Logic
     if key_states["Up"] and ship_fuel > 0:
         velocity_y += thrust_power 
-        ship_fuel -= 0.2  # Drain fuel while burning thrusters
+        ship_fuel -= 0.2  
     elif key_states["Down"]:
         velocity_y += drop_power   
 
     # 2. Continuous Gravity and Camera Roll Calculations
     velocity_y += current_gravity
-    altitude -= velocity_y  # Move the world relative to your ship
+    altitude += velocity_y  # FIXED: Adding velocity scrolls obstacles UP into the shuttle path
 
     if key_states["Left"]:
         ship_angle -= roll_speed  
     elif key_states["Right"]:
         ship_angle += roll_speed  
 
-    # 3. Render and Redraw the Obstacles at their new scrolling positions
-    game_canvas.delete("obstacle")  # Wipe last frame's obstacles
-    ship_screen_y = 360             
+    # 3. Render and Redraw the Obstacles
+    game_canvas.delete("obstacle")  
+    ship_screen_y = 360  # Center of your screen vertically             
     
     for obs in active_map_layout:
-        # Calculate screen coordinate based on how far the player has flown
-        screen_y = ship_screen_y + (obs["world_y"] - altitude)
+        # FIXED: This formula accurately scrolls the obstacles up based on altitude changes
+        screen_y = obs["world_y"] - altitude
         
-        # Only draw the asset if it's currently passing through the visible screen
+        # Only draw the asset if it's currently passing through the visible 720px screen height
         if -100 < screen_y < 820:
             if obs["size"] == "SMALL":
                 img = spike_small_ref
@@ -693,32 +693,23 @@ def run_physics_frame():
                 tags="obstacle"
             )
 
-        # 4. Update the Heads-Up Display Texts Real-Time
+    # 4. Update the Heads-Up Display Texts Real-Time
     display_fuel = max(0, int(ship_fuel))
     game_canvas.itemconfig("hud_fuel", text=f"FUEL RESERVES: {display_fuel}")
     game_canvas.itemconfig("hud_speed", text=f"DESCENT RATE: {velocity_y:.1f} m/s")
     game_canvas.itemconfig("hud_angle", text=f"ROLL DIRECTION: {int(ship_angle)}°")
 
-    # 5. NEW: Define status by running your collision checking math function
+    # 5. Collision Evaluation Loop
     status = check_cave_collision()
-    
     if status == "CRASH":
         print("💥 CRASH: Space shuttle hull compromised!")
-        
-        # Turn off active key holds so the ship stops accelerating on respawn
         for key in key_states:
             key_states[key] = False
-            
-        # Unbind keyboard controls so they don't break your main story menus
         root.unbind("<KeyPress>")
         root.unbind("<KeyRelease>")
-        
-        # Remove the minigame canvas layout from the screen
         game_canvas.pack_forget()
         game_canvas = None
-        
     else:
-        # If status is "NONE", keep cycling the game engine clock (~60 FPS)
         root.after(16, run_physics_frame)
 
 
@@ -731,21 +722,27 @@ def start_landing_simulation_canvas():
     velocity_y = 0.0
     ship_angle = 0
     
-    # 2. Build the main 950x720 dark gaming window area
+        # 2. Build the main 950x720 dark gaming window area
     game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
-    game_canvas.pack(fill=tk.BOTH, expand=True)
+    game_canvas.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
     
-    spike_small_ref = tk.PhotoImage(file="Small Spike.png")
-    ship_image_ref = tk.PhotoImage(file="Spaceship.png" )
+    import os
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     
-    # Automatically generate medium and large sizes by multiplying the width scale
-    spike_medium_ref = spike_small_ref.zoom(2, 1)  # Stretches width 2x (400x60)
+    shuttle_path = os.path.join(script_dir, "Spaceship.png")
+    spike_path = os.path.join(script_dir, "Small Spike.png")
+    
+    # Load files using the absolute system paths
+    ship_image_ref = tk.PhotoImage(file=shuttle_path) 
+    spike_small_ref = tk.PhotoImage(file=spike_path)
+    # --------------------------------------------
+    
+    # Automatically generate medium and large widths from single small file
+    spike_medium_ref = spike_small_ref.zoom(2, 1)  
     spike_large_ref = spike_small_ref.zoom(3, 1)
+
     
-    # 4. Freeze your player ship asset dead-center on the canvas screen (950/2 = 475, 720/2 = 360)
-    game_canvas.create_image(475, 360, image=ship_image_ref, tags="fixed_ship")
-    
-    # 5. Draw the live Flight Telemetry HUD overlay text elements using your font choice
+    # 5. Draw the live Flight Telemetry HUD overlay text elements using font choice
     game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console,
                             text="FUEL RESERVES: 100%", tags="hud_fuel")
                             
