@@ -612,9 +612,9 @@ def generate_random_terrain():
             "world_y": world_y
         })
 
-thrust_power = -0.4   # Upwards acceleration (reduces fall speed)
-drop_power = 0.2      # Downwards acceleration
-roll_speed = 3        # How fast the angle shifts per frame
+thrust_power = -0.1   # Upwards acceleration (reduces fall speed)
+drop_power = 0.05      # Downwards acceleration
+roll_speed = 0.1        # How fast the angle shifts per frame
 
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_fuel
@@ -724,15 +724,15 @@ def start_landing_simulation_canvas():
 
 def landing_minigame_difficulty():
     # 1. Create a master full-screen overlay frame
-    # Instead of packing it normally, we place it absolutely to cover any old text story frames
+    # We use relative placement (0.0 to 1.0) so it ignores previous text box shifts
     menu_backdrop = tk.Frame(root, bg=BG_main)
-    menu_backdrop.place(x=0, y=0, width=950, height=720)
+    menu_backdrop.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
 
     # 2. Create the inner container for your elements
     button_container = tk.Frame(menu_backdrop, bg=BG_panel, bd=2, relief=tk.RIDGE)
     
-    # Force the absolute center coordinate positioning (950 / 2 = X:475, 720 / 2 = Y:360)
-    button_container.place(x=475, y=360, anchor=tk.CENTER)
+    # Using 0.5 tells Tkinter to find the exact middle percentage of the active screen 
+    button_container.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
 
     # 3. Add your centered title text
     title_label = tk.Label(
