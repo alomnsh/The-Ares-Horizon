@@ -668,15 +668,13 @@ def run_physics_frame():
     elif key_states["Right"]:
         ship_angle += roll_speed  
 
-    # 3. Render and Redraw the Obstacles
-    game_canvas.delete("obstacle")  
-    ship_screen_y = 360  # Center of your screen vertically             
+    # 3. Render and Redraw the Obstacles at their new scrolling positions
+    game_canvas.delete("obstacle")  # Wipe last frame's obstacles
+    ship_screen_y = 360             
     
     for obs in active_map_layout:
-        # FIXED: This formula accurately scrolls the obstacles up based on altitude changes
         screen_y = obs["world_y"] - altitude
         
-        # Only draw the asset if it's currently passing through the visible 720px screen height
         if -100 < screen_y < 820:
             if obs["size"] == "SMALL":
                 img = spike_small_ref
@@ -692,6 +690,10 @@ def run_physics_frame():
                 anchor=tk.NW, 
                 tags="obstacle"
             )
+            
+    # FIXED: Re-draw your ship right here so it stays on top of the obstacles!
+    game_canvas.create_image(475, 360, image=ship_image_ref, tags="obstacle")
+
 
     # 4. Update the Heads-Up Display Texts Real-Time
     display_fuel = max(0, int(ship_fuel))
