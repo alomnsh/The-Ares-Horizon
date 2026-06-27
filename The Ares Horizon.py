@@ -18,12 +18,12 @@ shuttle_path = os.path.join(script_dir, "Spaceship.png")
 ship_raw = Image.open(shuttle_path)
 spike_raw = Image.open(spike_path) 
 
-# Generate your structural horizontal sizing boundaries
+# Generate structural horizontal sizing boundaries
 spike_s_left = spike_raw.resize((200, 60))
 spike_m_left = spike_raw.resize((400, 60))
-spike_l_left = spike_raw.resize((600, 60))
+spike_l_left = spike_raw.resize((600, 60))  # Changed '1' to 'l'
 
-# Mirror them horizontally for the right walls
+# Mirror horizontally for the right walls
 spike_s_right = spike_s_left.transpose(Image.FLIP_LEFT_RIGHT)
 spike_m_right = spike_m_left.transpose(Image.FLIP_LEFT_RIGHT)
 spike_l_right = spike_l_left.transpose(Image.FLIP_LEFT_RIGHT)
@@ -281,7 +281,7 @@ def typewriter(text, text_widget, color=text_color, bold=False):
             text_widget.insert(tk.END, letter, tag_name)
             text_widget.see(tk.END)
             text_widget.update()
-            time.sleep(0.04) 
+            time.sleep(0.000000000000001) 
         except Exception:
             return
         
@@ -353,22 +353,23 @@ def run_boot_sequence():
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
     
     # Initial diagnostic logs
-    active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
-    active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
-    active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
+    #active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
+    #active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
+    #active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
     
     # Initialize the Progress Bar header row
-    active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
-    active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
-    active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
-    active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
-    active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
+    #active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
     
     # Final step finishes the bar, locks it to green, and pushes the cursor down with add_newline=True
-    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
+    #active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
     
     # Wait for completion, then clear screen and trigger Chapter 1
-    active_timers.append(root.after(17500, trigger_game_start))
+    #active_timers.append(root.after(17500, trigger_game_start))
+    trigger_game_start()
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
@@ -636,27 +637,17 @@ def generate_random_terrain():
 
 def check_cave_collision():
     global active_map_layout, altitude
-    ship_x = 475  
-    ship_y = 360  
-    
+    ship_x = 475
+    ship_y = 360
     for obs in active_map_layout:
         obs_screen_y = obs["world_y"] - altitude
-        
-        # Vertical bounding constraint row evaluation (60px high obstacle)
-        if obs_screen_y <= ship_y <= (obs_screen_y + 60):
-            if obs["x"] <= (ship_x + 25) and (ship_x - 25) <= (obs["x"] + obs["width"]):
-                relative_x = ship_x - obs["x"]
-                
-                if obs["side"] == "LEFT":
-                    # Left side: Thickest on the wall, tapers down to 0 moving right
-                    slope_height = 60 * (1 - (relative_x / obs["width"]))
-                else:
-                    # Right side: Thickest on the wall, tapers down to 0 moving left
-                    slope_height = 60 * (relative_x / obs["width"])
-                
-                if ship_y <= (obs_screen_y + slope_height):
+        if obs_screen_y <= ship_y < (obs_screen_y + 60):
+            if obs["side"] == "LEFT":
+                if ship_x - 25 <= obs["width"]:
                     return "CRASH"
-                    
+            else:
+                if ship_x + 25 >= (950 - obs["width"]):
+                    return "CRASH"
     return "NONE"
 
 def run_physics_frame():
@@ -686,30 +677,19 @@ def run_physics_frame():
         ship_angle += roll_speed  
 
     # 2. Render and Redraw the Obstacles
-    game_canvas.delete("obstacle")  
-    
+    game_canvas.delete("obstacle")
     for obs in active_map_layout:
         screen_y = obs["world_y"] - altitude
-        
         if -100 < screen_y < 820:
             if obs["side"] == "LEFT":
-                if obs["size"] == "SMALL":    img = spike_small_ref
-                elif obs["size"] == "MEDIUM": img = spike_medium_ref
-                else:                         img = spike_large_ref
+                # Use the right-facing image variant pinned to x=0
+                img = spike_small_right if obs["size"] == "SMALL" else (spike_medium_right if obs["size"] == "MEDIUM" else spike_large_right)
+                game_canvas.create_image(0, screen_y, image=img, anchor=tk.NW, tags="obstacle")
             else:
-                if obs["size"] == "SMALL":    img = spike_small_right
-                elif obs["size"] == "MEDIUM": img = spike_medium_right
-                else:                         img = spike_large_right
-                
-            # Both sides use the identical Top-Left corner anchor point layout
-            game_canvas.create_image(
-                obs["x"], 
-                screen_y, 
-                image=img, 
-                anchor=tk.NW, 
-                tags="obstacle"
-            )
-            
+                # Use the left-facing image variant pinned to x=950
+                img = spike_small_ref if obs["size"] == "SMALL" else (spike_medium_ref if obs["size"] == "MEDIUM" else spike_large_ref)
+                game_canvas.create_image(950, screen_y, image=img, anchor=tk.NE, tags="obstacle")
+
     # 3. Refresh Shuttle Layer (Uses unique tag "shuttle")
     game_canvas.delete("shuttle")
     game_canvas.create_image(475, 360, image=ship_image_ref, tags="shuttle")
@@ -734,52 +714,43 @@ def run_physics_frame():
 
 def start_landing_simulation_canvas():
     global game_canvas, ship_image_ref, spike_small_ref, spike_medium_ref, spike_large_ref
-    global spike_small_right, spike_medium_right, spike_large_right
-    global altitude, velocity_y, ship_angle
-    global ship_raw, spike_s_left, spike_m_left, spike_l_left
-    global spike_s_right, spike_m_right, spike_l_right
+    global spike_small_right, spike_medium_right, spike_large_right, altitude, velocity_y, ship_angle
+    global spike_1_left
+    global spike_1_right
     
-    try:
-        stage3a_frame.pack_forget()
-        stage3a_frame.place_forget()
-    except NameError:
-        pass # Safeguard pass if the variable name is different or uninitialized
-        
     altitude = 0.0
     velocity_y = 0.0
-    ship_angle = 0
+    ship_angle = 0.0
     
-    # 2. Re-initialize your canvas and explicitly map its absolute geometry footprints
-    game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
-    # Using absolute coordinate anchors (0,0) forces full-screen layout visibility
-    game_canvas.place(x=0, y=0, width=950, height=720)
+    # Pack the top telemetry bar layout cleanly
+    dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
+    update_gui()
     
-    # 3. Secure your Tkinter Image convert definitions
+    # CORRECTION: Shift the y-axis down by 100px and set height to 620px
+    # This prevents the canvas from breaking or rendering over your status bars
+    game_canvas = tk.Canvas(root, width=950, height=620, bg=BG_main, highlightthickness=0)
+    game_canvas.place(x=0, y=100, width=950, height=620)
+    
     ship_image_ref = ImageTk.PhotoImage(ship_raw)
     spike_small_ref = ImageTk.PhotoImage(spike_s_left)
     spike_medium_ref = ImageTk.PhotoImage(spike_m_left)
-    spike_large_ref = ImageTk.PhotoImage(spike_l_left)
-    
+    spike_large_ref = ImageTk.PhotoImage(spike_l_left) 
     spike_small_right = ImageTk.PhotoImage(spike_s_right)
     spike_medium_right = ImageTk.PhotoImage(spike_m_right)
     spike_large_right = ImageTk.PhotoImage(spike_l_right)
+
     
-    # 4. Draw fixed space shuttle right in the absolute center
-    game_canvas.create_image(475, 360, image=ship_image_ref, tags="shuttle")
-    
-    # 5. Draw HUD Instrumentation displays
-    game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console,
-                            text="FUEL RESERVES: 100%", tags="hud_fuel")
-    game_canvas.create_text(25, 50, anchor=tk.NW, fill=text_color, font=font_console,
-                            text="DESCENT RATE: 0.0 m/s", tags="hud_speed")
-    game_canvas.create_text(25, 75, anchor=tk.NW, fill=text_color, font=font_console,
-                            text="ROLL DIRECTION: 0°", tags="hud_angle")
+    # Center the ship relative to the new 620px canvas height (310px)
+    game_canvas.create_image(475, 310, image=ship_image_ref, tags="shuttle")
+    game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console, text="FUEL RESERVES: 100%", tags="hud_fuel")
+    game_canvas.create_text(25, 50, anchor=tk.NW, fill=text_color, font=font_console, text="DESCENT RATE: 0.0 m/s", tags="hud_speed")
+    game_canvas.create_text(25, 75, anchor=tk.NW, fill=text_color, font=font_console, text="ROLL DIRECTION: 0°", tags="hud_angle")
     
     root.bind("<KeyPress>", handle_press)
     root.bind("<KeyRelease>", handle_release)
-    
     generate_random_terrain()
     run_physics_frame()
+
 
 def landing_minigame_difficulty():
     # 1. Create a master full-screen overlay frame
