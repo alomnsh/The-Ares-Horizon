@@ -8,12 +8,34 @@ import sys
 import ctypes
 import math
 import random
+from PIL import Image, ImageTk
+
+script_dir = os.path.dirname(os.path.abspath(__file__))
+spike_path = os.path.join(script_dir, "Small Spike.png")
+shuttle_path = os.path.join(script_dir, "Spaceship.png")
+
+# Load the original raw files right here on game startup
+ship_raw = Image.open(shuttle_path)
+spike_raw = Image.open(spike_path) 
+
+# Generate your structural horizontal sizing boundaries
+spike_s_left = spike_raw.resize((200, 60))
+spike_m_left = spike_raw.resize((400, 60))
+spike_l_left = spike_raw.resize((600, 60))
+
+# Mirror them horizontally for the right walls
+spike_s_right = spike_s_left.transpose(Image.FLIP_LEFT_RIGHT)
+spike_m_right = spike_m_left.transpose(Image.FLIP_LEFT_RIGHT)
+spike_l_right = spike_l_left.transpose(Image.FLIP_LEFT_RIGHT)
 
 #Landing Mini Game Variables
 altitude = 0.0
 velocity_y = 0.0
 ship_angle = 0.0
 ship_fuel = 100
+thrust_power = -0.25   
+drop_power = 0.15      
+roll_speed = 2.0 
 
 game_canvas = None
 ship_image_ref = None
@@ -331,22 +353,23 @@ def run_boot_sequence():
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
     
     # Initial diagnostic logs
-    active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
-    active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
-    active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
+    #active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
+    #active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
+    #active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
     
     # Initialize the Progress Bar header row
-    active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
-    active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
-    active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
-    active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
-    active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
+    #active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
+    #active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
     
     # Final step finishes the bar, locks it to green, and pushes the cursor down with add_newline=True
-    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
+    #active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
     
     # Wait for completion, then clear screen and trigger Chapter 1
-    active_timers.append(root.after(17500, trigger_game_start))
+    #active_timers.append(root.after(17500, trigger_game_start))
+    trigger_game_start()
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
@@ -580,26 +603,25 @@ def handle_choice3b(choice):
 def generate_random_terrain():
     global active_map_layout
     active_map_layout = []
-    
-    total_obstacles = 20  
+    total_obstacles = 20
     
     for i in range(total_obstacles):
+        # Spaced out every 280 vertical pixels
         world_y = 500 + (i * 280)
         
-        # Randomly choose one of your 3 tiers
+        # Pick one of your 3 proportional tiers
         size = random.choice(["SMALL", "MEDIUM", "LARGE"])
-        
-        # Apply the exact widths we mapped out for your 60px tall assets
-        if size == "SMALL":
+        if size == "SMALL": 
             width = 200
-        elif size == "MEDIUM":
+        elif size == "MEDIUM": 
             width = 400
-        else:
+        else: 
             width = 600
-            
-        # Alternate sides to force a fun zig-zag flight pattern
+        
         side = "LEFT" if i % 2 == 0 else "RIGHT"
         
+        # CORRECTION: Force the left side to absolute zero, 
+        # and snap the right side flush against the 950px right margin.
         if side == "LEFT":
             x_position = 0
         else:
@@ -613,33 +635,26 @@ def generate_random_terrain():
             "world_y": world_y
         })
 
-thrust_power = -0.1   # Upwards acceleration (reduces fall speed)
-drop_power = 0.05      # Downwards acceleration
-roll_speed = 0.1        # How fast the angle shifts per frame
-
 def check_cave_collision():
-    ship_x = 475  # Center of your 950px wide screen
-    ship_y = 360  # Center of your 720px tall screen
+    global active_map_layout, altitude
+    ship_x = 475  
+    ship_y = 360  
     
     for obs in active_map_layout:
-        obs_screen_y = 360 + (obs["world_y"] - altitude)
+        obs_screen_y = obs["world_y"] - altitude
         
-        # 1. Vertical Row Check: Match the 90px height of your space shuttle asset
-        if obs_screen_y <= ship_y <= (obs_screen_y + 90):
-            
-            # 2. Horizontal Check: Check if any part of the 50px wide booster/wing base overlaps the obstacle
-            # Left edge is ship_x - 25, right edge is ship_x + 25
+        # Vertical bounding constraint row evaluation (60px high obstacle)
+        if obs_screen_y <= ship_y <= (obs_screen_y + 60):
             if obs["x"] <= (ship_x + 25) and (ship_x - 25) <= (obs["x"] + obs["width"]):
-                
-                # Use your ship's center point to find where it aligns with the slope triangle
                 relative_x = ship_x - obs["x"]
                 
                 if obs["side"] == "LEFT":
+                    # Left side: Thickest on the wall, tapers down to 0 moving right
                     slope_height = 60 * (1 - (relative_x / obs["width"]))
                 else:
+                    # Right side: Thickest on the wall, tapers down to 0 moving left
                     slope_height = 60 * (relative_x / obs["width"])
                 
-                # Final physical boundary trigger evaluation
                 if ship_y <= (obs_screen_y + slope_height):
                     return "CRASH"
                     
@@ -648,41 +663,46 @@ def check_cave_collision():
 def run_physics_frame():
     global game_canvas
     global altitude, velocity_y, ship_angle, ship_fuel, current_gravity
+    global thrust_power, drop_power, roll_speed
+    global spike_small_ref, spike_medium_ref, spike_large_ref
+    global spike_small_right, spike_medium_right, spike_large_right
+    global ship_image_ref, active_map_layout
     
     if game_canvas is None:
         return  
         
-    # 1. Continuous Input Acceleration Math & Fuel Drain Logic
+    # 1. Physics Input Processing
     if key_states["Up"] and ship_fuel > 0:
         velocity_y += thrust_power 
         ship_fuel -= 0.2  
     elif key_states["Down"]:
         velocity_y += drop_power   
 
-    # 2. Continuous Gravity and Camera Roll Calculations
     velocity_y += current_gravity
-    altitude += velocity_y  # FIXED: Adding velocity scrolls obstacles UP into the shuttle path
+    altitude += velocity_y  
 
     if key_states["Left"]:
         ship_angle -= roll_speed  
     elif key_states["Right"]:
         ship_angle += roll_speed  
 
-    # 3. Render and Redraw the Obstacles at their new scrolling positions
-    game_canvas.delete("obstacle")  # Wipe last frame's obstacles
-    ship_screen_y = 360             
+    # 2. Render and Redraw the Obstacles
+    game_canvas.delete("obstacle")  
     
     for obs in active_map_layout:
         screen_y = obs["world_y"] - altitude
         
         if -100 < screen_y < 820:
-            if obs["size"] == "SMALL":
-                img = spike_small_ref
-            elif obs["size"] == "MEDIUM":
-                img = spike_medium_ref
+            if obs["side"] == "LEFT":
+                if obs["size"] == "SMALL":    img = spike_small_ref
+                elif obs["size"] == "MEDIUM": img = spike_medium_ref
+                else:                         img = spike_large_ref
             else:
-                img = spike_large_ref
+                if obs["size"] == "SMALL":    img = spike_small_right
+                elif obs["size"] == "MEDIUM": img = spike_medium_right
+                else:                         img = spike_large_right
                 
+            # Both sides use the identical Top-Left corner anchor point layout
             game_canvas.create_image(
                 obs["x"], 
                 screen_y, 
@@ -691,81 +711,75 @@ def run_physics_frame():
                 tags="obstacle"
             )
             
-    # FIXED: Re-draw your ship right here so it stays on top of the obstacles!
-    game_canvas.create_image(475, 360, image=ship_image_ref, tags="obstacle")
+    # 3. Refresh Shuttle Layer (Uses unique tag "shuttle")
+    game_canvas.delete("shuttle")
+    game_canvas.create_image(475, 360, image=ship_image_ref, tags="shuttle")
 
-
-    # 4. Update the Heads-Up Display Texts Real-Time
+    # 4. Update HUD Texts
     display_fuel = max(0, int(ship_fuel))
     game_canvas.itemconfig("hud_fuel", text=f"FUEL RESERVES: {display_fuel}")
     game_canvas.itemconfig("hud_speed", text=f"DESCENT RATE: {velocity_y:.1f} m/s")
     game_canvas.itemconfig("hud_angle", text=f"ROLL DIRECTION: {int(ship_angle)}°")
 
-    # 5. Collision Evaluation Loop
+    # 5. Core Handler Evaluation
     status = check_cave_collision()
     if status == "CRASH":
-        # Reset all button holds immediately
-        for key in key_states:
-            key_states[key] = False
-        # Remove keyboard listeners
+        for key in key_states: key_states[key] = False
         root.unbind("<KeyPress>")
         root.unbind("<KeyRelease>")
-        # Clear the overlay gameplay canvas
         game_canvas.place_forget()
         game_canvas = None
         space_ship_crash()
     else:
         root.after(16, run_physics_frame)
 
-
-
 def start_landing_simulation_canvas():
     global game_canvas, ship_image_ref, spike_small_ref, spike_medium_ref, spike_large_ref
+    global spike_small_right, spike_medium_right, spike_large_right
     global altitude, velocity_y, ship_angle
+    global ship_raw, spike_s_left, spike_m_left, spike_l_left
+    global spike_s_right, spike_m_right, spike_l_right
     
-    # 1. Reset pilot flight telemetry variables
+    try:
+        stage3a_frame.pack_forget()
+        stage3a_frame.place_forget()
+    except NameError:
+        pass # Safeguard pass if the variable name is different or uninitialized
+        
     altitude = 0.0
     velocity_y = 0.0
     ship_angle = 0
     
-        # 2. Build the main 950x720 dark gaming window area
+    # 2. Re-initialize your canvas and explicitly map its absolute geometry footprints
     game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
-    game_canvas.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
+    # Using absolute coordinate anchors (0,0) forces full-screen layout visibility
+    game_canvas.place(x=0, y=0, width=950, height=720)
     
-    import os
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+    # 3. Secure your Tkinter Image convert definitions
+    ship_image_ref = ImageTk.PhotoImage(ship_raw)
+    spike_small_ref = ImageTk.PhotoImage(spike_s_left)
+    spike_medium_ref = ImageTk.PhotoImage(spike_m_left)
+    spike_large_ref = ImageTk.PhotoImage(spike_l_left)
     
-    shuttle_path = os.path.join(script_dir, "Spaceship.png")
-    spike_path = os.path.join(script_dir, "Small Spike.png")
+    spike_small_right = ImageTk.PhotoImage(spike_s_right)
+    spike_medium_right = ImageTk.PhotoImage(spike_m_right)
+    spike_large_right = ImageTk.PhotoImage(spike_l_right)
     
-    # Load files using the absolute system paths
-    ship_image_ref = tk.PhotoImage(file=shuttle_path) 
-    spike_small_ref = tk.PhotoImage(file=spike_path)
-    # --------------------------------------------
+    # 4. Draw fixed space shuttle right in the absolute center
+    game_canvas.create_image(475, 360, image=ship_image_ref, tags="shuttle")
     
-    # Automatically generate medium and large widths from single small file
-    spike_medium_ref = spike_small_ref.zoom(2, 1)  
-    spike_large_ref = spike_small_ref.zoom(3, 1)
-
-    
-    # 5. Draw the live Flight Telemetry HUD overlay text elements using font choice
+    # 5. Draw HUD Instrumentation displays
     game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console,
                             text="FUEL RESERVES: 100%", tags="hud_fuel")
-                            
     game_canvas.create_text(25, 50, anchor=tk.NW, fill=text_color, font=font_console,
                             text="DESCENT RATE: 0.0 m/s", tags="hud_speed")
-                            
     game_canvas.create_text(25, 75, anchor=tk.NW, fill=text_color, font=font_console,
                             text="ROLL DIRECTION: 0°", tags="hud_angle")
     
-    # 6. Bind your multi-press keyboard input listener routines
     root.bind("<KeyPress>", handle_press)
     root.bind("<KeyRelease>", handle_release)
     
-    # 7. Generate your procedural map layout array entries
     generate_random_terrain()
-    
-    # 8. Fire up the core game loop frame sequence clocks!
     run_physics_frame()
 
 def landing_minigame_difficulty():
