@@ -9,6 +9,7 @@ import ctypes
 import math
 import random
 from PIL import Image, ImageTk
+import pygame
 
 script_dir = os.path.dirname(os.path.abspath(__file__))
 spike_path = os.path.join(script_dir, "Small Spike.png")
