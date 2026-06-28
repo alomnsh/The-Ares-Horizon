@@ -606,26 +606,20 @@ def generate_random_terrain():
     total_obstacles = 20
     
     for i in range(total_obstacles):
-        # Spaced out every 280 vertical pixels
         world_y = 500 + (i * 280)
-        
-        # Pick one of your 3 proportional tiers
         size = random.choice(["SMALL", "MEDIUM", "LARGE"])
-        if size == "SMALL": 
-            width = 200
-        elif size == "MEDIUM": 
-            width = 400
-        else: 
-            width = 600
+        
+        # Sized nicely for the expanded 550px width track
+        if size == "SMALL": width = 100
+        elif size == "MEDIUM": width = 180
+        else: width = 250
         
         side = "LEFT" if i % 2 == 0 else "RIGHT"
         
-        # CORRECTION: Force the left side to absolute zero, 
-        # and snap the right side flush against the 950px right margin.
         if side == "LEFT":
-            x_position = 0
+            x_position = 200  # Starts at the inner edge of the left pillar
         else:
-            x_position = 950 - width
+            x_position = 750  # Starts at the inner edge of the right pillar
             
         active_map_layout.append({
             "size": size,
@@ -638,16 +632,33 @@ def generate_random_terrain():
 def check_cave_collision():
     global active_map_layout, altitude
     ship_x = 475
-    ship_y = 360
+    ship_y = 310
+    
+    # Precise boundaries of the spaceship asset
+    ship_half_width = 25
+    ship_height = 60
+    
+    # 1. Immediate border check (Inner boundaries are now 200 and 750)
+    if (ship_x - ship_half_width) <= 200 or (ship_x + ship_half_width) >= 750:
+        return "CRASH"
+        
+    # 2. Continuous range box calculations for spikes
     for obs in active_map_layout:
         obs_screen_y = obs["world_y"] - altitude
-        if obs_screen_y <= ship_y < (obs_screen_y + 60):
+        
+        # Check if the vertical span of the ship touches the 60px high spike asset area
+        if (obs_screen_y - ship_height) <= ship_y <= (obs_screen_y + 60):
             if obs["side"] == "LEFT":
-                if ship_x - 25 <= obs["width"]:
+                # Tip of the spike reaches out to: 150 + image width
+                spike_tip_x = 150 + obs["width"]
+                if (ship_x - ship_half_width) <= spike_tip_x:
                     return "CRASH"
             else:
-                if ship_x + 25 >= (950 - obs["width"]):
+                # Tip of the spike reaches inward to: 800 - image width
+                spike_tip_x = 800 - obs["width"]
+                if (ship_x + ship_half_width) >= spike_tip_x:
                     return "CRASH"
+                    
     return "NONE"
 
 def run_physics_frame():
@@ -676,23 +687,32 @@ def run_physics_frame():
     elif key_states["Right"]:
         ship_angle += roll_speed  
 
-    # 2. Render and Redraw the Obstacles
+    # Clear previous frames
     game_canvas.delete("obstacle")
+    game_canvas.delete("border")
+    
+    # 1. Draw Moving Spikes FIRST so the white side panels mask their flat bases
     for obs in active_map_layout:
         screen_y = obs["world_y"] - altitude
         if -100 < screen_y < 820:
             if obs["side"] == "LEFT":
-                # Use the right-facing image variant pinned to x=0
                 img = spike_small_right if obs["size"] == "SMALL" else (spike_medium_right if obs["size"] == "MEDIUM" else spike_large_right)
-                game_canvas.create_image(0, screen_y, image=img, anchor=tk.NW, tags="obstacle")
+                # Left spikes are based slightly inside the column at x=150 and point rightward
+                game_canvas.create_image(150, screen_y, image=img, anchor=tk.NW, tags="obstacle")
             else:
-                # Use the left-facing image variant pinned to x=950
                 img = spike_small_ref if obs["size"] == "SMALL" else (spike_medium_ref if obs["size"] == "MEDIUM" else spike_large_ref)
-                game_canvas.create_image(950, screen_y, image=img, anchor=tk.NE, tags="obstacle")
+                # Right spikes are based slightly inside the column at x=800 and point leftward
+                game_canvas.create_image(800, screen_y, image=img, anchor=tk.NE, tags="obstacle")
 
-    # 3. Refresh Shuttle Layer (Uses unique tag "shuttle")
+    # 2. Draw Solid White Screen Borders extending to absolute window bottom (720px)
+    # Left Column: Covers pixel 0 to 200
+    game_canvas.create_rectangle(0, 0, 200, 720, fill="white", outline="white", tags="border")
+    # Right Column: Covers pixel 750 to 950 (Leaves an exact 550px wide center lane)
+    game_canvas.create_rectangle(750, 0, 950, 720, fill="white", outline="white", tags="border")
+    
+    # Redraw the shuttle directly in the dead center (475 is exactly half of 950)
     game_canvas.delete("shuttle")
-    game_canvas.create_image(475, 360, image=ship_image_ref, tags="shuttle")
+    game_canvas.create_image(475, 310, image=ship_image_ref, tags="shuttle")
 
     # 4. Update HUD Texts
     display_fuel = max(0, int(ship_fuel))
@@ -728,7 +748,8 @@ def start_landing_simulation_canvas():
     
     # CORRECTION: Shift the y-axis down by 100px and set height to 620px
     # This prevents the canvas from breaking or rendering over your status bars
-    game_canvas = tk.Canvas(root, width=950, height=620, bg=BG_main, highlightthickness=0)
+        # Force the canvas container to extend all the way down to the 720px window floor
+    game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
     game_canvas.place(x=0, y=100, width=950, height=620)
     
     ship_image_ref = ImageTk.PhotoImage(ship_raw)
