@@ -582,7 +582,6 @@ def handle_choice3b(choice):
 #===========================================================================
 #LANDING MINI GAME (PYGAME EMBEDDED EDITION)
 #===========================================================================
-
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
     import pygame
@@ -593,8 +592,11 @@ def run_physics_frame():
     f_w = game_frame.winfo_width()
     f_h = game_frame.winfo_height()
     
-    left_wall = int(f_w * 0.25)
-    right_wall = int(f_w * 0.75)
+    # CORRECTION: Find true center point first, then subtract/add 175px
+    # This guarantees a perfectly balanced 350px canyon width centered on any screen size
+    screen_center_x = f_w // 2
+    left_wall = screen_center_x - 175
+    right_wall = screen_center_x + 175
     
     # 1. Keyboard Input Monitoring
     keys = pygame.key.get_pressed()
@@ -613,7 +615,7 @@ def run_physics_frame():
     elif current_difficulty == "MEDIUM":
         altitude += 3.2
     else:
-        altitude += 4.5  # Hard mode zooms downward!
+        altitude += 4.5  
     
     # 2. Graphics Rendering Operations
     pg_screen.fill((15, 15, 25)) 
@@ -627,12 +629,12 @@ def run_physics_frame():
             calculated_height = int(obs["width"] * 0.3)
             
             if obs["side"] == "LEFT":
-                # Scale left texture asset proportionally
                 scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
+                # Left spikes are based slightly inside the column wall mask line
                 pg_screen.blit(scaled_spike, (left_wall - 40, screen_y))
             else:
-                # Scale right mirrored texture asset proportionally
                 scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
+                # Right spikes are based slightly inside the column wall mask line
                 pg_screen.blit(scaled_spike, (right_wall + 40 - obs["width"], screen_y))
                 
     # Draw solid white side columns right on top of outer edges to mask spike bases
@@ -679,6 +681,7 @@ def start_landing_simulation_canvas():
     global ship_x, ship_y, obstacles, ship_surface, spike_left, spike_right, current_difficulty
     import os
     import pygame
+    import random
     
     # 1. Reset Physics Engine States
     altitude = 0.0
@@ -720,49 +723,42 @@ def start_landing_simulation_canvas():
     try:
         raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
         spike_left = pygame.transform.scale(raw_spike, (200, 60))
-        # Flip horizontally: True for X, False for Y
         spike_right = pygame.transform.flip(spike_left, True, False)
     except pygame.error:
         spike_left = pygame.Surface((200, 60)); spike_left.fill((130, 45, 45))
         spike_right = pygame.Surface((200, 60)); spike_right.fill((130, 45, 45))
     
-    # 7. Core Ship Coordinates (True Center Math)
+    # 7. Core Ship Coordinates (True Dead Center Math)
     ship_x = frame_w // 2
     ship_y = frame_h // 2
     
-    # 8. Symmetrical Canyon Rules based on Difficulty setting
-    left_wall_limit = int(frame_w * 0.25)
-    right_wall_limit = int(frame_w * 0.75)
-    
+    # 8. Symmetrical Dense Spacing Properties
     if current_difficulty == "EASY":
-        small_w = int(frame_w * 0.05)
-        medium_w = int(frame_w * 0.09)
-        large_w = int(frame_w * 0.12)
-        gap_spacing = 300
+        small_w = 60
+        medium_w = 90
+        large_w = 120
+        gap_spacing = 160  
     elif current_difficulty == "MEDIUM":
-        small_w = int(frame_w * 0.09)
-        medium_w = int(frame_w * 0.14)
-        large_w = int(frame_w * 0.18)
-        gap_spacing = 260
+        small_w = 80
+        medium_w = 120
+        large_w = 150
+        gap_spacing = 130  
     else: # HARD MODE
-        small_w = int(frame_w * 0.14)
-        medium_w = int(frame_w * 0.20)
-        large_w = int(frame_w * 0.24)
-        gap_spacing = 210
+        small_w = 110
+        medium_w = 160
+        large_w = 200  
+        gap_spacing = 100  
     
-    # Generate balanced obstacle arrays using real math ratios
+    # Generate balanced obstacle arrays
     obstacles = []
-    for i in range(30):
+    for i in range(60):
         obs_y = 450 + (i * gap_spacing)
         side = "LEFT" if i % 2 == 0 else "RIGHT"
         width = random.choice([small_w, medium_w, large_w])
         obstacles.append({"y": obs_y, "side": side, "width": width})
         
-    # Unbind old Tkinter key binds
     root.unbind("<KeyPress>")
     root.unbind("<KeyRelease>")
-    
-    # Kick off loop
     run_physics_frame()
 
 def landing_minigame_difficulty():
