@@ -9,25 +9,6 @@ import ctypes
 import math
 import random
 from PIL import Image, ImageTk
-import pygame
-
-script_dir = os.path.dirname(os.path.abspath(__file__))
-spike_path = os.path.join(script_dir, "Small Spike.png")
-shuttle_path = os.path.join(script_dir, "Spaceship.png")
-
-# Load the original raw files right here on game startup
-ship_raw = Image.open(shuttle_path)
-spike_raw = Image.open(spike_path) 
-
-# Generate structural horizontal sizing boundaries
-spike_s_left = spike_raw.resize((200, 60))
-spike_m_left = spike_raw.resize((400, 60))
-spike_l_left = spike_raw.resize((600, 60))  # Changed '1' to 'l'
-
-# Mirror horizontally for the right walls
-spike_s_right = spike_s_left.transpose(Image.FLIP_LEFT_RIGHT)
-spike_m_right = spike_m_left.transpose(Image.FLIP_LEFT_RIGHT)
-spike_l_right = spike_l_left.transpose(Image.FLIP_LEFT_RIGHT)
 
 #Landing Mini Game Variables
 altitude = 0.0
@@ -599,244 +580,223 @@ def handle_choice3b(choice):
     end_game_session()
 
 #===========================================================================
-#LANDING MINI GAME
+#LANDING MINI GAME (PYGAME EMBEDDED EDITION)
 #===========================================================================
-def generate_random_terrain():
-    global active_map_layout
-    active_map_layout = []
-    total_obstacles = 20
-    
-    for i in range(total_obstacles):
-        world_y = 500 + (i * 280)
-        size = random.choice(["SMALL", "MEDIUM", "LARGE"])
-        
-        # Sized nicely for the expanded 550px width track
-        if size == "SMALL": width = 100
-        elif size == "MEDIUM": width = 180
-        else: width = 250
-        
-        side = "LEFT" if i % 2 == 0 else "RIGHT"
-        
-        if side == "LEFT":
-            x_position = 200  # Starts at the inner edge of the left pillar
-        else:
-            x_position = 750  # Starts at the inner edge of the right pillar
-            
-        active_map_layout.append({
-            "size": size,
-            "width": width,
-            "side": side,
-            "x": x_position,
-            "world_y": world_y
-        })
-
-def check_cave_collision():
-    global active_map_layout, altitude
-    ship_x = 475
-    ship_y = 310
-    
-    # Precise boundaries of the spaceship asset
-    ship_half_width = 25
-    ship_height = 60
-    
-    # 1. Immediate border check (Inner boundaries are now 200 and 750)
-    if (ship_x - ship_half_width) <= 200 or (ship_x + ship_half_width) >= 750:
-        return "CRASH"
-        
-    # 2. Continuous range box calculations for spikes
-    for obs in active_map_layout:
-        obs_screen_y = obs["world_y"] - altitude
-        
-        # Check if the vertical span of the ship touches the 60px high spike asset area
-        if (obs_screen_y - ship_height) <= ship_y <= (obs_screen_y + 60):
-            if obs["side"] == "LEFT":
-                # Tip of the spike reaches out to: 150 + image width
-                spike_tip_x = 150 + obs["width"]
-                if (ship_x - ship_half_width) <= spike_tip_x:
-                    return "CRASH"
-            else:
-                # Tip of the spike reaches inward to: 800 - image width
-                spike_tip_x = 800 - obs["width"]
-                if (ship_x + ship_half_width) >= spike_tip_x:
-                    return "CRASH"
-                    
-    return "NONE"
 
 def run_physics_frame():
-    global game_canvas
-    global altitude, velocity_y, ship_angle, ship_fuel, current_gravity
-    global thrust_power, drop_power, roll_speed
-    global spike_small_ref, spike_medium_ref, spike_large_ref
-    global spike_small_right, spike_medium_right, spike_large_right
-    global ship_image_ref, active_map_layout
+    global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
+    import pygame
     
-    if game_canvas is None:
-        return  
+    if not game_running:
+        return
         
-    # 1. Physics Input Processing
-    if key_states["Up"] and ship_fuel > 0:
-        velocity_y += thrust_power 
-        ship_fuel -= 0.2  
-    elif key_states["Down"]:
-        velocity_y += drop_power   
-
-    velocity_y += current_gravity
-    altitude += velocity_y  
-
-    if key_states["Left"]:
-        ship_angle -= roll_speed  
-    elif key_states["Right"]:
-        ship_angle += roll_speed  
-
-    # Clear previous frames
-    game_canvas.delete("obstacle")
-    game_canvas.delete("border")
+    f_w = game_frame.winfo_width()
+    f_h = game_frame.winfo_height()
     
-    # 1. Draw Moving Spikes FIRST so the white side panels mask their flat bases
-    for obs in active_map_layout:
-        screen_y = obs["world_y"] - altitude
-        if -100 < screen_y < 820:
+    left_wall = int(f_w * 0.25)
+    right_wall = int(f_w * 0.75)
+    
+    # 1. Keyboard Input Monitoring
+    keys = pygame.key.get_pressed()
+    if keys[pygame.K_LEFT]:
+        ship_x -= 5
+        ship_angle = min(25, ship_angle + 2)
+    elif keys[pygame.K_RIGHT]:
+        ship_x += 5
+        ship_angle = max(-25, ship_angle - 2)
+    else:
+        ship_angle *= 0.85
+        
+    # Adjust scrolling speed dynamically depending on active difficulty choice
+    if current_difficulty == "EASY":
+        altitude += 2.0
+    elif current_difficulty == "MEDIUM":
+        altitude += 3.2
+    else:
+        altitude += 4.5  # Hard mode zooms downward!
+    
+    # 2. Graphics Rendering Operations
+    pg_screen.fill((15, 15, 25)) 
+    
+    # Loop and draw moving spike segments dynamically
+    for obs in obstacles:
+        screen_y = obs["y"] - int(altitude)
+        if -150 < screen_y < f_h + 150:
+            
+            # Proportional height scaling based on original 200x60 ratio (60/200 = 0.3)
+            calculated_height = int(obs["width"] * 0.3)
+            
             if obs["side"] == "LEFT":
-                img = spike_small_right if obs["size"] == "SMALL" else (spike_medium_right if obs["size"] == "MEDIUM" else spike_large_right)
-                # Left spikes are based slightly inside the column at x=150 and point rightward
-                game_canvas.create_image(150, screen_y, image=img, anchor=tk.NW, tags="obstacle")
+                # Scale left texture asset proportionally
+                scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
+                pg_screen.blit(scaled_spike, (left_wall - 40, screen_y))
             else:
-                img = spike_small_ref if obs["size"] == "SMALL" else (spike_medium_ref if obs["size"] == "MEDIUM" else spike_large_ref)
-                # Right spikes are based slightly inside the column at x=800 and point leftward
-                game_canvas.create_image(800, screen_y, image=img, anchor=tk.NE, tags="obstacle")
-
-    # 2. Draw Solid White Screen Borders extending to absolute window bottom (720px)
-    # Left Column: Covers pixel 0 to 200
-    game_canvas.create_rectangle(0, 0, 200, 720, fill="white", outline="white", tags="border")
-    # Right Column: Covers pixel 750 to 950 (Leaves an exact 550px wide center lane)
-    game_canvas.create_rectangle(750, 0, 950, 720, fill="white", outline="white", tags="border")
+                # Scale right mirrored texture asset proportionally
+                scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
+                pg_screen.blit(scaled_spike, (right_wall + 40 - obs["width"], screen_y))
+                
+    # Draw solid white side columns right on top of outer edges to mask spike bases
+    pygame.draw.rect(pg_screen, (255, 255, 255), (0, 0, left_wall, f_h))
+    pygame.draw.rect(pg_screen, (255, 255, 255), (right_wall, 0, f_w - right_wall, f_h))
     
-    # Redraw the shuttle directly in the dead center (475 is exactly half of 950)
-    game_canvas.delete("shuttle")
-    game_canvas.create_image(475, 310, image=ship_image_ref, tags="shuttle")
+    # 3. Ship Rect Modeling & Collision Check (Sized 50x90px)
+    ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
+    pg_screen.blit(ship_surface, (ship_rect.x, ship_rect.y))
+    
+    # Collision Verification Engine
+    crashed = False
+    if ship_rect.left <= left_wall or ship_rect.right >= right_wall:
+        crashed = True
+    else:
+        for obs in obstacles:
+            screen_y = obs["y"] - int(altitude)
+            calculated_height = int(obs["width"] * 0.3)
+            
+            if -150 < screen_y < f_h + 150:
+                if obs["side"] == "LEFT":
+                    obs_rect = pygame.Rect(left_wall - 40, screen_y, obs["width"], calculated_height)
+                else:
+                    obs_rect = pygame.Rect(right_wall + 40 - obs["width"], screen_y, obs["width"], calculated_height)
+                    
+                if ship_rect.colliderect(obs_rect):
+                    crashed = True
+                    break
 
-    # 4. Update HUD Texts
-    display_fuel = max(0, int(ship_fuel))
-    game_canvas.itemconfig("hud_fuel", text=f"FUEL RESERVES: {display_fuel}")
-    game_canvas.itemconfig("hud_speed", text=f"DESCENT RATE: {velocity_y:.1f} m/s")
-    game_canvas.itemconfig("hud_angle", text=f"ROLL DIRECTION: {int(ship_angle)}°")
-
-    # 5. Core Handler Evaluation
-    status = check_cave_collision()
-    if status == "CRASH":
-        for key in key_states: key_states[key] = False
-        root.unbind("<KeyPress>")
-        root.unbind("<KeyRelease>")
-        game_canvas.place_forget()
-        game_canvas = None
-        space_ship_crash()
+    # 4. Pipeline Refresh Execution
+    pygame.display.flip()
+    pg_clock.tick(60)
+    
+    if crashed:
+        game_running = False
+        pygame.quit()
+        game_frame.place_forget() 
+        space_ship_crash()        
     else:
         root.after(16, run_physics_frame)
 
 def start_landing_simulation_canvas():
-    global game_canvas, ship_image_ref, spike_small_ref, spike_medium_ref, spike_large_ref
-    global spike_small_right, spike_medium_right, spike_large_right, altitude, velocity_y, ship_angle
-    global spike_1_left
-    global spike_1_right
+    global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
+    global ship_x, ship_y, obstacles, ship_surface, spike_left, spike_right, current_difficulty
+    import os
+    import pygame
     
+    # 1. Reset Physics Engine States
     altitude = 0.0
     velocity_y = 0.0
     ship_angle = 0.0
+    game_running = True
     
-    # Pack the top telemetry bar layout cleanly
-    dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
-    update_gui()
+    # 2. Pull actual window geometry dynamically
+    root.update_idletasks()
+    win_w = root.winfo_width()
+    win_h = root.winfo_height()
     
-    # CORRECTION: Shift the y-axis down by 100px and set height to 620px
-    # This prevents the canvas from breaking or rendering over your status bars
-        # Force the canvas container to extend all the way down to the 720px window floor
-    game_canvas = tk.Canvas(root, width=950, height=720, bg=BG_main, highlightthickness=0)
-    game_canvas.place(x=0, y=100, width=950, height=620)
+    frame_w = win_w
+    frame_h = win_h - 100
     
-    ship_image_ref = ImageTk.PhotoImage(ship_raw)
-    spike_small_ref = ImageTk.PhotoImage(spike_s_left)
-    spike_medium_ref = ImageTk.PhotoImage(spike_m_left)
-    spike_large_ref = ImageTk.PhotoImage(spike_l_left) 
-    spike_small_right = ImageTk.PhotoImage(spike_s_right)
-    spike_medium_right = ImageTk.PhotoImage(spike_m_right)
-    spike_large_right = ImageTk.PhotoImage(spike_l_right)
+    # 3. Create a clean Tkinter Frame container for Pygame
+    game_frame = tk.Frame(root, width=frame_w, height=frame_h, bg="black")
+    game_frame.place(x=0, y=100, width=frame_w, height=frame_h)
+    root.update() 
+    
+    # 4. Redirect the Pygame pipeline window hook inside Tkinter
+    os.environ['SDL_WINDOWID'] = str(game_frame.winfo_id())
+    os.environ['SDL_VIDEODRIVER'] = 'windib' if os.name == 'nt' else 'x11'
+    
+    # Initialize Pygame embedded sub-window frame
+    pygame.init()
+    pg_screen = pygame.display.set_mode((frame_w, frame_h))
+    pg_clock = pygame.time.Clock()
+    
+    # 5. Load and scale your 50x90px custom Spaceship design
+    try:
+        raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
+        ship_surface = pygame.transform.scale(raw_ship, (50, 90))
+    except pygame.error:
+        ship_surface = pygame.Surface((50, 90))
+        ship_surface.fill((0, 240, 240)) 
 
+    # 6. Load your single native 200x60px Spike image ("Small Spike.png") & mirror it
+    try:
+        raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
+        spike_left = pygame.transform.scale(raw_spike, (200, 60))
+        # Flip horizontally: True for X, False for Y
+        spike_right = pygame.transform.flip(spike_left, True, False)
+    except pygame.error:
+        spike_left = pygame.Surface((200, 60)); spike_left.fill((130, 45, 45))
+        spike_right = pygame.Surface((200, 60)); spike_right.fill((130, 45, 45))
     
-    # Center the ship relative to the new 620px canvas height (310px)
-    game_canvas.create_image(475, 310, image=ship_image_ref, tags="shuttle")
-    game_canvas.create_text(25, 25, anchor=tk.NW, fill=text_color, font=font_console, text="FUEL RESERVES: 100%", tags="hud_fuel")
-    game_canvas.create_text(25, 50, anchor=tk.NW, fill=text_color, font=font_console, text="DESCENT RATE: 0.0 m/s", tags="hud_speed")
-    game_canvas.create_text(25, 75, anchor=tk.NW, fill=text_color, font=font_console, text="ROLL DIRECTION: 0°", tags="hud_angle")
+    # 7. Core Ship Coordinates (True Center Math)
+    ship_x = frame_w // 2
+    ship_y = frame_h // 2
     
-    root.bind("<KeyPress>", handle_press)
-    root.bind("<KeyRelease>", handle_release)
-    generate_random_terrain()
+    # 8. Symmetrical Canyon Rules based on Difficulty setting
+    left_wall_limit = int(frame_w * 0.25)
+    right_wall_limit = int(frame_w * 0.75)
+    
+    if current_difficulty == "EASY":
+        small_w = int(frame_w * 0.05)
+        medium_w = int(frame_w * 0.09)
+        large_w = int(frame_w * 0.12)
+        gap_spacing = 300
+    elif current_difficulty == "MEDIUM":
+        small_w = int(frame_w * 0.09)
+        medium_w = int(frame_w * 0.14)
+        large_w = int(frame_w * 0.18)
+        gap_spacing = 260
+    else: # HARD MODE
+        small_w = int(frame_w * 0.14)
+        medium_w = int(frame_w * 0.20)
+        large_w = int(frame_w * 0.24)
+        gap_spacing = 210
+    
+    # Generate balanced obstacle arrays using real math ratios
+    obstacles = []
+    for i in range(30):
+        obs_y = 450 + (i * gap_spacing)
+        side = "LEFT" if i % 2 == 0 else "RIGHT"
+        width = random.choice([small_w, medium_w, large_w])
+        obstacles.append({"y": obs_y, "side": side, "width": width})
+        
+    # Unbind old Tkinter key binds
+    root.unbind("<KeyPress>")
+    root.unbind("<KeyRelease>")
+    
+    # Kick off loop
     run_physics_frame()
 
-
 def landing_minigame_difficulty():
+    global menu_backdrop
+    
+    font_subtitle = ("Courier", 16, "bold")
+    
     # 1. Create a master full-screen overlay frame
-    # We use relative placement (0.0 to 1.0) so it ignores previous text box shifts
     menu_backdrop = tk.Frame(root, bg=BG_main)
     menu_backdrop.place(relx=0, rely=0, relwidth=1.0, relheight=1.0)
 
-    # 2. Create the inner container for your elements
+    # 2. Expanded container to fit all three choices perfectly
     button_container = tk.Frame(menu_backdrop, bg=BG_panel, bd=2, relief=tk.RIDGE)
+    button_container.place(relx=0.5, rely=0.5, width=400, height=400, anchor=tk.CENTER)
     
-    # Using 0.5 tells Tkinter to find the exact middle percentage of the active screen 
-    button_container.place(relx=0.5, rely=0.5, anchor=tk.CENTER)
-
-    # 3. Add your centered title text
-    title_label = tk.Label(
-        button_container, 
-        text="[SELECT ORBITAL PILOT SYSTEM]", 
-        font=font_console,
-        bg=BG_panel,
-        fg=text_color
-    )
-    title_label.pack(pady=(25, 20), padx=30)
-
-    # 4. Core inner difficulty click logic handler
-    def select_mode(mode):
-        global current_gravity, current_pad_width, ship_fuel, max_safe_speed, max_safe_angle
+    # Title Label
+    lbl_title = tk.Label(button_container, text="CHOOSE DIFFICULTY", font=font_subtitle, fg=text_color, bg=BG_panel)
+    lbl_title.pack(pady=25)
+    
+    def select_mode(mode_setting):
+        global current_difficulty
+        current_difficulty = mode_setting
+        menu_backdrop.place_forget() 
+        start_landing_simulation_canvas() 
         
-        if mode == "EASY":
-            current_gravity = 0.08
-            current_pad_width = 120
-            ship_fuel = 150
-            max_safe_speed = 3.0
-            max_safe_angle = 15
-            
-        elif mode == "MEDIUM":
-            current_gravity = 0.15
-            current_pad_width = 80
-            ship_fuel = 100
-            max_safe_speed = 2.0
-            max_safe_angle = 10
-
-        elif mode == "HARD":
-            current_gravity = 0.25
-            current_pad_width = 45
-            ship_fuel = 75
-            max_safe_speed = 1.2
-            max_safe_angle = 5
-
-        # Tear down the overlay menu via place_forget
-        menu_backdrop.place_forget()
-        start_landing_simulation_canvas()
-
-    # 5. Build and pack the buttons with explicit alignment boundaries
-    btn_easy = tk.Button(button_container, text="> EASY_MODE_INIT", font=font_console, 
-                         bg=color_cyan, fg="black", command=lambda: select_mode("EASY"))
-    btn_easy.pack(pady=10, fill=tk.X, ipady=6, padx=30)
-
-    btn_medium = tk.Button(button_container, text="> MED_MODE_INIT", font=font_console, 
-                           bg=color_yellow, fg="black", command=lambda: select_mode("MEDIUM"))
-    btn_medium.pack(pady=10, fill=tk.X, ipady=6, padx=30)
-
-    btn_hard = tk.Button(button_container, text="> HARD_MODE_INIT", font=font_console, 
-                         bg=color_red, fg=text_color, command=lambda: select_mode("HARD"))
-    btn_hard.pack(pady=10, fill=tk.X, ipady=6, padx=30)
+    # Three Distinct Symmetrical Options
+    btn_easy = tk.Button(button_container, text="EASY MODE", font=font_console, bg=color_cyan, fg="black", command=lambda: select_mode("EASY"), width=20)
+    btn_easy.pack(pady=10)
+    
+    btn_med = tk.Button(button_container, text="MEDIUM MODE", font=font_console, bg="yellow", fg="black", command=lambda: select_mode("MEDIUM"), width=20)
+    btn_med.pack(pady=10)
+    
+    btn_hard = tk.Button(button_container, text="HARD MODE", font=font_console, bg=color_red, fg="white", command=lambda: select_mode("HARD"), width=20)
+    btn_hard.pack(pady=10)
 
 #CRASH SCREEN
 def space_ship_crash():
