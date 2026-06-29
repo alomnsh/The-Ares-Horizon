@@ -10,24 +10,6 @@ import math
 import random
 from PIL import Image, ImageTk
 
-#Landing Mini Game Variables
-altitude = 0.0
-velocity_y = 0.0
-ship_angle = 0.0
-ship_fuel = 100
-thrust_power = -0.25   
-drop_power = 0.15      
-roll_speed = 2.0 
-
-game_canvas = None
-ship_image_ref = None
-spike_small_ref = None
-spike_medium_ref = None
-spike_large_ref = None
-
-#Disabling controls for the mini game when game begins
-key_states = {"Up": False, "Down": False, "Left": False, "Right": False}
-
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
@@ -592,22 +574,16 @@ def run_physics_frame():
     f_w = game_frame.winfo_width()
     f_h = game_frame.winfo_height()
     
-    # CORRECTION: Find true center point first, then subtract/add 175px
-    # This guarantees a perfectly balanced 350px canyon width centered on any screen size
     screen_center_x = f_w // 2
     left_wall = screen_center_x - 175
     right_wall = screen_center_x + 175
     
-    # 1. Keyboard Input Monitoring
-    keys = pygame.key.get_pressed()
-    if keys[pygame.K_LEFT]:
-        ship_x -= 5
-        ship_angle = min(25, ship_angle + 2)
-    elif keys[pygame.K_RIGHT]:
-        ship_x += 5
-        ship_angle = max(-25, ship_angle - 2)
-    else:
-        ship_angle *= 0.85
+    # 1. Continuous stabilization dampening for visual animations
+    ship_angle *= 0.85
+    
+    # Boundary constraints to make sure the ship doesn't go off screen
+    if ship_x - 25 < left_wall: ship_x = left_wall + 25
+    if ship_x + 25 > right_wall: ship_x = right_wall - 25
         
     # Adjust scrolling speed dynamically depending on active difficulty choice
     if current_difficulty == "EASY":
@@ -624,22 +600,26 @@ def run_physics_frame():
     for obs in obstacles:
         screen_y = obs["y"] - int(altitude)
         if -150 < screen_y < f_h + 150:
-            
-            # Proportional height scaling based on original 200x60 ratio (60/200 = 0.3)
             calculated_height = int(obs["width"] * 0.3)
             
             if obs["side"] == "LEFT":
                 scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
-                # Left spikes are based slightly inside the column wall mask line
                 pg_screen.blit(scaled_spike, (left_wall - 40, screen_y))
             else:
                 scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
-                # Right spikes are based slightly inside the column wall mask line
                 pg_screen.blit(scaled_spike, (right_wall + 40 - obs["width"], screen_y))
                 
-    # Draw solid white side columns right on top of outer edges to mask spike bases
-    pygame.draw.rect(pg_screen, (255, 255, 255), (0, 0, left_wall, f_h))
-    pygame.draw.rect(pg_screen, (255, 255, 255), (right_wall, 0, f_w - right_wall, f_h))
+    # Draw solid dark gray side columns right on top of outer edges to mask spike bases
+    pygame.draw.rect(pg_screen, (40, 40, 45), (0, 0, left_wall, f_h))
+    pygame.draw.rect(pg_screen, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
+    
+    # Draw White HUD text element inside the bottom right corner
+    hud_font = pygame.font.SysFont("Courier", 18, bold=True)
+    hud_string = f"SYS-MODE: {current_difficulty}"
+    text_surface = hud_font.render(hud_string, True, (255, 255, 255))
+    text_x = f_w - text_surface.get_width() - 25
+    text_y = f_h - text_surface.get_height() - 25
+    pg_screen.blit(text_surface, (text_x, text_y))
     
     # 3. Ship Rect Modeling & Collision Check (Sized 50x90px)
     ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
@@ -666,10 +646,12 @@ def run_physics_frame():
 
     # 4. Pipeline Refresh Execution
     pygame.display.flip()
-    pg_clock.tick(60)
     
     if crashed:
         game_running = False
+        # Unbind our temporary keys before crashing so they don't break other text areas
+        root.unbind("<Left>")
+        root.unbind("<Right>")
         pygame.quit()
         game_frame.place_forget() 
         space_ship_crash()        
@@ -757,8 +739,23 @@ def start_landing_simulation_canvas():
         width = random.choice([small_w, medium_w, large_w])
         obstacles.append({"y": obs_y, "side": side, "width": width})
         
-    root.unbind("<KeyPress>")
-    root.unbind("<KeyRelease>")
+    def move_left(event):
+        global ship_x, ship_angle
+        ship_x -= 15 # Move speed step
+        ship_angle = min(25, ship_angle + 5)
+
+    def move_right(event):
+        global ship_x, ship_angle
+        ship_x += 15 # Move speed step
+        ship_angle = max(-25, ship_angle - 5)
+
+    root.bind("<Left>", move_left)
+    root.bind("<Right>", move_right)
+    
+    # Force keyboard focus to root window container layer
+    root.focus_set()
+    
+    # Kick off loop
     run_physics_frame()
 
 def landing_minigame_difficulty():
