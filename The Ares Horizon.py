@@ -566,7 +566,8 @@ def handle_choice3b(choice):
 #===========================================================================
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
-    global move_left_active, move_right_active # NEW: Read toggled flags
+    global prep_timer_frames
+    global move_left_active, move_right_active
     import pygame
     
     if not game_running:
@@ -596,12 +597,16 @@ def run_physics_frame():
     if ship_x + 25 > right_wall: ship_x = right_wall - 25
         
     # Adjust scrolling speed dynamically depending on active difficulty choice
-    if current_difficulty == "EASY":
-        altitude += 2.0
-    elif current_difficulty == "MEDIUM":
-        altitude += 3.2
+    if prep_timer_frames > 0:
+        altitude += 1.5
+        prep_timer_frames -= 1
     else:
-        altitude += 4.5  
+        if current_difficulty == "EASY":
+            altitude += 2.0
+        elif current_difficulty == "MEDIUM":
+            altitude += 3.2
+        else:
+            altitude += 4.5   
     
     # 2. Graphics Rendering Operations
     pg_screen.fill((15, 15, 25)) 
@@ -635,6 +640,16 @@ def run_physics_frame():
     ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
     pg_screen.blit(ship_surface, (ship_rect.x, ship_rect.y))
     
+    if prep_timer_frames > 0:
+        seconds_left = (prep_timer_frames // 60) + 1
+        count_font = pygame.font.SysFont("Courier", 48, bold=True)
+        count_string = f"PREPARE: {seconds_left}"
+        count_surface = count_font.render(count_string, True, (0, 240, 240))
+        
+        count_x = screen_center_x - (count_surface.get_width() // 2)
+        count_y = (f_h // 2) - 150
+        pg_screen.blit(count_surface, (count_x, count_y))
+
     # Collision Verification Engine (Pixel-Perfect Masks)
     crashed = False
     if ship_rect.left <= left_wall or ship_rect.right >= right_wall:
@@ -681,8 +696,9 @@ def run_physics_frame():
 def start_landing_simulation_canvas():
     global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
-    global move_left_active, move_right_active # NEW: Keyboard state tracking variables
+    global move_left_active, move_right_active, prep_timer_frames
     import pygame
+    import random
     
     # 1. Reset Physics Engine States
     altitude = 0.0
@@ -691,6 +707,7 @@ def start_landing_simulation_canvas():
     game_running = True
     
     # Initialize movement trackers to false
+    prep_timer_frames = 180
     move_left_active = False
     move_right_active = False
     
@@ -762,7 +779,7 @@ def start_landing_simulation_canvas():
     repeat_tracker = 0
     
     for i in range(60):
-        obs_y = 450 + (i * gap_spacing)
+        obs_y = 900 + (i * gap_spacing)
         chosen_side = random.choice(["LEFT", "RIGHT"])
         
         if chosen_side == current_side:
