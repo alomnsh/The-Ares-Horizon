@@ -682,9 +682,7 @@ def start_landing_simulation_canvas():
     global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
     global move_left_active, move_right_active # NEW: Keyboard state tracking variables
-    import os
     import pygame
-    import random
     
     # 1. Reset Physics Engine States
     altitude = 0.0
@@ -769,7 +767,7 @@ def start_landing_simulation_canvas():
         
         if chosen_side == current_side:
             repeat_tracker += 1
-            if repeat_tracker >= 3:
+            if repeat_tracker >= 2:
                 chosen_side = "RIGHT" if current_side == "LEFT" else "LEFT"
                 repeat_tracker = 0
         else:
