@@ -636,11 +636,21 @@ def run_physics_frame():
             
             if -150 < screen_y < f_h + 150:
                 if obs["side"] == "LEFT":
-                    obs_rect = pygame.Rect(left_wall - 40, screen_y, obs["width"], calculated_height)
+                    spike_x = left_wall - 40
+                    # Create a temporary scaled image and generate its unique mask layout shape
+                    scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
+                    spike_mask = pygame.mask.from_surface(scaled_spike)
                 else:
-                    obs_rect = pygame.Rect(right_wall + 40 - obs["width"], screen_y, obs["width"], calculated_height)
-                    
-                if ship_rect.colliderect(obs_rect):
+                    spike_x = right_wall + 40 - obs["width"]
+                    scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
+                    spike_mask = pygame.mask.from_surface(scaled_spike)
+                
+                # NEW: Calculate the exact pixel offset between the ship and the spike
+                offset_x = spike_x - ship_rect.x
+                offset_y = screen_y - ship_rect.y
+                
+                # Check if the solid pixels of the ship_mask overlap with the spike_mask
+                if ship_mask.overlap(spike_mask, (offset_x, offset_y)):
                     crashed = True
                     break
 
@@ -693,15 +703,19 @@ def start_landing_simulation_canvas():
     pg_screen = pygame.display.set_mode((frame_w, frame_h))
     pg_clock = pygame.time.Clock()
     
-    # 5. Load and scale your 50x90px custom Spaceship design
+    # 5. Load and scale 50x90px custom Spaceship design
+    global ship_surface, ship_mask
     try:
         raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
         ship_surface = pygame.transform.scale(raw_ship, (50, 90))
-    except pygame.error:
-        ship_surface = pygame.Surface((50, 90))
-        ship_surface.fill((0, 240, 240)) 
+        ship_mask = pygame.mask.from_surface(ship_surface)
 
-    # 6. Load your single native 200x60px Spike image ("Small Spike.png") & mirror it
+    except pygame.error:
+        ship_surface = pygame.surface ((50,90))
+        ship_surface.fill ((0, 240, 240))
+        ship_mask = pygame.mask.from_surface(ship_surface)
+
+    # 6. Load single native 200x60px Spike image ("Small Spike.png") & mirror it
     try:
         raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
         spike_left = pygame.transform.scale(raw_spike, (200, 60))
