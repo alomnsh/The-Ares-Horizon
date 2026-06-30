@@ -566,6 +566,7 @@ def handle_choice3b(choice):
 #===========================================================================
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
+    global move_left_active, move_right_active # NEW: Read toggled flags
     import pygame
     
     if not game_running:
@@ -578,11 +579,20 @@ def run_physics_frame():
     left_wall = screen_center_x - 175
     right_wall = screen_center_x + 175
     
-    # 1. Continuous stabilization dampening for visual animations
-    ship_angle *= 0.85
+    # 1. NEW: Continuous Frame Movement Calculations
+    # As long as the button is down, these execute 60 times a second
+    if move_left_active:
+        ship_x -= 6  # Adjust this number to change slide speed
+        ship_angle = min(25, ship_angle + 3)
+    elif move_right_active:
+        ship_x += 6  # Adjust this number to change slide speed
+        ship_angle = max(-25, ship_angle - 3)
+    else:
+        # Stabilization dampening when keys are released
+        ship_angle *= 0.85
     
-    # Boundary constraints to make sure the ship doesn't go off screen
-    if ship_x - 25 < left_wall: ship_x = left_wall + 25
+    # Symmetrical edge guards to prevent sliding past the dark gray walls
+    if ship_x - 25 < left_wall:  ship_x = left_wall + 25
     if ship_x + 25 > right_wall: ship_x = right_wall - 25
         
     # Adjust scrolling speed dynamically depending on active difficulty choice
@@ -625,7 +635,7 @@ def run_physics_frame():
     ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
     pg_screen.blit(ship_surface, (ship_rect.x, ship_rect.y))
     
-    # Collision Verification Engine
+    # Collision Verification Engine (Pixel-Perfect Masks)
     crashed = False
     if ship_rect.left <= left_wall or ship_rect.right >= right_wall:
         crashed = True
@@ -637,7 +647,6 @@ def run_physics_frame():
             if -150 < screen_y < f_h + 150:
                 if obs["side"] == "LEFT":
                     spike_x = left_wall - 40
-                    # Create a temporary scaled image and generate its unique mask layout shape
                     scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
                     spike_mask = pygame.mask.from_surface(scaled_spike)
                 else:
@@ -645,23 +654,24 @@ def run_physics_frame():
                     scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
                     spike_mask = pygame.mask.from_surface(scaled_spike)
                 
-                # NEW: Calculate the exact pixel offset between the ship and the spike
                 offset_x = spike_x - ship_rect.x
                 offset_y = screen_y - ship_rect.y
                 
-                # Check if the solid pixels of the ship_mask overlap with the spike_mask
                 if ship_mask.overlap(spike_mask, (offset_x, offset_y)):
                     crashed = True
                     break
 
     # 4. Pipeline Refresh Execution
     pygame.display.flip()
+    pg_clock.tick(60)
     
     if crashed:
         game_running = False
-        # Unbind our temporary keys before crashing so they don't break other text areas
-        root.unbind("<Left>")
-        root.unbind("<Right>")
+        # Clean up temporary bindings completely on game over
+        root.unbind("<KeyPress-Left>")
+        root.unbind("<KeyRelease-Left>")
+        root.unbind("<KeyPress-Right>")
+        root.unbind("<KeyRelease-Right>")
         pygame.quit()
         game_frame.place_forget() 
         space_ship_crash()        
@@ -670,7 +680,8 @@ def run_physics_frame():
 
 def start_landing_simulation_canvas():
     global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
-    global ship_x, ship_y, obstacles, ship_surface, spike_left, spike_right, current_difficulty
+    global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
+    global move_left_active, move_right_active # NEW: Keyboard state tracking variables
     import os
     import pygame
     import random
@@ -680,6 +691,10 @@ def start_landing_simulation_canvas():
     velocity_y = 0.0
     ship_angle = 0.0
     game_running = True
+    
+    # Initialize movement trackers to false
+    move_left_active = False
+    move_right_active = False
     
     # 2. Pull actual window geometry dynamically
     root.update_idletasks()
@@ -703,19 +718,17 @@ def start_landing_simulation_canvas():
     pg_screen = pygame.display.set_mode((frame_w, frame_h))
     pg_clock = pygame.time.Clock()
     
-    # 5. Load and scale 50x90px custom Spaceship design
-    global ship_surface, ship_mask
+    # 5. Load and scale your 50x90px custom Spaceship design
     try:
         raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
         ship_surface = pygame.transform.scale(raw_ship, (50, 90))
         ship_mask = pygame.mask.from_surface(ship_surface)
-
     except pygame.error:
-        ship_surface = pygame.surface ((50,90))
-        ship_surface.fill ((0, 240, 240))
+        ship_surface = pygame.Surface((50, 90))
+        ship_surface.fill((0, 240, 240)) 
         ship_mask = pygame.mask.from_surface(ship_surface)
 
-    # 6. Load single native 200x60px Spike image ("Small Spike.png") & mirror it
+    # 6. Load your single native 200x60px Spike image ("Small Spike.png") & mirror it
     try:
         raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
         spike_left = pygame.transform.scale(raw_spike, (200, 60))
@@ -745,20 +758,17 @@ def start_landing_simulation_canvas():
         large_w = 270  
         gap_spacing = 110  
     
-    # CORRECTION: Array tracking integers used instead of local string updates
+    # Generate balanced obstacle arrays using a true randomized wall algorithm
     obstacles = []
     current_side = "LEFT"
     repeat_tracker = 0
     
     for i in range(60):
         obs_y = 450 + (i * gap_spacing)
-        
-        # Pull a random side
         chosen_side = random.choice(["LEFT", "RIGHT"])
         
         if chosen_side == current_side:
             repeat_tracker += 1
-            # Prevent more than 3 consecutive spikes on the same wall
             if repeat_tracker >= 3:
                 chosen_side = "RIGHT" if current_side == "LEFT" else "LEFT"
                 repeat_tracker = 0
@@ -769,19 +779,17 @@ def start_landing_simulation_canvas():
         width = random.choice([small_w, medium_w, large_w])
         obstacles.append({"y": obs_y, "side": chosen_side, "width": width})
         
-    # Bind Tkinter events to move the ship coordinates directly
-    def move_left(event):
-        global ship_x, ship_angle
-        ship_x -= 15 
-        ship_angle = min(25, ship_angle + 5)
+    # NEW: Advanced continuous event listeners (Flips boolean flags)
+    def press_left(event):   global move_left_active;  move_left_active = True
+    def release_left(event): global move_left_active;  move_left_active = False
+    def press_right(event):  global move_right_active; move_right_active = True
+    def release_right(event):global move_right_active; move_right_active = False
 
-    def move_right(event):
-        global ship_x, ship_angle
-        ship_x += 15 
-        ship_angle = max(-25, ship_angle - 5)
-
-    root.bind("<Left>", move_left)
-    root.bind("<Right>", move_right)
+    # Bind both keyboard interactions directly
+    root.bind("<KeyPress-Left>", press_left)
+    root.bind("<KeyRelease-Left>", release_left)
+    root.bind("<KeyPress-Right>", press_right)
+    root.bind("<KeyRelease-Right>", release_right)
     
     root.focus_set()
     run_physics_frame()
