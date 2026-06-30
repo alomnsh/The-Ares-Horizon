@@ -716,46 +716,60 @@ def start_landing_simulation_canvas():
     
     # 8. Symmetrical Dense Spacing Properties
     if current_difficulty == "EASY":
-        small_w = 60
-        medium_w = 90
-        large_w = 120
-        gap_spacing = 160  
+        small_w = 140
+        medium_w = 170
+        large_w = 200
+        gap_spacing = 180  
     elif current_difficulty == "MEDIUM":
-        small_w = 80
-        medium_w = 120
-        large_w = 150
-        gap_spacing = 130  
+        small_w = 170
+        medium_w = 210
+        large_w = 240
+        gap_spacing = 140  
     else: # HARD MODE
-        small_w = 110
-        medium_w = 160
-        large_w = 200  
-        gap_spacing = 100  
+        small_w = 220
+        medium_w = 250
+        large_w = 270  
+        gap_spacing = 110  
     
-    # Generate balanced obstacle arrays
+    # CORRECTION: Array tracking integers used instead of local string updates
     obstacles = []
+    current_side = "LEFT"
+    repeat_tracker = 0
+    
     for i in range(60):
         obs_y = 450 + (i * gap_spacing)
-        side = "LEFT" if i % 2 == 0 else "RIGHT"
-        width = random.choice([small_w, medium_w, large_w])
-        obstacles.append({"y": obs_y, "side": side, "width": width})
         
+        # Pull a random side
+        chosen_side = random.choice(["LEFT", "RIGHT"])
+        
+        if chosen_side == current_side:
+            repeat_tracker += 1
+            # Prevent more than 3 consecutive spikes on the same wall
+            if repeat_tracker >= 3:
+                chosen_side = "RIGHT" if current_side == "LEFT" else "LEFT"
+                repeat_tracker = 0
+        else:
+            repeat_tracker = 0
+            
+        current_side = chosen_side
+        width = random.choice([small_w, medium_w, large_w])
+        obstacles.append({"y": obs_y, "side": chosen_side, "width": width})
+        
+    # Bind Tkinter events to move the ship coordinates directly
     def move_left(event):
         global ship_x, ship_angle
-        ship_x -= 15 # Move speed step
+        ship_x -= 15 
         ship_angle = min(25, ship_angle + 5)
 
     def move_right(event):
         global ship_x, ship_angle
-        ship_x += 15 # Move speed step
+        ship_x += 15 
         ship_angle = max(-25, ship_angle - 5)
 
     root.bind("<Left>", move_left)
     root.bind("<Right>", move_right)
     
-    # Force keyboard focus to root window container layer
     root.focus_set()
-    
-    # Kick off loop
     run_physics_frame()
 
 def landing_minigame_difficulty():
