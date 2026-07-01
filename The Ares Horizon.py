@@ -842,7 +842,7 @@ def start_landing_simulation_canvas():
         else:
             repeat_tracker = 0
 
-        final_spike_y = 1450 + (59 * gap_spacing)
+        final_spike_y = 900 + (29 * gap_spacing)
         global victory_altitude
         victory_altitude = final_spike_y + 1000
             
