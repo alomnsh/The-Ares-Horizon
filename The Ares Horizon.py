@@ -185,7 +185,37 @@ def cancel_all_timers():
 root = tk.Tk()
 root.title("The Ares Horizon — Mission Control Terminal")
 root.geometry("950x720")  
+root.attributes ("-fullscreen", True)
+root.update_idletasks()
 root.configure(bg=BG_main)
+
+#Exits the game if escape key is pressed
+def force_exit_system(event):
+    import pygame
+    try:
+        pygame.quit()
+    except:
+        pass
+    os._exit(0)
+root.bind("<Escape>", force_exit_system)
+
+#Exits the game if exit is typed in order
+typed_buffer = ""
+def check_exit_sequence(event):
+    import pygame
+    global typed_buffer
+        
+    typed_buffer += event.char.lower()
+           
+    if len(typed_buffer) > 10:
+        typed_buffer = typed_buffer[-4:]
+            
+    if typed_buffer.endswith("exit"):
+        try: pygame.quit()
+        except: pass
+        os._exit(0)
+
+root.bind("<Key>", check_exit_sequence)
 
 # Global styles setup for progress bars
 style = ttk.Style()
