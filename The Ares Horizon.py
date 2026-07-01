@@ -580,7 +580,6 @@ def run_physics_frame():
     left_wall = screen_center_x - 175
     right_wall = screen_center_x + 175
     
-    # 1. NEW: Continuous Frame Movement Calculations
     # As long as the button is down, these execute 60 times a second
     if move_left_active:
         ship_x -= 6  # Adjust this number to change slide speed
@@ -733,7 +732,7 @@ def start_landing_simulation_canvas():
     pg_screen = pygame.display.set_mode((frame_w, frame_h))
     pg_clock = pygame.time.Clock()
     
-    # 5. Load and scale your 50x90px custom Spaceship design
+    # 5. Load and scale 50x90px custom Spaceship design
     try:
         raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
         ship_surface = pygame.transform.scale(raw_ship, (50, 90))
@@ -743,7 +742,7 @@ def start_landing_simulation_canvas():
         ship_surface.fill((0, 240, 240)) 
         ship_mask = pygame.mask.from_surface(ship_surface)
 
-    # 6. Load your single native 200x60px Spike image ("Small Spike.png") & mirror it
+    # 6. Load single native 200x60px Spike image ("Small Spike.png") & mirror it
     try:
         raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
         spike_left = pygame.transform.scale(raw_spike, (200, 60))
@@ -766,12 +765,12 @@ def start_landing_simulation_canvas():
         small_w = 170
         medium_w = 210
         large_w = 240
-        gap_spacing = 140  
+        gap_spacing = 180  
     else: # HARD MODE
         small_w = 220
         medium_w = 250
         large_w = 270  
-        gap_spacing = 110  
+        gap_spacing = 220  
     
     # Generate balanced obstacle arrays using a true randomized wall algorithm
     obstacles = []
@@ -779,7 +778,7 @@ def start_landing_simulation_canvas():
     repeat_tracker = 0
     
     for i in range(60):
-        obs_y = 900 + (i * gap_spacing)
+        obs_y = 1000 + (i * gap_spacing)
         chosen_side = random.choice(["LEFT", "RIGHT"])
         
         if chosen_side == current_side:
