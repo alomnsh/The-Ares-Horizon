@@ -509,16 +509,12 @@ def handle_choice3a(choice):
 
     if choice == "1":
         landing_minigame_difficulty()
-        #trigger_mission_success_sound()
-        #typewriter("\nHEROIC VICTORY! The Commander flies beautifully, touching down safely!", output_text, color="green")
-        #typewriter("Human step foot on the Red Planet for the first time!", output_text, color="green")
-        #typewriter("Excellent Work, Director", output_text, color="green")
-        #if crew_safety == 100:
-            #crew_safety = 100
-        #else:
-            #crew_safety += 10
+        if crew_safety == 100:
+            crew_safety = 100
+        else:
+            crew_safety += 10
 
-        #science_points += 50
+        science_points += 50
         update_gui()
 
     elif choice == "2":
@@ -689,7 +685,7 @@ def run_physics_frame():
         count_y = (f_h // 2) - 150
         pg_screen.blit(count_surface, (count_x, count_y))
 
-    # Collision Verification Engine (Pixel-Perfect Masks)
+    # Collision Verification Engine 
     if ship_rect.bottom >= pad_screen_y and ship_rect.top < pad_screen_y + 30:
         # Ensure the player is actually centered over the green pad, not hitting side walls
         if left_wall <= ship_rect.centerx <= right_wall:
@@ -700,6 +696,7 @@ def run_physics_frame():
             root.unbind("<KeyRelease-Right>")
             pygame.quit()
             game_frame.place_forget()
+            landing_success()
             
             return
 
@@ -850,7 +847,6 @@ def start_landing_simulation_canvas():
         width = random.choice([small_w, medium_w, large_w])
         obstacles.append({"y": obs_y, "side": chosen_side, "width": width})
         
-    # NEW: Advanced continuous event listeners (Flips boolean flags)
     def press_left(event):   global move_left_active;  move_left_active = True
     def release_left(event): global move_left_active;  move_left_active = False
     def press_right(event):  global move_right_active; move_right_active = True
@@ -900,8 +896,18 @@ def landing_minigame_difficulty():
 
 #CRASH SCREEN
 def space_ship_crash():
-    typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text)
-    trigger_mision_failed_sound
+    global crew_safety, mission_budget
+    typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text, color= "red")
+    trigger_mision_failed_sound()
+    crew_safety = 0
+    mission_budget = 0
+    end_game_session()
+
+#MISSON SUCCESS SCREEN
+def landing_success():
+    trigger_mission_success_sound()
+    typewriter("HERIOC VICTORY!!!", output_text, color= "green")
+    typewriter("You flew beatufully!! the crew and the ship are safe!!!", output_text, color= "green")
     end_game_session()
 
 def end_game_session():
