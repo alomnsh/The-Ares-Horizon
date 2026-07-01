@@ -598,6 +598,7 @@ def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
     global prep_timer_frames
     global move_left_active, move_right_active
+    global victory_altitude, pad_screen_y, pad_font, pad_text
     import pygame
     
     if not game_running:
@@ -653,6 +654,15 @@ def run_physics_frame():
                 scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
                 pg_screen.blit(scaled_spike, (right_wall + 40 - obs["width"], screen_y))
                 
+    #Landing Pad
+    pad_screen_y = victory_altitude - int(altitude)
+    if -100 < pad_screen_y < f_h +100:
+        pygame.draw.rect(pg_screen, (0, 255, 100), (left_wall, pad_screen_y, 350, 30))
+
+        pad_font = pygame.font.SysFont ("Courier", 16, bold= True)
+        pad_text = pad_font.render("---TOUCHDOWN ZONE---", True, (0, 0, 0))
+        pg_screen.blit(pad_text, (screen_center_x - (pad_text.get_width() // 2), pad_screen_y + 6))
+
     # Draw solid dark gray side columns right on top of outer edges to mask spike bases
     pygame.draw.rect(pg_screen, (40, 40, 45), (0, 0, left_wall, f_h))
     pygame.draw.rect(pg_screen, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
@@ -680,6 +690,19 @@ def run_physics_frame():
         pg_screen.blit(count_surface, (count_x, count_y))
 
     # Collision Verification Engine (Pixel-Perfect Masks)
+    if ship_rect.bottom >= pad_screen_y and ship_rect.top < pad_screen_y + 30:
+        # Ensure the player is actually centered over the green pad, not hitting side walls
+        if left_wall <= ship_rect.centerx <= right_wall:
+            game_running = False
+            root.unbind("<KeyPress-Left>")
+            root.unbind("<KeyRelease-Left>")
+            root.unbind("<KeyPress-Right>")
+            root.unbind("<KeyRelease-Right>")
+            pygame.quit()
+            game_frame.place_forget()
+            
+            return
+
     crashed = False
     if ship_rect.left <= left_wall or ship_rect.right >= right_wall:
         crashed = True
@@ -725,7 +748,7 @@ def run_physics_frame():
 def start_landing_simulation_canvas():
     global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
-    global move_left_active, move_right_active, prep_timer_frames
+    global move_left_active, move_right_active, prep_timer_frames, victory_altitude
     import pygame
     import random
     
@@ -807,7 +830,7 @@ def start_landing_simulation_canvas():
     current_side = "LEFT"
     repeat_tracker = 0
     
-    for i in range(60):
+    for i in range(30):
         obs_y = 1000 + (i * gap_spacing)
         chosen_side = random.choice(["LEFT", "RIGHT"])
         
@@ -818,6 +841,10 @@ def start_landing_simulation_canvas():
                 repeat_tracker = 0
         else:
             repeat_tracker = 0
+
+        final_spike_y = 1450 + (59 * gap_spacing)
+        global victory_altitude
+        victory_altitude = final_spike_y + 1000
             
         current_side = chosen_side
         width = random.choice([small_w, medium_w, large_w])
