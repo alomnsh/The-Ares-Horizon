@@ -28,6 +28,10 @@ Play the game on your own computer by doing the following steps:
    ```bash
    pip install pygame -ce
    ```
+
+   ```bash
+   pip install pillow
+   ```
    (Note: Version 1.2.2 of playsound is recommended to play the audio and the termcolor package is for colors!!)
 
 3. **Launch the game**
