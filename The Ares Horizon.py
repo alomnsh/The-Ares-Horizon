@@ -323,7 +323,6 @@ stage2b_frame = tk.Frame(root, bg=BG_main)
 stage3b_frame = tk.Frame(root, bg=BG_main)
 restart_frame = tk.Frame(root, bg=BG_main)
 
-
 #Updating GUI
 def update_gui():
     """Updates the progress bars and points text safely within a try block."""
@@ -395,7 +394,7 @@ def trigger_game_start():
     typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
     
     try:
-        stage1_frame.pack(pady=10)
+        stage1_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
     except Exception:
         return
     
@@ -403,7 +402,7 @@ def handle_choice1(choice):
     stop_all_sounds()
     trigger_click_sound()
 
-    stage1_frame.pack_forget()
+    stage1_frame.place_forget()
     global crew_safety, mission_budget, science_points
 
     output_text.config(state=tk.NORMAL)
@@ -430,7 +429,7 @@ def handle_choice1(choice):
         typewriter("\nSTAGE-2: THE ORBITAL ANOMALY", output_text, bold = True)
         trigger_spacecraft_warning_sound()
         typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", output_text, color= "red")
-        stage2a_frame.pack(pady=10)
+        stage2a_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
         #=================
         #BRANCH 1 Choice 2
@@ -451,10 +450,10 @@ def handle_choice1(choice):
         trigger_warning_sound()
         typewriter("Deep in space, a massive radiation storm knocks down your primary navigation computer", output_text, color= "red")
         typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!", output_text, color= "red")
-        stage2b_frame.pack(pady=10)
+        stage2b_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
 def handle_choice2a(choice):
-    stage2a_frame.pack_forget()
+    stage2a_frame.place_forget()
     global crew_safety, mission_budget, science_points
     
     output_text.config(state=tk.NORMAL)
@@ -486,7 +485,7 @@ def handle_landing_choice_branch_1():
     typewriter("\nSTAGE-3: MARS LANDING", output_text, bold=True)
     typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates", output_text)
     typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing", output_text, color="red")
-    stage3a_frame.pack(pady=10)
+    stage3a_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
 def handle_landing_choice_branch_2():
     typewriter("", output_text)
@@ -495,10 +494,10 @@ def handle_landing_choice_branch_2():
     typewriter("\nSTAGE-4: MARS LANDING", output_text, bold=True)
     typewriter("The ship plummets into the thin Martian Atmosphere. The automated landing program initiates", output_text)
     typewriter("The radar suddenly targets a dangerous boulder-strewn crater for landing", output_text, color="red")
-    stage3a_frame.pack(pady=10)
+    stage3a_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
 def handle_choice3a(choice):
-    stage3a_frame.pack_forget()
+    stage3a_frame.place_forget()
     global crew_safety, mission_budget, science_points
         
     output_text.config(state=tk.NORMAL)
@@ -530,7 +529,7 @@ def handle_choice3a(choice):
         end_game_session()
 
 def handle_choice2b(choice):
-    stage2b_frame.pack_forget()
+    stage2b_frame.place_forget()
     global crew_safety, mission_budget, science_points
     
     output_text.config(state=tk.NORMAL)
@@ -550,7 +549,7 @@ def handle_choice2b(choice):
         trigger_spacecraft_warning_sound()
         typewriter("The crew arrive at Mars in a critically underpowered ship", output_text, color="red")
         typewriter("With the low power, you cannot run both the heaters and the landing thrusters", output_text, color="red")
-        stage3b_frame.pack(pady=10)
+        stage3b_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
     elif choice == "2":
         typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
@@ -562,7 +561,7 @@ def handle_choice2b(choice):
         end_game_session()
 
 def handle_choice3b(choice):
-    stage3b_frame.pack_forget()
+    stage3b_frame.place_forget()
     global crew_safety, mission_budget, science_points
           
     output_text.config(state=tk.NORMAL)
@@ -912,12 +911,12 @@ def landing_success():
 
 def end_game_session():
     typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
-    restart_frame.pack(pady=15)
+    restart_frame.place(relx=0.5, rely=0.90, anchor="center")
 
 def reboot_mission():
     global crew_safety, mission_budget, science_points
     cancel_all_timers()
-    restart_frame.pack_forget()
+    restart_frame.place_forget()
     
     # Reset tracking state metrics
     crew_safety = 100
@@ -960,49 +959,49 @@ btn_start = tk.Button(welcome_frame,
 btn_start.pack(expand=True) 
 make_button_interactive(btn_start)
 
-# 2. Stage 1 Elements (RESTORED)
-tk.Label(stage1_frame, text="AWAITING STRATEGIC DIRECTIVE INSTRUCTIONS...", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold")).pack(pady=4)
-b1_1 = tk.Button(stage1_frame, text="1) Launch Now - Push past high winds and save time", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice1("1"))
-b1_1.pack(in_=stage1_frame, fill=tk.X, pady=2)
-b1_2 = tk.Button(stage1_frame, text="2) Delay Launch - Abort current window and wait", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice1("2"))
-b1_2.pack(in_=stage1_frame, fill=tk.X, pady=2)
+# 2. Stage 1 Elements
+tk.Label(stage1_frame, text="AWAITING STRATEGIC DIRECTIVE INSTRUCTIONS...", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
+b1_1 = tk.Button(stage1_frame, text="1) Launch Now - Push past high winds and save time", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice1("1"))
+b1_1.pack(in_=stage1_frame, pady=4)
+b1_2 = tk.Button(stage1_frame, text="2) Delay Launch - Abort current window and wait", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice1("2"))
+b1_2.pack(in_=stage1_frame, pady=4)
 make_button_interactive(b1_1); make_button_interactive(b1_2)
 
 # 3. Stage 2A Elements
-tk.Label(stage2a_frame, text="CRITICAL PRESSURE DROP DETECTED. CHOOSE ROUTE:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold")).pack(pady=4)
-b2a_1 = tk.Button(stage2a_frame, text="1) PUSH ENGINES - Fire second stage anyway to clear orbit", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2a("1"))
-b2a_1.pack(in_=stage2a_frame, fill=tk.X, pady=2)
-b2a_2 = tk.Button(stage2a_frame, text="2) ABORT MISSION - Activate the emergency escape tower", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2a("2"))
-b2a_2.pack(in_=stage2a_frame, fill=tk.X, pady=2)
+tk.Label(stage2a_frame, text="CRITICAL PRESSURE DROP DETECTED. CHOOSE ROUTE:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
+b2a_1 = tk.Button(stage2a_frame, text="1) PUSH ENGINES - Fire second stage anyway to clear orbit", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice2a("1"))
+b2a_1.pack(in_=stage2a_frame, pady=4)
+b2a_2 = tk.Button(stage2a_frame, text="2) ABORT MISSION - Activate the emergency escape tower", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice2a("2"))
+b2a_2.pack(in_=stage2a_frame, pady=4)
 make_button_interactive(b2a_1); make_button_interactive(b2a_2)
 
 # 4. Stage 3A Elements
-tk.Label(stage3a_frame, text="AUTOMATED LANDING FAILURE! CHOOSE FLIGHT CONTROLS:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold")).pack(pady=4)
-b3a_1 = tk.Button(stage3a_frame, text="1) MANUAL CONTROL - Commander flies manual flight joystick", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3a("1"))
-b3a_1.pack(in_=stage3a_frame, fill=tk.X, pady=2)
-b3a_2 = tk.Button(stage3a_frame, text="2) AUTO-PILOT - Trust flight computer mapping systems", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3a("2"))
-b3a_2.pack(in_=stage3a_frame, fill=tk.X, pady=2)
+tk.Label(stage3a_frame, text="AUTOMATED LANDING FAILURE! CHOOSE FLIGHT CONTROLS:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
+b3a_1 = tk.Button(stage3a_frame, text="1) MANUAL CONTROL - Commander flies manual flight joystick", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3a("1"))
+b3a_1.pack(in_=stage3a_frame, pady=4)
+b3a_2 = tk.Button(stage3a_frame, text="2) AUTO-PILOT - Trust flight computer mapping systems", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3a("2"))
+b3a_2.pack(in_=stage3a_frame, pady=4)
 make_button_interactive(b3a_1); make_button_interactive(b3a_2)
 
 # 5. Stage 2B (Lost in Space) Elements
-tk.Label(stage2b_frame, text="STAGE-2: LOST IN SPACE // ARRAY REBOOT INTERFACE:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold")).pack(pady=4)
-b2b_1 = tk.Button(stage2b_frame, text="1) UPLOAD A PATCH - Push an unverified software fix to reboot the system", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2b("1"))
-b2b_1.pack(in_=stage2b_frame, fill=tk.X, pady=2)
-b2b_2 = tk.Button(stage2b_frame, text="2) MANUAL TRAJECTORY - Force crew to navigate manually using star maps", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice2b("2"))
-b2b_2.pack(in_=stage2b_frame, fill=tk.X, pady=2)
+tk.Label(stage2b_frame, text="STAGE-2: LOST IN SPACE // ARRAY REBOOT INTERFACE:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
+b2b_1 = tk.Button(stage2b_frame, text="1) UPLOAD A PATCH - Push an unverified software fix to reboot the system", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice2b("1"))
+b2b_1.pack(in_=stage2b_frame, pady=4)
+b2b_2 = tk.Button(stage2b_frame, text="2) MANUAL TRAJECTORY - Force crew to navigate manually using star maps", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice2b("2"))
+b2b_2.pack(in_=stage2b_frame, pady=4)
 make_button_interactive(b2b_1); make_button_interactive(b2b_2)
 
 # 6. Stage 3B (Low Power Descent) Elements
-tk.Label(stage3b_frame, text="STAGE-3: THE LANDING // ROUTE AVAILABLE BATTERY POWER:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold")).pack(pady=4)
-b3b_1 = tk.Button(stage3b_frame, text="1) DEPLOY SOLAR SAILS - Wait in orbit for 3 days to charge batteries", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3b("1"))
-b3b_1.pack(in_=stage3b_frame, fill=tk.X, pady=2)
-b3b_2 = tk.Button(stage3b_frame, text="2) EMERGENCY BURN - Cut the life support heaters to power a descent", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=10, pady=6, highlightthickness=1, highlightbackground="#30363D", command=lambda: handle_choice3b("2"))
-b3b_2.pack(in_=stage3b_frame, fill=tk.X, pady=2)
+tk.Label(stage3b_frame, text="STAGE-3: THE LANDING // ROUTE AVAILABLE BATTERY POWER:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
+b3b_1 = tk.Button(stage3b_frame, text="1) DEPLOY SOLAR SAILS - Wait in orbit for 3 days to charge batteries", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3b("1"))
+b3b_1.pack(in_=stage3b_frame, pady=4)
+b3b_2 = tk.Button(stage3b_frame, text="2) EMERGENCY BURN - Cut the life support heaters to power a descent", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3b("2"))
+b3b_2.pack(in_=stage3b_frame, pady=4)
 make_button_interactive(b3b_1); make_button_interactive(b3b_2)
 
 # 7. Restart Elements
-btn_restart = tk.Button(restart_frame, text="TRY AGAIN?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", command=reboot_mission)
-btn_restart.pack(in_=restart_frame, pady=5)
+btn_restart = tk.Button(restart_frame, text="TRY AGAIN?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=25, pady=12, highlightthickness=1, highlightbackground="#30363D", width=25, command=reboot_mission)
+btn_restart.pack(in_=restart_frame, pady=15)
 make_button_interactive(btn_restart)
 
 # Run structural sync data metrics counters
