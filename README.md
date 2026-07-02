@@ -34,7 +34,7 @@ Play the game on your own computer by doing the following steps:
    ```bash
    python3 "The Ares Horizon.py"
    ```
-**(NOTE: PLS KEEP VOLUME OF YOUR DEVICE TO AROUNF 30% SO YOU DON'T BLOW YOUR EARS AND THE AUDIO IS PLEASANT)**
+> ⚠️ **VOLUME WARNING:** Please set your system audio to around **30%** before starting. The terminal features cinematic alarms and emergency sound effects that may be loud!
 
 ## Features
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
