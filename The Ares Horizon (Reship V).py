@@ -114,7 +114,7 @@ def typewriter(text, text_widget, color=text_color, bold=False):
             text_widget.insert(tk.END, letter, tag_name)
             text_widget.see(tk.END)
             text_widget.update()
-            time.sleep(0.035) 
+            time.sleep(0.02) 
         except Exception:
             return
         
@@ -454,7 +454,7 @@ def handle_choice2b(choice):
         typewriter(f"\nStatus-> Crew Safety {crew_safety} % | Mission Budget {mission_budget} % | Science Points {science_points}", output_text, color="cyan")
         typewriter("\nSTAGE-3: THE LANDING", output_text, bold=True)
         typewriter("\nWith the low power, you cannot run both the heaters and the landing thrusters", output_text)
-        stage3b_frame.packplace(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
+        stage3b_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
 
     elif choice == "2":
         typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
