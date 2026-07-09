@@ -583,8 +583,7 @@ def handle_choice3b(choice):
         typewriter("MISSION FAILED", output_text, color="red", bold=True)
         crew_safety = 0
         update_gui()
-
-    end_game_session()
+        end_game_session()
 
 #===========================================================================
 #LANDING MINI GAME (PYGAME EMBEDDED EDITION)
