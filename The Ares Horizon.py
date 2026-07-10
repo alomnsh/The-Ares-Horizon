@@ -169,6 +169,7 @@ gamestart="yes"
 crew_safety = 100
 mission_budget = 100
 science_points = 0
+try_again_counter = 1
 
 active_timers = []
 
@@ -315,7 +316,6 @@ def make_button_interactive(button):
 welcome_frame = tk.Frame(root, bg=BG_main)
 welcome_frame.pack(fill=tk.BOTH, expand=True)
 
-#All other choice containers remain UNPACKED. They take up ZERO pixels of screen space at boot!
 stage1_frame = tk.Frame(root, bg=BG_main)
 stage2a_frame = tk.Frame(root, bg=BG_main)
 stage3a_frame = tk.Frame(root, bg=BG_main)
@@ -338,6 +338,40 @@ def update_gui():
     except Exception:
         pass
 
+def game_restart_screen():
+    """Wipes the boot console clean and initializes Chapter 1."""
+    trigger_click_sound()
+    cancel_all_timers() 
+    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
+    if not root.winfo_exists():
+        return
+
+    output_text.config(state=tk.NORMAL)
+    output_text.delete("1.0", tk.END)
+    output_text.config(state=tk.DISABLED)
+    
+    log_container.pack_forget()
+    dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
+    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0))
+    update_gui()
+    typewriter(f"This is Try No. {try_again_counter}", output_text, bold=True)
+    typewriter("\nThe Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!", output_text)
+    typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.", output_text)
+
+    typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", output_text, bold=True)
+    typewriter("", output_text)
+    typewriter("The Orion-X awaits launch", output_text)
+
+    trigger_warning_sound()
+
+    typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", output_text, color=color_red)
+    typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
+    
+    try:
+        stage1_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
+    except Exception:
+        return
+    
 def run_boot_sequence():
     """Plays the mainframe boot animation with a custom in-place updating console loading bar."""
     trigger_click_sound()
@@ -366,7 +400,6 @@ def run_boot_sequence():
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
-    # ADD THESE TWO LINES AT THE VERY START OF THE FUNCTION:
     if not root.winfo_exists():
         return
 
@@ -577,7 +610,7 @@ def handle_choice3b(choice):
         handle_landing_choice_branch_2()
 
     elif choice == "2":
-        typewriter("\n BURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
+        typewriter("\nBURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
         typewriter("The engines fail 100 meters up. The ship impacts the surface.", output_text, color="red")
         trigger_mision_failed_sound()
         typewriter("MISSION FAILED", output_text, color="red", bold=True)
@@ -912,8 +945,15 @@ def end_game_session():
     typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
     restart_frame.place(relx=0.5, rely=0.90, anchor="center")
 
+# 1. Define your new specific restart sequence function
+def run_restart_boot_sequence():
+    """Launches specifically when retrying the mission, not the first boot."""
+    print("Launching specialized restart sequence...")
+    # Add your restart-specific logic here (e.g., skip intro cutscenes)
+    # run_boot_sequence() # You can still call this inside if needed
+
 def reboot_mission():
-    global crew_safety, mission_budget, science_points
+    global crew_safety, mission_budget, science_points, try_again_counter
     cancel_all_timers()
     restart_frame.place_forget()
     
@@ -921,40 +961,39 @@ def reboot_mission():
     crew_safety = 100
     mission_budget = 100
     science_points = 0
+    try_again_counter += 1
     update_gui()
     
     try:
         dashboard.pack_forget()  
         log_container.pack_forget()
         
-        # Clear out any leftover typed text
         output_text.config(state=tk.NORMAL)
         output_text.delete("1.0", tk.END)
         output_text.config(state=tk.DISABLED)
     except Exception:
         pass
-    
-    welcome_frame.pack(fill=tk.BOTH, expand=True)
-    btn_start.pack(expand=True)
+
+    game_restart_screen()
 
 # ==========================================
 # POPULATE WIDGETS INTO THE FRAMES
 # ==========================================
 
-# --- 1. Welcome Screen elements (Centered Perfectly) ---
+# --- 1. Welcome Screen elements ---
 btn_start = tk.Button(welcome_frame, 
-                      text="[ LETS BEGIN ]", 
-                      font=("Courier", 16, "bold"), 
-                      bg=BG_panel, 
-                      fg=text_color, 
-                      bd=0, 
-                      padx=50, 
-                      pady=25, 
-                      highlightthickness=1, 
-                      highlightbackground="#30363D", 
-                      activebackground="#21262D", 
-                      cursor="hand2", 
-                      command=run_boot_sequence)
+                        text="START GAME", 
+                        font=("Courier", 16, "bold"), 
+                        bg=BG_panel, 
+                        fg=text_color, 
+                        bd=0, 
+                        padx=50, 
+                        pady=25, 
+                        highlightthickness=1, 
+                        highlightbackground="#30363D", 
+                        activebackground="#21262D", 
+                        cursor="hand2", 
+                        command=run_boot_sequence)
 btn_start.pack(expand=True) 
 make_button_interactive(btn_start)
 
@@ -1001,7 +1040,9 @@ make_button_interactive(b3b_1); make_button_interactive(b3b_2)
 # 7. Restart Elements
 btn_restart = tk.Button(restart_frame, text="TRY AGAIN?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_cyan, bd=0, padx=25, pady=12, highlightthickness=1, highlightbackground="#30363D", width=25, command=reboot_mission)
 btn_restart.pack(in_=restart_frame, pady=15)
-make_button_interactive(btn_restart)
+btn_exit = tk.Button(restart_frame, text="EXIT?", font=("Courier", 13, "bold"), bg=BG_panel, fg=color_red, bd=0, padx=25, pady=12, highlightthickness=1, highlightbackground="#30363D", width=25, command=root.destroy)
+btn_exit.pack(in_=restart_frame, pady=15)
+make_button_interactive(btn_restart); make_button_interactive(btn_exit)
 
 # Run structural sync data metrics counters
 update_gui()
