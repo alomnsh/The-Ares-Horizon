@@ -10,43 +10,42 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 2. Download the `The Ares Horizon (Reship V).exe` file from the latest release assets.
 3. Double-click to run and play instantly!
 
-### Option 2: Run via Source Code (Cross-Platform)
-Play the game on your own computer by doing the following steps:
-(The game is a desktop based GUI, so it has to be hosted on your computer and cannot run on cloud)
+### Option 2: Run via Source Code (Cross-Platform Setup)
 
-1. **Clone the repository**
+Play the game on your own computer by doing the following steps (The game is a desktop based GUI, so it has to be hosted on your computer and cannot run on cloud):
+
+1. **Install System Dependencies (For Mac & Linux Users)**
+   Open your **Terminal** and run the command matching your operating system so your computer can handle Python window graphics:
+
+   * **macOS:** Make sure you have Homebrew installed, then run:
+     ```bash
+     brew install python tcl-tk
+     ```
+   * **Linux (Ubuntu/Debian/Mint):** Run:
+     ```bash
+     sudo apt update && sudo apt install python3-tk python3-pip -y
+     ```
+
+2. **Clone the repository**
    ```bash
    git clone https://github.com
    cd The-Ares-Horizon-Adventure-Game
    ```
-   
-2. **Install the Packages**
+
+3. **Install the Packages**
    ```bash
-   pip install playsound==1.2.2 termcolor
+   pip3 install -r requirements.txt
    ```
 
+4. **Launch the game**
    ```bash
-   pip install pygame -ce
-   ```
-
-   ```bash
-   pip install pillow
-   ```
-   (Note: Version 1.2.2 of playsound is recommended to play the audio and the termcolor package is for colors!!)
-
-3. **Launch the game**
-   ```bash
-   python "The Ares Horizon.py"
-   ```
-   (If you are on MacOS or linux, use:)
-   ```bash
-   python3 "The Ares Horizon.py"
+   python3 "The Ares Horizon (Reship V).py"
    ```
 > ⚠️ **VOLUME WARNING:** Please set your system audio to around **30%** before starting. The terminal features cinematic alarms and emergency sound effects that may be loud!
 
 ## Features
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
-* **Windows Audio Integration:** Low-level calls via `ctypes` hook directly into the Windows MCI audio engine for lag-free sound effects and music.
+* **Audio Integration:** Uses `pygame` audio engine to handle sounds.
 * **Typewriter Effect:** The text streams onto the screen character-by-character to replicate an authentic, old-school Mission Control terminal.
 * **Mini-Game:** A 60 FPS `Pygame` canvas embedded inside the Tkinter window for the final descent phase.
 * **Interactive UI:** Old choice nodes and story text are cleared between transitions, and feautures custom hover transformations on gameplay buttons.
