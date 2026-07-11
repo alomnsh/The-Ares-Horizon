@@ -10,6 +10,9 @@ import random
 from PIL import Image, ImageTk
 import pygame
 
+master_volume = 0.5
+settings_window = None
+
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
@@ -50,21 +53,74 @@ except Exception:
     pass
 
 # 5. Define all audio functions matching your game's original logic
+def update_game_volume(val):
+    global master_volume
+    master_volume = float(val) / 100.0
+
+    try:
+        pygame.mixer.music.set_volume(master_volume)
+
+        for channel_id in range(pygame.mixer.get_num_channels()):
+            pygame.mixer.Channel(channel_id).set_volume(master_volume)
+    except Exception:
+        pass
+
+def open_settings_menu():
+    global settings_window, master_volume
+
+    if settings_window is not None and settings_window.winfo_exists():
+        settings_window.lift()
+        return
+    
+    settings_window = tk.Toplevel(root)
+    settings_window.title("Mission Settings")
+    settings_window.geometry("300x180")
+    settings_window.resizable(False, False)
+    settings_window.configure(bg="#1c1c1c")
+    settings_window.attributes("-topmost", True)
+
+    title_lbl = tk.Label(settings_window, text="⚙️ AUDIO CONTROLS", font=("Helvetica", 12, "bold"), fg="#ffffff", bg="#1c1c1c")
+    title_lbl.pack(pady=15)
+    
+    # Setup Sliders linked to our update logic
+    vol_slider = tk.Scale(
+        settings_window, 
+        from_=0, 
+        to=100, 
+        orient="horizontal", 
+        command=update_game_volume,
+        bg="#1c1c1c", 
+        fg="#ffffff", 
+        troughcolor="#333333", 
+        activebackground="#00ff00",
+        highlightthickness=0
+    )
+    vol_slider.set(int(master_volume * 100)) # Synchronize slider with actual volume state
+    vol_slider.pack(fill="x", padx=30, pady=5)
+    
+    # Close confirmation button
+    close_btn = tk.Button(settings_window, text="Apply & Close", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat")
+    close_btn.pack(pady=15)
+
 def trigger_warning_sound():
-    global warning_sound
+    global warning_sound, master_volume
     if not warning_sound:
         warning_sound = True
         try:
-            pygame.mixer.Channel(1).play(pygame.mixer.Sound(warning_file), loops=-1)
+            ch = pygame.mixer.Channel(1)
+            ch.set_volume(master_volume)
+            ch.play(pygame.mixer.Sound(warning_file), loops=-1)
         except Exception:
             pass
 
 def trigger_spacecraft_warning_sound():
-    global space_warning_sound
+    global space_warning_sound, master_volume
     if not space_warning_sound:
         space_warning_sound = True
         try:
-            pygame.mixer.Channel(2).play(pygame.mixer.Sound(space_warning_file), loops=-1)
+            ch = pygame.mixer.Channel(2)
+            ch.set_volume(master_volume)
+            ch.play(pygame.mixer.Sound(space_warning_file), loops=-1)
         except Exception:
             pass
 
@@ -1018,5 +1074,21 @@ def on_close_window():
 
 # Tell Tkinter to run our cleanup function when the window closes
 root.protocol("WM_DELETE_WINDOW", on_close_window)
+
+# Create the permanent Settings button
+settings_btn = tk.Button(
+    root, 
+    text="⚙️ Settings", 
+    command=open_settings_menu, 
+    font=("Helvetica", 10, "bold"), 
+    bg="#2b2b2b", 
+    fg="#bbecbb", 
+    activebackground="#444444", 
+    activeforeground="#bbecbb",
+    bd=0,
+    relief="raised"
+)
+settings_btn.place(relx=0.0, rely=1.0, x=15, y=-15, anchor="sw")
+settings_btn.lift()
 
 root.mainloop()
