@@ -9,10 +9,52 @@ import math
 import random
 from PIL import Image, ImageTk
 import pygame
+import json
+
+script_directory = os.path.dirname(os.path.abspath(__file__))
 
 background_music_volume = 0.5
 emergency_volume = 0.5 
 settings_window = None
+
+SETTING_FILE = os.path.join(script_directory, "settings.json")
+
+def load_settings():
+    global background_music_volume, emergency_volume
+    if os.path.exists(SETTING_FILE):
+        try:
+            with open(SETTING_FILE, "r") as f:
+                data = json.load(f)
+                
+                # Fetch music volume and force it to be a float, extract if it's a list
+                raw_music = data.get("background_music_volume", 0.5)
+                if isinstance(raw_music, list):
+                    background_music_volume = float(raw_music[0]) if raw_music else 0.5
+                else:
+                    background_music_volume = float(raw_music)
+                
+                # Fetch emergency volume and force it to be a float, extract if it's a list
+                raw_emergency = data.get("emergency_volume", 0.5)
+                if isinstance(raw_emergency, list):
+                    emergency_volume = float(raw_emergency[0]) if raw_emergency else 0.5
+                else:
+                    emergency_volume = float(raw_emergency)
+        except Exception:
+            background_music_volume = 0.5
+            emergency_volume = 0.5
+
+def save_settings():
+    try:
+        data = {
+            "background_music_volume": background_music_volume,
+            "emergency_volume" : emergency_volume
+        }
+        with open(SETTING_FILE, "w") as f:
+            json.dump(data, f, indent= 4)
+    except Exception:
+        pass
+
+load_settings()
 
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
@@ -36,7 +78,6 @@ warning_sound = False
 space_warning_sound = False
 
 # 3. Build cross-platform file paths (removed Windows-only quote styling)
-script_directory = os.path.dirname(os.path.abspath(__file__))
 bg_music_file = os.path.join(script_directory, "Dream Sequence.mp3")
 warning_file = os.path.join(script_directory, "Warning.mp3")
 pull_up_file = os.path.join(script_directory, "Pull Up.mp3")
@@ -46,50 +87,37 @@ click_file = os.path.join(script_directory, "Click.mp3")
 mission_success_file = os.path.join(script_directory, "Mission Success.mp3")
 mission_failed_file = os.path.join(script_directory, "Mission Failed.mp3")
 
-# 4. Start the background music loop (-1 loops indefinitely)
+load_settings()
+
+# 4. Start the background music loop and apply the loaded volume level
 try:
     pygame.mixer.music.load(bg_music_file)
+    pygame.mixer.music.set_volume(background_music_volume)
     pygame.mixer.music.play(-1)
+
 except Exception:
     pass
 
 # 5. Define all audio functions matching your game's original logic
 def update_background_music_volume(val):
     global background_music_volume
-    background_music_volume = float(val) / 100.0
+    background_music_volume = float(val) / 100.0, 2
 
     try:
         pygame.mixer.music.set_volume(background_music_volume)
     except Exception:
         pass
+    save_settings()
 
 def update_emergency_volume(val):
     global emergency_volume
-    emergency_volume = float(val) / 100.0
+    emergency_volume = float(val) / 100.0, 2
     try:
         pygame.mixer.Channel(1).set_volume(emergency_volume)
         pygame.mixer.Channel(2).set_volume(emergency_volume)
     except Exception:
         pass
-
-def update_music_volume(val):
-    """Dynamically scales ONLY the background music."""
-    global music_volume
-    music_volume = float(val) / 100.0
-    try:
-        pygame.mixer.music.set_volume(music_volume)
-    except Exception:
-        pass
-
-def update_emergency_volume(val):
-    """Dynamically scales ONLY the emergency channels (Channel 1 and 2)."""
-    global emergency_volume
-    emergency_volume = float(val) / 100.0
-    try:
-        pygame.mixer.Channel(1).set_volume(emergency_volume)
-        pygame.mixer.Channel(2).set_volume(emergency_volume)
-    except Exception:
-        pass
+    save_settings()
 
 def open_settings_menu():
     """Builds an isolated popup menu with independent sliders for Music and Alarms."""
@@ -110,23 +138,19 @@ def open_settings_menu():
     title_lbl = tk.Label(settings_window, text="AUDIO CONTROLS", font=("Helvetica", 11, "bold"), fg="#ffffff", bg="#1c1c1c")
     title_lbl.pack(pady=10)
     
-    # --- SLIDER 1: BACKGROUND MUSIC ---
-    music_lbl = tk.Label(settings_window, text="🎵 Background Music", font=("Helvetica", 9), fg="#aaaaaa", bg="#1c1c1c")
-    music_lbl.pack(anchor="w", padx=30)
-    
+        # --- SLIDER 1: BACKGROUND MUSIC ---
     music_slider = tk.Scale(
-        settings_window, from_=0, to=100, orient="horizontal", command=update_music_volume,
+        settings_window, from_=0, to=100, orient="horizontal", 
+        command=lambda val: update_background_music_volume(val), # Lambda ensures clean value extraction
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
     )
     music_slider.set(int(background_music_volume * 100))
     music_slider.pack(fill="x", padx=30, pady=(0, 10))
     
     # --- SLIDER 2: EMERGENCY ALARMS ---
-    emergency_lbl = tk.Label(settings_window, text="🚨 Emergency Alarms", font=("Helvetica", 9), fg="#aaaaaa", bg="#1c1c1c")
-    emergency_lbl.pack(anchor="w", padx=30)
-    
     emergency_slider = tk.Scale(
-        settings_window, from_=0, to=100, orient="horizontal", command=update_emergency_volume,
+        settings_window, from_=0, to=100, orient="horizontal", 
+        command=lambda val: update_emergency_volume(val), # Lambda ensures clean value extraction
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
     )
     emergency_slider.set(int(emergency_volume * 100))
@@ -190,10 +214,11 @@ def trigger_mision_failed_sound():
 
 def stop_all_sounds():
     global space_warning_sound, warning_sound
+    
     space_warning_sound = False
     warning_sound = False
+    
     try:
-        # Stop specific sound channels instead of everything
         pygame.mixer.Channel(1).stop()
         pygame.mixer.Channel(2).stop()
     except Exception:

@@ -1,0 +1,10 @@
+{
+    "background_music_volume": [
+        0.5,
+        2
+    ],
+    "emergency_volume": [
+        0.16,
+        2
+    ]
+}
