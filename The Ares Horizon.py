@@ -10,7 +10,8 @@ import random
 from PIL import Image, ImageTk
 import pygame
 
-master_volume = 0.5
+background_music_volume = 0.5
+emergency_volume = 0.5 
 settings_window = None
 
 #If key is pressed it is true, if it is released it is false
@@ -53,73 +54,106 @@ except Exception:
     pass
 
 # 5. Define all audio functions matching your game's original logic
-def update_game_volume(val):
-    global master_volume
-    master_volume = float(val) / 100.0
+def update_background_music_volume(val):
+    global background_music_volume
+    background_music_volume = float(val) / 100.0
 
     try:
-        pygame.mixer.music.set_volume(master_volume)
+        pygame.mixer.music.set_volume(background_music_volume)
+    except Exception:
+        pass
 
-        for channel_id in range(pygame.mixer.get_num_channels()):
-            pygame.mixer.Channel(channel_id).set_volume(master_volume)
+def update_emergency_volume(val):
+    global emergency_volume
+    emergency_volume = float(val) / 100.0
+    try:
+        pygame.mixer.Channel(1).set_volume(emergency_volume)
+        pygame.mixer.Channel(2).set_volume(emergency_volume)
+    except Exception:
+        pass
+
+def update_music_volume(val):
+    """Dynamically scales ONLY the background music."""
+    global music_volume
+    music_volume = float(val) / 100.0
+    try:
+        pygame.mixer.music.set_volume(music_volume)
+    except Exception:
+        pass
+
+def update_emergency_volume(val):
+    """Dynamically scales ONLY the emergency channels (Channel 1 and 2)."""
+    global emergency_volume
+    emergency_volume = float(val) / 100.0
+    try:
+        pygame.mixer.Channel(1).set_volume(emergency_volume)
+        pygame.mixer.Channel(2).set_volume(emergency_volume)
     except Exception:
         pass
 
 def open_settings_menu():
-    global settings_window, master_volume
-
+    """Builds an isolated popup menu with independent sliders for Music and Alarms."""
+    global settings_window, background_music_volume, emergency_volume
+    
     if settings_window is not None and settings_window.winfo_exists():
         settings_window.lift()
         return
-    
+        
     settings_window = tk.Toplevel(root)
-    settings_window.title("Mission Settings")
-    settings_window.geometry("300x180")
+    settings_window.title("Mission Audio Systems")
+    settings_window.geometry("320x240")
     settings_window.resizable(False, False)
     settings_window.configure(bg="#1c1c1c")
     settings_window.attributes("-topmost", True)
-
-    title_lbl = tk.Label(settings_window, text="⚙️ AUDIO CONTROLS", font=("Helvetica", 12, "bold"), fg="#ffffff", bg="#1c1c1c")
-    title_lbl.pack(pady=15)
     
-    # Setup Sliders linked to our update logic
-    vol_slider = tk.Scale(
-        settings_window, 
-        from_=0, 
-        to=100, 
-        orient="horizontal", 
-        command=update_game_volume,
-        bg="#1c1c1c", 
-        fg="#ffffff", 
-        troughcolor="#333333", 
-        activebackground="#00ff00",
-        highlightthickness=0
+    # Title Header
+    title_lbl = tk.Label(settings_window, text="AUDIO CONTROLS", font=("Helvetica", 11, "bold"), fg="#ffffff", bg="#1c1c1c")
+    title_lbl.pack(pady=10)
+    
+    # --- SLIDER 1: BACKGROUND MUSIC ---
+    music_lbl = tk.Label(settings_window, text="🎵 Background Music", font=("Helvetica", 9), fg="#aaaaaa", bg="#1c1c1c")
+    music_lbl.pack(anchor="w", padx=30)
+    
+    music_slider = tk.Scale(
+        settings_window, from_=0, to=100, orient="horizontal", command=update_music_volume,
+        bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
     )
-    vol_slider.set(int(master_volume * 100)) # Synchronize slider with actual volume state
-    vol_slider.pack(fill="x", padx=30, pady=5)
+    music_slider.set(int(background_music_volume * 100))
+    music_slider.pack(fill="x", padx=30, pady=(0, 10))
+    
+    # --- SLIDER 2: EMERGENCY ALARMS ---
+    emergency_lbl = tk.Label(settings_window, text="🚨 Emergency Alarms", font=("Helvetica", 9), fg="#aaaaaa", bg="#1c1c1c")
+    emergency_lbl.pack(anchor="w", padx=30)
+    
+    emergency_slider = tk.Scale(
+        settings_window, from_=0, to=100, orient="horizontal", command=update_emergency_volume,
+        bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
+    )
+    emergency_slider.set(int(emergency_volume * 100))
+    emergency_slider.pack(fill="x", padx=30, pady=(0, 15))
     
     # Close confirmation button
-    close_btn = tk.Button(settings_window, text="Apply & Close", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat")
-    close_btn.pack(pady=15)
+    close_btn = tk.Button(settings_window, text="Apply Changes", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat", bd=0)
+    close_btn.pack(pady=5)
 
 def trigger_warning_sound():
-    global warning_sound, master_volume
+    global warning_sound, emergency_volume
     if not warning_sound:
         warning_sound = True
         try:
             ch = pygame.mixer.Channel(1)
-            ch.set_volume(master_volume)
+            ch.set_volume(emergency_volume)
             ch.play(pygame.mixer.Sound(warning_file), loops=-1)
         except Exception:
             pass
 
 def trigger_spacecraft_warning_sound():
-    global space_warning_sound, master_volume
+    global space_warning_sound, emergency_volume
     if not space_warning_sound:
         space_warning_sound = True
         try:
             ch = pygame.mixer.Channel(2)
-            ch.set_volume(master_volume)
+            ch.set_volume(emergency_volume)
             ch.play(pygame.mixer.Sound(space_warning_file), loops=-1)
         except Exception:
             pass
