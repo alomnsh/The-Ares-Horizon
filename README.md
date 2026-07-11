@@ -45,7 +45,7 @@ Play the game on your own computer by doing the following steps (The game is a d
 
 ## Features
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
-* **Windows Audio Integration:** Low-level calls via `ctypes` hook directly into the Windows MCI audio engine for lag-free sound effects and music.
+* **Audio Integration:** Uses `pygame` audio engine to handle sounds.
 * **Typewriter Effect:** The text streams onto the screen character-by-character to replicate an authentic, old-school Mission Control terminal.
 * **Mini-Game:** A 60 FPS `Pygame` canvas embedded inside the Tkinter window for the final descent phase.
 * **Interactive UI:** Old choice nodes and story text are cleared between transitions, and feautures custom hover transformations on gameplay buttons.
