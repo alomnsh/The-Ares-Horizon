@@ -5,10 +5,10 @@ import termcolor
 import tkinter as tk
 from tkinter import ttk
 import sys
-import ctypes
 import math
 import random
 from PIL import Image, ImageTk
+import pygame
 
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
@@ -21,138 +21,93 @@ def handle_release(event):
     if event.keysym in key_states:
         key_states[event.keysym] = False
 
-
-#Sound Effects
-
-script_directory = os.path.dirname(os.path.abspath(__file__))
-
-def send_mci_command(command):
-    """Helper function to talk directly to the Windows audio engine."""
-    buffer = ctypes.create_string_buffer(255)
-    ctypes.windll.winmm.mciSendStringA(command.encode('utf-8'), buffer, 254, 0)
-    return buffer.value.decode('utf-8')
-
-file_name = "Dream Sequence.mp3"
-full_path = f'"{os.path.join(script_directory, file_name)}"'
-
-try: 
-    send_mci_command(f"open {full_path} type mpegvideo alias bg_music")
-    send_mci_command("play bg_music repeat")
-except Exception: 
+# 1. Initialize the audio engine safely
+try:
+    pygame.mixer.init()
+except Exception:
     pass
 
-# --- SOUND EFFECT TRACK FILE DIRECTORIES ---
-warning_file = f'"{os.path.join(script_directory, "Warning.mp3")}"'
-pull_up_file = f'"{os.path.join(script_directory, "Pull Up.mp3")}"'
-roger_that_file = f'"{os.path.join(script_directory, "Roger That.mp3")}"'
-space_warning_file = f'"{os.path.join(script_directory, "Spacecraft Warning.mp3")}"'
-click_file = f'"{os.path.join(script_directory, "Click.mp3")}"'
-mission_success_file = f'"{os.path.join(script_directory, "Mission Success.mp3")}"'
-mission_failed_file = f'"{os.path.join(script_directory, "Mission Failed.mp3")}"'
-
-# Track state toggles
+# 2. Track looping states
 warning_sound = False
-pull_up_sound = False
-roger_that_sound = False
 space_warning_sound = False
-click_sound = False
-mission_success_sound = False
-mission_failed_sound = False
 
-#Warning Sound Effect Setup
+# 3. Build cross-platform file paths (removed Windows-only quote styling)
+script_directory = os.path.dirname(os.path.abspath(__file__))
+bg_music_file = os.path.join(script_directory, "Dream Sequence.mp3")
+warning_file = os.path.join(script_directory, "Warning.mp3")
+pull_up_file = os.path.join(script_directory, "Pull Up.mp3")
+roger_that_file = os.path.join(script_directory, "Roger That.mp3")
+space_warning_file = os.path.join(script_directory, "Spacecraft Warning.mp3")
+click_file = os.path.join(script_directory, "Click.mp3")
+mission_success_file = os.path.join(script_directory, "Mission Success.mp3")
+mission_failed_file = os.path.join(script_directory, "Mission Failed.mp3")
+
+# 4. Start the background music loop (-1 loops indefinitely)
+try:
+    pygame.mixer.music.load(bg_music_file)
+    pygame.mixer.music.play(-1)
+except Exception:
+    pass
+
+# 5. Define all audio functions matching your game's original logic
 def trigger_warning_sound():
     global warning_sound
     if not warning_sound:
         warning_sound = True
         try:
-            send_mci_command(f"open {warning_file} type mpegvideo alias sf_warning") #opens the audio file
-            send_mci_command("play sf_warning repeat") #plays on repeat until the stop function is activated
+            pygame.mixer.Channel(1).play(pygame.mixer.Sound(warning_file), loops=-1)
         except Exception:
             pass
 
-#Spacecraft warning setup
 def trigger_spacecraft_warning_sound():
     global space_warning_sound
     if not space_warning_sound:
         space_warning_sound = True
         try:
-            send_mci_command(f"open {space_warning_file} type mpegvideo alias sf_spacecraft_warning")
-            send_mci_command("play sf_spacecraft_warning repeat")
+            pygame.mixer.Channel(2).play(pygame.mixer.Sound(space_warning_file), loops=-1)
         except Exception:
             pass
 
-#Roger That sound effect
 def trigger_roger_sound():
-    global roger_that_sound
-    if not roger_that_sound:
-        roger_that_sound = True
-        try:
-            send_mci_command(f"open {roger_that_file} type mpegvideo alias sf_roger")
-            send_mci_command("play sf_roger from 0") #only runs audio once
-        except Exception:
-            pass
+    try:
+        pygame.mixer.Sound(roger_that_file).play()
+    except Exception:
+        pass
 
-#Pull Up Sound effect
 def trigger_pullup_sound():
-    global pull_up_sound
-    if not pull_up_sound:
-        pull_up_sound = True
-        try:
-            send_mci_command(f"open {pull_up_file} type mpegvideo alias sf_pullup")
-            send_mci_command("play sf_pullup from 0 wait")
-        except Exception:
-            pass
+    try:
+        pygame.mixer.Sound(pull_up_file).play()
+    except Exception:
+        pass
 
-#Click Sound effect
 def trigger_click_sound():
-    global click_sound
-    if not click_sound:
-        click_sound = True
-        try:
-            send_mci_command(f"open {click_file} type mpegvideo alias sf_click")
-            send_mci_command("play sf_click from 0")
-        except Exception:
-            pass
+    try:
+        pygame.mixer.Sound(click_file).play()
+    except Exception:
+        pass
 
-#Mission Success Sound Effect
 def trigger_mission_success_sound():
-    global mission_success_sound
-    if not mission_success_sound:
-        mission_success_sound = True
-        try:
-            send_mci_command(f"open {mission_success_file} type mpegvideo alias sf_success")
-            send_mci_command("play sf_success from 0")
-        except Exception:
-            pass
+    try:
+        pygame.mixer.Sound(mission_success_file).play()
+    except Exception:
+        pass
 
-#Mission Failed Sound Effect
 def trigger_mision_failed_sound():
-    global mission_failed_sound
-    if not mission_failed_sound:
-        mission_failed_sound = True
-        try:
-            send_mci_command(f"open {mission_failed_file} type mpegvideo alias sf_failed")
-            send_mci_command("play sf_failed from 0")
-        except Exception:
-            pass
-    
-#Stop all sounds
-def stop_all_sounds():
-    global space_warning_sound, warning_sound, roger_that_sound, pull_up_sound, click_sound, mission_success_sound, mission_failed_sound
+    try:
+        pygame.mixer.Sound(mission_failed_file).play()
+    except Exception:
+        pass
 
+def stop_all_sounds():
+    global space_warning_sound, warning_sound
     space_warning_sound = False
     warning_sound = False
-    roger_that_sound = False
-    pull_up_sound = False
-    click_sound = False
-
-    aliases = ["sf_warning", "sf_pullup", "sf_roger", "sf_spacecraft_warning", "sf_click", "sf_success", "sf_failed"]
-    for alias in aliases:
-        try:
-            send_mci_command(f"stop {alias}")
-            send_mci_command(f"close {alias}")
-        except Exception:
-            pass
+    try:
+        # Stop specific sound channels instead of everything
+        pygame.mixer.Channel(1).stop()
+        pygame.mixer.Channel(2).stop()
+    except Exception:
+        pass
 
 #THEME OF THE GAME
 BG_main = "#0b0e14"
@@ -725,7 +680,7 @@ def run_physics_frame():
             root.unbind("<KeyRelease-Left>")
             root.unbind("<KeyPress-Right>")
             root.unbind("<KeyRelease-Right>")
-            pygame.quit()
+            pygame.display.quit()
             game_frame.place_forget()
             landing_success()
             
@@ -767,7 +722,7 @@ def run_physics_frame():
         root.unbind("<KeyRelease-Left>")
         root.unbind("<KeyPress-Right>")
         root.unbind("<KeyRelease-Right>")
-        pygame.quit()
+        pygame.display.quit()
         game_frame.place_forget() 
         space_ship_crash()        
     else:
@@ -804,15 +759,23 @@ def start_landing_simulation_canvas():
     game_frame.place(x=0, y=100, width=frame_w, height=frame_h)
     root.update() 
     
-    # 4. Redirect the Pygame pipeline window hook inside Tkinter
-    os.environ['SDL_WINDOWID'] = str(game_frame.winfo_id())
-    os.environ['SDL_VIDEODRIVER'] = 'windib' if os.name == 'nt' else 'x11'
+    # 4. Redirect the Pygame pipeline window hook safely across platforms
+    try:
+        os.environ['SDL_WINDOWID'] = str(game_frame.winfo_id()) 
+        if os.name == 'nt':
+            os.environ['SDL_VIDEODRIVER'] = 'windib'
+        elif sys.platform == 'darwin':
+            os.environ['SDL_VIDEODRIVER'] = 'cocoa'
+        else:
+            os.environ['SDL_VIDEODRIVER'] = 'x11'
+    except Exception:
+        pass
     
     # Initialize Pygame embedded sub-window frame
     pygame.init()
     pg_screen = pygame.display.set_mode((frame_w, frame_h))
     pg_clock = pygame.time.Clock()
-    
+        
     # 5. Load and scale 50x90px custom Spaceship design
     try:
         raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
@@ -928,8 +891,8 @@ def landing_minigame_difficulty():
 #CRASH SCREEN
 def space_ship_crash():
     global crew_safety, mission_budget
-    typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text, color= "red")
     trigger_mision_failed_sound()
+    typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text, color= "red")
     crew_safety = 0
     mission_budget = 0
     end_game_session()
