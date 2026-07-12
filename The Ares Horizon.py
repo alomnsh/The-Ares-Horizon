@@ -255,7 +255,21 @@ def cancel_all_timers():
 
 root = tk.Tk()
 root.title("The Ares Horizon — Mission Control Terminal")
-root.geometry("950x720")  
+# 1. Keep your preferred game dimensions
+window_width = 950
+window_height = 720
+
+# 2. Grab the actual resolution width/height of the user's current screen layout
+screen_width = root.winfo_screenwidth()
+screen_height = root.winfo_screenheight()
+
+# 3. Calculate the precise coordinates needed to perfectly center the canvas frame
+center_x = int((screen_width / 2) - (window_width / 2))
+center_y = int((screen_height / 2) - (window_height / 2))
+
+# 4. Inject the calculated coordinate buffers back into your geometry assignment
+root.geometry(f"{window_width}x{window_height}+{center_x}+{center_y}")
+ 
 root.attributes ("-fullscreen", True)
 root.update_idletasks()
 root.configure(bg=BG_main)
