@@ -19,6 +19,7 @@ settings_window = None
 
 SETTING_FILE = os.path.join(script_directory, "settings.json")
 
+#Load user setting
 def load_settings():
     global background_music_volume, emergency_volume
     if os.path.exists(SETTING_FILE):
@@ -43,6 +44,7 @@ def load_settings():
             background_music_volume = 0.5
             emergency_volume = 0.5
 
+#Save User Settings
 def save_settings():
     try:
         data = {
@@ -184,7 +186,9 @@ def trigger_spacecraft_warning_sound():
 
 def trigger_roger_sound():
     try:
-        pygame.mixer.Sound(roger_that_file).play()
+        ch = pygame.mixer.Channel(3)
+        ch.set_volume(0.5)
+        ch.play(pygame.mixer.Sound(roger_that_file))
     except Exception:
         pass
 
@@ -201,14 +205,24 @@ def trigger_click_sound():
         pass
 
 def trigger_mission_success_sound():
+    global emergency_volume
     try:
-        pygame.mixer.Sound(mission_success_file).play()
+        ch = pygame.mixer.Channel(4)
+        # Scales the volume to be half as loud as the current slider setting
+        softer_volume = round(emergency_volume * 0.5, 2) 
+        ch.set_volume(softer_volume)
+        ch.play(pygame.mixer.Sound(mission_success_file))
     except Exception:
         pass
 
 def trigger_mision_failed_sound():
+    global emergency_volume
     try:
-        pygame.mixer.Sound(mission_failed_file).play()
+        ch = pygame.mixer.Channel(5)
+        # Scales the volume to be half as loud as the current slider setting
+        softer_volume = round(emergency_volume * 0.5, 2) 
+        ch.set_volume(softer_volume)
+        ch.play(pygame.mixer.Sound(mission_failed_file))
     except Exception:
         pass
 
