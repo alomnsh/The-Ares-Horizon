@@ -11,53 +11,6 @@ from PIL import Image, ImageTk
 import pygame
 import json
 
-script_directory = os.path.dirname(os.path.abspath(__file__))
-
-background_music_volume = 0.5
-emergency_volume = 0.5 
-settings_window = None
-
-SETTING_FILE = os.path.join(script_directory, "settings.json")
-
-#Load user setting
-def load_settings():
-    global background_music_volume, emergency_volume
-    if os.path.exists(SETTING_FILE):
-        try:
-            with open(SETTING_FILE, "r") as f:
-                data = json.load(f)
-                
-                # Fetch music volume and force it to be a float, extract if it's a list
-                raw_music = data.get("background_music_volume", 0.5)
-                if isinstance(raw_music, list):
-                    background_music_volume = float(raw_music[0]) if raw_music else 0.5
-                else:
-                    background_music_volume = float(raw_music)
-                
-                # Fetch emergency volume and force it to be a float, extract if it's a list
-                raw_emergency = data.get("emergency_volume", 0.5)
-                if isinstance(raw_emergency, list):
-                    emergency_volume = float(raw_emergency[0]) if raw_emergency else 0.5
-                else:
-                    emergency_volume = float(raw_emergency)
-        except Exception:
-            background_music_volume = 0.5
-            emergency_volume = 0.5
-
-#Save User Settings
-def save_settings():
-    try:
-        data = {
-            "background_music_volume": background_music_volume,
-            "emergency_volume" : emergency_volume
-        }
-        with open(SETTING_FILE, "w") as f:
-            json.dump(data, f, indent= 4)
-    except Exception:
-        pass
-
-load_settings()
-
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
@@ -69,17 +22,85 @@ def handle_release(event):
     if event.keysym in key_states:
         key_states[event.keysym] = False
 
-# 1. Initialize the audio engine safely
+
+import os
+import json
+import tkinter as tk
+import pygame
+
+script_directory = os.path.dirname(os.path.abspath(__file__))
+
+# 1. Initialize volumes cleanly as raw floats
+background_music_volume = 0.5
+emergency_volume = 0.5 
+settings_window = None
+
+SETTING_FILE = os.path.join(script_directory, "settings.json")
+
+# 2. Ultra-safe JSON loader that strips any old corrupted tuple data
+def load_settings():
+    global background_music_volume, emergency_volume
+    if os.path.exists(SETTING_FILE):
+        try:
+            with open(SETTING_FILE, "r") as f:
+                data = json.load(f)
+                
+                # Extract music volume safely
+                raw_music = data.get("background_music_volume", 0.5)
+                if isinstance(raw_music, (list, tuple)):
+                    background_music_volume = float(raw_music[0]) if raw_music else 0.5
+                else:
+                    background_music_volume = float(raw_music)
+                
+                # Extract emergency volume safely
+                raw_emergency = data.get("emergency_volume", 0.5)
+                if isinstance(raw_emergency, (list, tuple)):
+                    emergency_volume = float(raw_emergency[0]) if raw_emergency else 0.5
+                else:
+                    emergency_volume = float(raw_emergency)
+        except Exception:
+            background_music_volume = 0.5
+            emergency_volume = 0.5
+            
+    # Absolute guard rails: clamp volumes between 0.0 and 1.0
+    background_music_volume = max(0.0, min(1.0, float(background_music_volume)))
+    emergency_volume = max(0.0, min(1.0, float(emergency_volume)))
+
+def save_settings():
+    try:
+        data = {
+            "background_music_volume": background_music_volume,
+            "emergency_volume" : emergency_volume
+        }
+        with open(SETTING_FILE, "w") as f:
+            json.dump(data, f, indent=4)
+    except Exception:
+        pass
+
+# Initial settings load
+load_settings()
+
+def handle_press(event):
+    global key_states
+    if event.keysym in key_states:
+        key_states[event.keysym] = True
+
+def handle_release(event):
+    global key_states
+    if event.keysym in key_states:
+        key_states[event.keysym] = False
+
+# 3. Audio Engine Initialization
 try:
     pygame.mixer.init()
+    # Explicitly reserve channels 1 and 2 for your looping emergency alarms
+    pygame.mixer.set_reserved(3) 
 except Exception:
     pass
 
-# 2. Track looping states
 warning_sound = False
 space_warning_sound = False
 
-# 3. Build cross-platform file paths (removed Windows-only quote styling)
 bg_music_file = os.path.join(script_directory, "Dream Sequence.mp3")
 warning_file = os.path.join(script_directory, "Warning.mp3")
 pull_up_file = os.path.join(script_directory, "Pull Up.mp3")
@@ -89,40 +110,37 @@ click_file = os.path.join(script_directory, "Click.mp3")
 mission_success_file = os.path.join(script_directory, "Mission Success.mp3")
 mission_failed_file = os.path.join(script_directory, "Mission Failed.mp3")
 
-load_settings()
-
-# 4. Start the background music loop and apply the loaded volume level
+# Start background music loop
 try:
     pygame.mixer.music.load(bg_music_file)
     pygame.mixer.music.set_volume(background_music_volume)
     pygame.mixer.music.play(-1)
-
 except Exception:
     pass
 
-# 5. Define all audio functions matching your game's original logic
+# 4. FIXED Slider Update Functions (No tuples, explicitly handles string inputs)
 def update_background_music_volume(val):
     global background_music_volume
-    background_music_volume = float(val) / 100.0, 2
-
     try:
+        background_music_volume = round(float(val) / 100.0, 2)
         pygame.mixer.music.set_volume(background_music_volume)
+        save_settings()
     except Exception:
         pass
-    save_settings()
 
 def update_emergency_volume(val):
     global emergency_volume
-    emergency_volume = float(val) / 100.0, 2
     try:
+        emergency_volume = round(float(val) / 100.0, 2)
+        # Actively updates running channels in real-time as you drag the slider
         pygame.mixer.Channel(1).set_volume(emergency_volume)
         pygame.mixer.Channel(2).set_volume(emergency_volume)
+        save_settings()
     except Exception:
         pass
-    save_settings()
 
+# 5. UI Control Menu
 def open_settings_menu():
-    """Builds an isolated popup menu with independent sliders for Music and Alarms."""
     global settings_window, background_music_volume, emergency_volume
     
     if settings_window is not None and settings_window.winfo_exists():
@@ -136,14 +154,13 @@ def open_settings_menu():
     settings_window.configure(bg="#1c1c1c")
     settings_window.attributes("-topmost", True)
     
-    # Title Header
     title_lbl = tk.Label(settings_window, text="AUDIO CONTROLS", font=("Helvetica", 11, "bold"), fg="#ffffff", bg="#1c1c1c")
     title_lbl.pack(pady=10)
     
-        # --- SLIDER 1: BACKGROUND MUSIC ---
+    # --- SLIDER 1: BACKGROUND MUSIC ---
     music_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        command=lambda val: update_background_music_volume(val), # Lambda ensures clean value extraction
+        command=update_background_music_volume, # Passes the Tkinter value directly to our clean function
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
     )
     music_slider.set(int(background_music_volume * 100))
@@ -152,16 +169,16 @@ def open_settings_menu():
     # --- SLIDER 2: EMERGENCY ALARMS ---
     emergency_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        command=lambda val: update_emergency_volume(val), # Lambda ensures clean value extraction
+        command=update_emergency_volume, # Passes the Tkinter value directly to our clean function
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
     )
     emergency_slider.set(int(emergency_volume * 100))
     emergency_slider.pack(fill="x", padx=30, pady=(0, 15))
     
-    # Close confirmation button
     close_btn = tk.Button(settings_window, text="Apply Changes", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat", bd=0)
     close_btn.pack(pady=5)
 
+# 6. FIXED Reliable Sound Trigger Functions
 def trigger_warning_sound():
     global warning_sound, emergency_volume
     if not warning_sound:
@@ -169,7 +186,9 @@ def trigger_warning_sound():
         try:
             ch = pygame.mixer.Channel(1)
             ch.set_volume(emergency_volume)
-            ch.play(pygame.mixer.Sound(warning_file), loops=-1)
+            # Pre-load sound object to ensure it initializes smoothly
+            sound_obj = pygame.mixer.Sound(warning_file)
+            ch.play(sound_obj, loops=-1)
         except Exception:
             pass
 
@@ -180,27 +199,33 @@ def trigger_spacecraft_warning_sound():
         try:
             ch = pygame.mixer.Channel(2)
             ch.set_volume(emergency_volume)
-            ch.play(pygame.mixer.Sound(space_warning_file), loops=-1)
+            sound_obj = pygame.mixer.Sound(space_warning_file)
+            ch.play(sound_obj, loops=-1)
         except Exception:
             pass
 
 def trigger_roger_sound():
     try:
         ch = pygame.mixer.Channel(3)
-        ch.set_volume(0.5)
+        ch.set_volume(emergency_volume) # Connected to master emergency slider
         ch.play(pygame.mixer.Sound(roger_that_file))
     except Exception:
         pass
 
 def trigger_pullup_sound():
     try:
-        pygame.mixer.Sound(pull_up_file).play()
+        # Playing directly on the mixer automatically finds an open, free channel
+        sound = pygame.mixer.Sound(pull_up_file)
+        sound.set_volume(emergency_volume)
+        sound.play()
     except Exception:
         pass
 
 def trigger_click_sound():
     try:
-        pygame.mixer.Sound(click_file).play()
+        sound = pygame.mixer.Sound(click_file)
+        sound.set_volume(emergency_volume)
+        sound.play()
     except Exception:
         pass
 
@@ -208,9 +233,8 @@ def trigger_mission_success_sound():
     global emergency_volume
     try:
         ch = pygame.mixer.Channel(4)
-        # Scales the volume to be half as loud as the current slider setting
-        softer_volume = round(emergency_volume * 0.5, 2) 
-        ch.set_volume(softer_volume)
+        # Scales cleanly to 50% of the active emergency volume slider
+        ch.set_volume(round(emergency_volume * 0.5, 2))
         ch.play(pygame.mixer.Sound(mission_success_file))
     except Exception:
         pass
@@ -219,19 +243,16 @@ def trigger_mision_failed_sound():
     global emergency_volume
     try:
         ch = pygame.mixer.Channel(5)
-        # Scales the volume to be half as loud as the current slider setting
-        softer_volume = round(emergency_volume * 0.5, 2) 
-        ch.set_volume(softer_volume)
+        # Scales cleanly to 50% of the active emergency volume slider
+        ch.set_volume(round(emergency_volume * 0.5, 2))
         ch.play(pygame.mixer.Sound(mission_failed_file))
     except Exception:
         pass
 
 def stop_all_sounds():
     global space_warning_sound, warning_sound
-    
     space_warning_sound = False
     warning_sound = False
-    
     try:
         pygame.mixer.Channel(1).stop()
         pygame.mixer.Channel(2).stop()
