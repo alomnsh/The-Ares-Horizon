@@ -53,7 +53,7 @@ Play the game on your own computer by doing the following steps (The game is a d
 ## How it Works
 * **Hybrid Tkinter & Pygame Engine:** The application connects Tkinter's geometric window manager with an active Pygame physics loop using cross-process OS window hooks.
 * **Non-Blocking GUI Loop:** Instead of using `time.sleep()` which blocks the exectution loop and cause crashes, the text-scrolling updates the text frame by frame using the tkinter (`root.after`)
-* **Machine Branching:** Each phase is isolated in a state block. When a player make thier choice a function is triggred that wipes out the old buttons, and text and calculates the score, updates the labels and starts the next choice branch
+* **Machine Branching:** Each phase is isolated in a state block. When a player make their choice a function is triggred that wipes out the old buttons, and text and calculates the score, updates the labels and starts the next choice branch
 
 ## Credits
 * GUI concepts and layout inspiration from the [Hack Club Jams Guide](https://jams.hackclub.com/jam/story-game).
