@@ -149,7 +149,7 @@ def open_settings_menu():
         
     settings_window = tk.Toplevel(root)
     settings_window.title("Mission Audio Systems")
-    settings_window.geometry("320x240")
+    settings_window.geometry("320x280") # Increased height slightly from 240 to 280 to fit the new labels comfortably
     settings_window.resizable(False, False)
     settings_window.configure(bg="#1c1c1c")
     settings_window.attributes("-topmost", True)
@@ -160,7 +160,9 @@ def open_settings_menu():
     # --- SLIDER 1: BACKGROUND MUSIC ---
     music_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        command=update_background_music_volume, # Passes the Tkinter value directly to our clean function
+        label="Background Music", # Added label text
+        font=("Helvetica", 9),     # Styled the label text font
+        command=update_background_music_volume, 
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
     )
     music_slider.set(int(background_music_volume * 100))
@@ -169,7 +171,9 @@ def open_settings_menu():
     # --- SLIDER 2: EMERGENCY ALARMS ---
     emergency_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        command=update_emergency_volume, # Passes the Tkinter value directly to our clean function
+        label="Sound Effects",    # Added label text
+        font=("Helvetica", 9),     # Styled the label text font
+        command=update_emergency_volume, 
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
     )
     emergency_slider.set(int(emergency_volume * 100))
