@@ -182,7 +182,7 @@ def open_settings_menu():
     close_btn = tk.Button(settings_window, text="Apply Changes", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat", bd=0)
     close_btn.pack(pady=5)
 
-# 6. FIXED Reliable Sound Trigger Functions
+# Warning Sound Function
 def trigger_warning_sound():
     global warning_sound, emergency_volume
     if not warning_sound:
@@ -196,6 +196,7 @@ def trigger_warning_sound():
         except Exception:
             pass
 
+# Spacecraft Warning Sound Function
 def trigger_spacecraft_warning_sound():
     global space_warning_sound, emergency_volume
     if not space_warning_sound:
@@ -208,6 +209,7 @@ def trigger_spacecraft_warning_sound():
         except Exception:
             pass
 
+# Roger that sound effect function
 def trigger_roger_sound():
     try:
         ch = pygame.mixer.Channel(3)
@@ -216,6 +218,7 @@ def trigger_roger_sound():
     except Exception:
         pass
 
+# Pull up sound effect function
 def trigger_pullup_sound():
     try:
         # Playing directly on the mixer automatically finds an open, free channel
@@ -225,6 +228,7 @@ def trigger_pullup_sound():
     except Exception:
         pass
 
+# Click Sound effect function
 def trigger_click_sound():
     try:
         sound = pygame.mixer.Sound(click_file)
@@ -233,6 +237,7 @@ def trigger_click_sound():
     except Exception:
         pass
 
+# Mission success sound function
 def trigger_mission_success_sound():
     global emergency_volume
     try:
@@ -243,7 +248,8 @@ def trigger_mission_success_sound():
     except Exception:
         pass
 
-def trigger_mision_failed_sound():
+# Mission failed sound function
+def trigger_mission_failed_sound():
     global emergency_volume
     try:
         ch = pygame.mixer.Channel(5)
@@ -253,6 +259,7 @@ def trigger_mision_failed_sound():
     except Exception:
         pass
 
+# Stop all sound function
 def stop_all_sounds():
     global space_warning_sound, warning_sound
     space_warning_sound = False
@@ -294,7 +301,8 @@ def cancel_all_timers():
 
 root = tk.Tk()
 root.title("The Ares Horizon — Mission Control Terminal")
-# 1. Keep your preferred game dimensions
+
+# 1. Keep preferred game dimensions
 window_width = 950
 window_height = 720
 
@@ -408,7 +416,8 @@ def typewriter(text, text_widget, color=text_color, bold=False):
         text_widget.config(state=tk.DISABLED)
     except Exception:
         return
-
+\
+# Update progress bars function
 def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline=False):
     """Updates the terminal loading bar in place by instantly overwriting the previous line."""
     try:
@@ -425,7 +434,7 @@ def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline
     text_widget.see(tk.END)
     text_widget.config(state=tk.DISABLED)
 
-#Buttons interactions
+# Making buttons interactive function
 def make_button_interactive(button):
     """Binds mouse hover color transformations to custom game buttons."""
     button.bind("<Enter>", lambda e: button.config(bg="#30363D", fg=color_yellow))
@@ -461,6 +470,7 @@ def update_gui():
     except Exception:
         pass
 
+# First screen after you press try again
 def game_restart_screen():
     """Wipes the boot console clean and initializes Chapter 1."""
     trigger_click_sound()
@@ -494,7 +504,8 @@ def game_restart_screen():
         stage1_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
     except Exception:
         return
-    
+
+# First loading screen when game is booted up   
 def run_boot_sequence():
     """Plays the mainframe boot animation with a custom in-place updating console loading bar."""
     trigger_click_sound()
@@ -676,7 +687,7 @@ def handle_choice3a(choice):
         trigger_pullup_sound()
         typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", output_text, color="red")
         typewriter("The lander tips and loses pressure. Space is not forgiving.", output_text, color="red")
-        trigger_mision_failed_sound()
+        trigger_mission_failed_sound()
         typewriter("MISSION FAILED", output_text, bold=True, color="red")
         crew_safety = 0
         mission_budget = 0
@@ -710,7 +721,7 @@ def handle_choice2b(choice):
     elif choice == "2":
         typewriter("LOST ORBIT! The math is too complex with the light-lag delay", output_text, color="red")
         typewriter("The crew misses the Mars window completely, drifting into the solar system with no way of communication", output_text, color="red")
-        trigger_mision_failed_sound()
+        trigger_mission_failed_sound()
         crew_safety = 0
         mission_budget = 0
         update_gui()
@@ -735,7 +746,7 @@ def handle_choice3b(choice):
     elif choice == "2":
         typewriter("\nBURN OUT! The extreme cold freezes the fuel valves during descent.", output_text, color="red")
         typewriter("The engines fail 100 meters up. The ship impacts the surface.", output_text, color="red")
-        trigger_mision_failed_sound()
+        trigger_mission_failed_sound()
         typewriter("MISSION FAILED", output_text, color="red", bold=True)
         crew_safety = 0
         update_gui()
@@ -744,6 +755,8 @@ def handle_choice3b(choice):
 #===========================================================================
 #LANDING MINI GAME (PYGAME EMBEDDED EDITION)
 #===========================================================================
+
+# Landing mini game physics engine
 def run_physics_frame():
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
     global prep_timer_frames
@@ -896,6 +909,7 @@ def run_physics_frame():
     else:
         root.after(16, run_physics_frame)
 
+# Landing minigame actual user interface
 def start_landing_simulation_canvas():
     global game_frame, pg_screen, pg_clock, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
@@ -1023,6 +1037,7 @@ def start_landing_simulation_canvas():
     root.focus_set()
     run_physics_frame()
 
+# This is the fuction that controls the difficulty of the landing minigame
 def landing_minigame_difficulty():
     global menu_backdrop
     
@@ -1059,7 +1074,7 @@ def landing_minigame_difficulty():
 #CRASH SCREEN
 def space_ship_crash():
     global crew_safety, mission_budget
-    trigger_mision_failed_sound()
+    trigger_mission_failed_sound()
     typewriter ("💥 CRASH: Space shuttle hull compromised!", output_text, color= "red")
     crew_safety = 0
     mission_budget = 0
@@ -1083,6 +1098,7 @@ def run_restart_boot_sequence():
     # Add your restart-specific logic here (e.g., skip intro cutscenes)
     # run_boot_sequence() # You can still call this inside if needed
 
+# A fuction that activates when you press try again
 def reboot_mission():
     global crew_safety, mission_budget, science_points, try_again_counter
     cancel_all_timers()
