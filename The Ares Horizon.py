@@ -36,12 +36,17 @@ SETTING_FILE = os.path.join(script_directory, "settings.json")
 
 # 2. Ultra-safe JSON loader that strips any old corrupted tuple data
 def load_settings():
-    global background_music_volume, emergency_volume
+    global background_music_volume, emergency_volume, is_muted
+    global pre_mute_emergency_volume, pre_mute_music_volume
     if os.path.exists(SETTING_FILE):
         try:
             with open(SETTING_FILE, "r") as f:
                 data = json.load(f)
                 
+                is_muted = data.get("is_muted", False)
+                pre_mute_music_volume = float(data.get("pre_mute_music_volume", 0.5))
+                pre_mute_emergency_volume = float(data.get("pre_mute_emergency_volume", 0.5))
+
                 # Extract music volume safely
                 raw_music = data.get("background_music_volume", 0.5)
                 if isinstance(raw_music, (list, tuple)):
@@ -58,16 +63,24 @@ def load_settings():
         except Exception:
             background_music_volume = 0.5
             emergency_volume = 0.5
+            is_muted = False
+            pre_mute_emergency_volume = 0.5
+            pre_mute_music_volume = 0.5
             
     # Absolute guard rails: clamp volumes between 0.0 and 1.0
     background_music_volume = max(0.0, min(1.0, float(background_music_volume)))
     emergency_volume = max(0.0, min(1.0, float(emergency_volume)))
+    pre_mute_music_volume = max(0.0, min(1.0, float(pre_mute_music_volume)))
+    pre_mute_emergency_volume = max(0.0, min(1.0, float(pre_mute_emergency_volume)))
 
 def save_settings():
     try:
         data = {
             "background_music_volume": background_music_volume,
-            "emergency_volume" : emergency_volume
+            "emergency_volume" : emergency_volume,
+            "is muted" : is_muted,
+            "pre_mute_music_volume": pre_mute_music_volume,
+            "pre_mute_emergency_volume": pre_mute_emergency_volume
         }
         with open(SETTING_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -90,7 +103,6 @@ def handle_release(event):
 # 3. Audio Engine Initialization
 try:
     pygame.mixer.init()
-    # Explicitly reserve channels 1 and 2 for your looping emergency alarms
     pygame.mixer.set_reserved(3) 
 except Exception:
     pass
@@ -115,33 +127,13 @@ try:
 except Exception:
     pass
 
-# 4. Slider Update Functions (No tuples, explicitly handles string inputs)
-def update_background_music_volume(val):
-    global background_music_volume, is_muted
+# 4. Volume Mixer 
+def set_mixer_volumes():
+    """Applies values directly to active Pygame channels."""
     try:
-        background_music_volume = round(float(val) / 100.0, 2)
         pygame.mixer.music.set_volume(background_music_volume)
-        
-        # If user drags slider up, automatically uncheck mute
-        if background_music_volume > 0 and is_muted:
-            mute_var.set(0)
-            is_muted = False
-        save_settings()
-    except Exception:
-        pass
-
-def update_emergency_volume(val):
-    global emergency_volume, is_muted
-    try:
-        emergency_volume = round(float(val) / 100.0, 2)
         pygame.mixer.Channel(1).set_volume(emergency_volume)
         pygame.mixer.Channel(2).set_volume(emergency_volume)
-        
-        # If user drags slider up, automatically uncheck mute
-        if emergency_volume > 0 and is_muted:
-            mute_var.set(0)
-            is_muted = False
-        save_settings()
     except Exception:
         pass
 
@@ -149,94 +141,183 @@ def toggle_mute():
     global is_muted, background_music_volume, emergency_volume
     global pre_mute_music_volume, pre_mute_emergency_volume
 
-    if mute_var.get() == 1:
+    if not is_muted:
         pre_mute_music_volume = background_music_volume
         pre_mute_emergency_volume = emergency_volume
-
-        background_music_volume = 0
-        emergency_volume = 0
+        background_music_volume = 0.0
+        emergency_volume = 0.0
         is_muted = True
-
     else:
         background_music_volume = pre_mute_music_volume
         emergency_volume = pre_mute_emergency_volume
         is_muted = False
 
-    # Actively update the mixer audio levels
-    try:
-        pygame.mixer.music.set_volume(background_music_volume)
-        pygame.mixer.Channel(1).set_volume(emergency_volume)
-        pygame.mixer.Channel(2).set_volume(emergency_volume)
-    except Exception:
-        pass
-
-    music_slider.set(int(background_music_volume * 100))
-    emergency_slider.set(int(emergency_volume * 100))
+    set_mixer_volumes()
     save_settings()
 
-# 5. UI Control Menu
-def open_settings_menu():
-    global settings_window, background_music_volume, emergency_volume, is_muted
-    global mute_var, music_slider, emergency_slider # Made global so toggle_mute can access them
+def update_music_from_slider(percentage):
+    global background_music_volume, is_muted
+    background_music_volume = round(percentage, 2)
+    pygame.mixer.music.set_volume(background_music_volume)
     
-    if settings_window is not None and settings_window.winfo_exists():
-        settings_window.lift()
-        return
-        
-    settings_window = tk.Toplevel(root)
-    settings_window.title("Mission Audio Systems")
-    settings_window.geometry("320x330") # Increased height from 280 to 330 to comfortably fit the checkbox
-    settings_window.resizable(False, False)
-    settings_window.configure(bg="#1c1c1c")
-    settings_window.attributes("-topmost", True)
-    
-    title_lbl = tk.Label(settings_window, text="AUDIO CONTROLS", font=("Helvetica", 11, "bold"), fg="#ffffff", bg="#1c1c1c")
-    title_lbl.pack(pady=10)
-    
-    # --- SLIDER 1: BACKGROUND MUSIC ---
-    music_slider = tk.Scale(
-        settings_window, from_=0, to=100, orient="horizontal", 
-        label="Background Music", 
-        font=("Helvetica", 9),     
-        command=update_background_music_volume, 
-        bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
-    )
-    music_slider.set(int(background_music_volume * 100))
-    music_slider.pack(fill="x", padx=30, pady=(0, 10))
-    
-    # --- SLIDER 2: EMERGENCY ALARMS ---
-    emergency_slider = tk.Scale(
-        settings_window, from_=0, to=100, orient="horizontal", 
-        label="Sound Effects",    
-        font=("Helvetica", 9),     
-        command=update_emergency_volume, 
-        bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
-    )
-    emergency_slider.set(int(emergency_volume * 100))
-    emergency_slider.pack(fill="x", padx=30, pady=(0, 10))
-    
-    # --- MUTE ALL CHECKBOX ---
-    mute_var = tk.IntVar()
-    mute_var.set(1 if is_muted else 0)
-    
-    mute_check = tk.Checkbutton(
-        settings_window, 
-        text="Mute All Sounds", 
-        variable=mute_var, 
-        command=toggle_mute,
-        font=("Helvetica", 10),
-        bg="#1c1c1c", 
-        fg="#ffffff", 
-        selectcolor="#1c1c1c",       # Dark background inside the checkbox tick box
-        activebackground="#1c1c1c",  # Prevents white flashes when clicking row
-        activeforeground="#ffffff"
-    )
-    mute_check.pack(pady=(5, 15))
-    
-    close_btn = tk.Button(settings_window, text="Apply Changes", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat", bd=0)
-    close_btn.pack(pady=5)
+    if background_music_volume > 0 and is_muted:
+        is_muted = False
+    save_settings()
 
-# Warning Sound Function
+def update_emergency_from_slider(percentage):
+    global emergency_volume, is_muted
+    emergency_volume = round(percentage, 2)
+    pygame.mixer.Channel(1).set_volume(emergency_volume)
+    pygame.mixer.Channel(2).set_volume(emergency_volume)
+    
+    if emergency_volume > 0 and is_muted:
+        is_muted = False
+    save_settings()
+
+# --- 4. PYGAME CANVAS ENGINE WITH HIGH-VISIBILITY COLOR-FILL TRACKS ---
+def open_settings_menu():
+    global background_music_volume, emergency_volume, is_muted
+    
+    # Temporarily freeze all audio outputs while interacting with controls
+    trigger_click_sound()
+    
+    # 1. Initialize Pygame display instance window context
+    pygame.init()
+    pygame.font.init()
+    
+    menu_w, menu_h = 320, 330
+    menu_screen = pygame.display.set_mode((menu_w, menu_h))
+    pygame.display.set_caption("Mission Audio Systems")
+    menu_clock = pygame.time.Clock()
+    menu_font = pygame.font.SysFont("Courier", 14, bold=True)
+    
+    # Component Hitboxes (Tracks thickened from 10px to 14px for better visibility)
+    music_track_rect = pygame.Rect(40, 80, 240, 14)
+    emergency_track_rect = pygame.Rect(40, 160, 240, 14)
+    checkbox_rect = pygame.Rect(40, 220, 20, 20)
+    close_btn_rect = pygame.Rect(95, 270, 130, 35)
+    
+    # State tracking variables for explicit holding locks
+    is_dragging_music = False
+    is_dragging_emergency = False
+    
+    # FORCE WINDOW FOCUS: Makes sure your OS registers mouse inputs on this window instantly
+    pygame.event.set_grab(True)
+    
+    menu_running = True
+    
+    while menu_running:
+        mouse_pos = pygame.mouse.get_pos()  # Returns a tuple (x, y)
+        mouse_pressed = pygame.mouse.get_pressed()  # Returns tuple (left, middle, right)
+        
+        # 2. Monitor Mouse Click States
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                menu_running = False
+                
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:  # Left Click Down
+                    if checkbox_rect.collidepoint(event.pos):
+                        toggle_mute()
+                    elif close_btn_rect.collidepoint(event.pos):
+                        menu_running = False
+                    
+                    # Track dragging activation cleanly
+                    if music_track_rect.inflate(0, 20).collidepoint(event.pos):
+                        is_dragging_music = True
+                    elif emergency_track_rect.inflate(0, 20).collidepoint(event.pos):
+                        is_dragging_emergency = True
+                        
+            elif event.type == pygame.MOUSEBUTTONUP:
+                if event.button == 1:  # Releasing Left Click breaks all locks
+                    is_dragging_music = False
+                    is_dragging_emergency = False
+                    
+        # 3. Safety Backup Check: If the mouse button is not being pressed at all, kill drag states
+        if not mouse_pressed[0]:
+            is_dragging_music = False
+            is_dragging_emergency = False
+        else:
+            # Fallback Drag Catch: If they are pressing the mouse over a track and weren't dragging yet, let them slide it!
+            if not is_dragging_music and not is_dragging_emergency:
+                if music_track_rect.inflate(0, 20).collidepoint(mouse_pos):
+                    is_dragging_music = True
+                elif emergency_track_rect.inflate(0, 20).collidepoint(mouse_pos):
+                    is_dragging_emergency = True
+                    
+        # 4. mouse_pos[0] cleanly extracts the absolute horizontal X position integer
+        if is_dragging_music:
+            relative_x = max(0, min(mouse_pos[0] - music_track_rect.x, music_track_rect.width))
+            update_music_from_slider(relative_x / music_track_rect.width)
+        elif is_dragging_emergency:
+            relative_x = max(0, min(mouse_pos[0] - emergency_track_rect.x, emergency_track_rect.width))
+            update_emergency_from_slider(relative_x / emergency_track_rect.width)
+        
+        # 5. Draw Layout Canvas (#1c1c1c Dark Theme)
+        menu_screen.fill((28, 28, 28))
+        
+        # Calculate dynamic text percentages 
+        music_pct = int(background_music_volume * 100)
+        emergency_pct = int(emergency_volume * 100)
+        
+        # Generate Text Strings with Percentages appended
+        title_txt = menu_font.render("AUDIO CONTROLS", True, (255, 255, 255))
+        music_txt = menu_font.render(f"Background Music: {music_pct}%", True, (180, 180, 180))
+        emergency_txt = menu_font.render(f"Sound Effects: {emergency_pct}%", True, (180, 180, 180))
+        mute_txt = menu_font.render("Mute All Sounds", True, (255, 255, 255))
+        close_txt = menu_font.render("Apply Changes", True, (255, 255, 255))
+        
+        menu_screen.blit(title_txt, (85, 15))
+        menu_screen.blit(music_txt, (40, 55))
+        menu_screen.blit(emergency_txt, (40, 135))
+        menu_screen.blit(mute_txt, (75, 220))
+        
+        # --- RENDER MUSIC SLIDER ---
+        # Draw background empty channel line
+        pygame.draw.rect(menu_screen, (45, 45, 45), music_track_rect, border_radius=4)
+        h1_x = music_track_rect.x + int(background_music_volume * music_track_rect.width)
+        
+        # Calculate dynamic green fill color
+        music_color = (int(30 + (background_music_volume * 100)), int(80 + (background_music_volume * 175)), 40)
+        if h1_x > music_track_rect.x:
+            # Draw color-filled rectangle trailing behind the handle knob
+            fill1_rect = pygame.Rect(music_track_rect.x, music_track_rect.y, h1_x - music_track_rect.x, music_track_rect.height)
+            pygame.draw.rect(menu_screen, music_color, fill1_rect, border_radius=4)
+        
+        # Draw handle border and circle indicator
+        pygame.draw.circle(menu_screen, (20, 20, 20), (h1_x, music_track_rect.centery), 11)
+        pygame.draw.circle(menu_screen, music_color, (h1_x, music_track_rect.centery), 9)
+        
+        # --- RENDER EMERGENCY SLIDER ---
+        pygame.draw.rect(menu_screen, (45, 45, 45), emergency_track_rect, border_radius=4)
+        h2_x = emergency_track_rect.x + int(emergency_volume * emergency_track_rect.width)
+        
+        # Calculate dynamic warning red fill color (yellow-orange shifts to solid red)
+        emergency_color = (int(200 + (emergency_volume * 55)), int(160 - (emergency_volume * 140)), 20)
+        if h2_x > emergency_track_rect.x:
+            fill2_rect = pygame.Rect(emergency_track_rect.x, emergency_track_rect.y, h2_x - emergency_track_rect.x, emergency_track_rect.height)
+            pygame.draw.rect(menu_screen, emergency_color, fill2_rect, border_radius=4)
+            
+        pygame.draw.circle(menu_screen, (20, 20, 20), (h2_x, emergency_track_rect.centery), 11)
+        pygame.draw.circle(menu_screen, emergency_color, (h2_x, emergency_track_rect.centery), 9)
+        
+        # --- RENDER MUTE CHECKBOX ---
+        pygame.draw.rect(menu_screen, (51, 51, 51), checkbox_rect, border_radius=4)
+        if is_muted:
+            pygame.draw.rect(menu_screen, (0, 255, 0), checkbox_rect.inflate(-8, -8), border_radius=2)
+            
+        # --- RENDER CLOSE BUTTON ---
+        pygame.draw.rect(menu_screen, (60, 60, 60), close_btn_rect, border_radius=5)
+        menu_screen.blit(close_txt, (close_btn_rect.x + 10, close_btn_rect.y + 10))
+        
+        pygame.display.flip()
+        menu_clock.tick(60)
+        
+    # 6. Release input grab, destroy window context, and return focus safely to Tkinter main loop
+    pygame.event.set_grab(False)
+    pygame.display.quit()
+    save_settings()
+
 def trigger_warning_sound():
     global warning_sound, emergency_volume
     if not warning_sound:
@@ -244,13 +325,11 @@ def trigger_warning_sound():
         try:
             ch = pygame.mixer.Channel(1)
             ch.set_volume(emergency_volume)
-            # Pre-load sound object to ensure it initializes smoothly
             sound_obj = pygame.mixer.Sound(warning_file)
             ch.play(sound_obj, loops=-1)
         except Exception:
             pass
 
-# Spacecraft Warning Sound Function
 def trigger_spacecraft_warning_sound():
     global space_warning_sound, emergency_volume
     if not space_warning_sound:
@@ -263,26 +342,22 @@ def trigger_spacecraft_warning_sound():
         except Exception:
             pass
 
-# Roger that sound effect function
 def trigger_roger_sound():
     try:
         ch = pygame.mixer.Channel(3)
-        ch.set_volume(emergency_volume) # Connected to master emergency slider
+        ch.set_volume(emergency_volume) 
         ch.play(pygame.mixer.Sound(roger_that_file))
     except Exception:
         pass
 
-# Pull up sound effect function
 def trigger_pullup_sound():
     try:
-        # Playing directly on the mixer automatically finds an open, free channel
         sound = pygame.mixer.Sound(pull_up_file)
         sound.set_volume(emergency_volume)
         sound.play()
     except Exception:
         pass
 
-# Click Sound effect function
 def trigger_click_sound():
     try:
         sound = pygame.mixer.Sound(click_file)
@@ -291,23 +366,19 @@ def trigger_click_sound():
     except Exception:
         pass
 
-# Mission success sound function
 def trigger_mission_success_sound():
     global emergency_volume
     try:
         ch = pygame.mixer.Channel(4)
-        # Scales cleanly to 50% of the active emergency volume slider
         ch.set_volume(round(emergency_volume * 0.5, 2))
         ch.play(pygame.mixer.Sound(mission_success_file))
     except Exception:
         pass
 
-# Mission failed sound function
 def trigger_mission_failed_sound():
     global emergency_volume
     try:
         ch = pygame.mixer.Channel(5)
-        # Scales cleanly to 50% of the active emergency volume slider
         ch.set_volume(round(emergency_volume * 0.5, 2))
         ch.play(pygame.mixer.Sound(mission_failed_file))
     except Exception:
@@ -1254,23 +1325,25 @@ def on_close_window():
     cancel_all_timers()
     root.destroy()
 
-# Tell Tkinter to run our cleanup function when the window closes
-root.protocol("WM_DELETE_WINDOW", on_close_window)
-
-# Create the permanent Settings button
+# --- 6. PERMANENT INTERACTION SHORTCUT (Bottom Left Corner) ---
 settings_btn = tk.Button(
     root, 
     text="⚙️ Settings", 
-    command=open_settings_menu, 
-    font=("Helvetica", 10, "bold"), 
-    bg="#2b2b2b", 
-    fg="#bbecbb", 
-    activebackground="#444444", 
-    activeforeground="#bbecbb",
-    bd=0,
-    relief="raised"
+    command=open_settings_menu,    # When pressed, spins up our standalone Pygame dashboard sub-window
+    font=("Courier", 11, "bold"), 
+    bg="#161b22",                 
+    fg="#7EE787",                 
+    activebackground="#30363D", 
+    activeforeground="#7EE787",
+    bd=1,
+    relief="solid",
+    highlightthickness=0
 )
 settings_btn.place(relx=0.0, rely=1.0, x=15, y=-15, anchor="sw")
 settings_btn.lift()
+
+
+# Tell Tkinter to run our cleanup function when the window closes
+root.protocol("WM_DELETE_WINDOW", on_close_window)
 
 root.mainloop()
