@@ -22,15 +22,12 @@ def handle_release(event):
     if event.keysym in key_states:
         key_states[event.keysym] = False
 
-
-import os
-import json
-import tkinter as tk
-import pygame
-
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
 # 1. Initialize volumes cleanly as raw floats
+is_muted = False
+pre_mute_music_volume = 0.5
+pre_mute_emergency_volume = 0.5
 background_music_volume = 0.5
 emergency_volume = 0.5 
 settings_window = None
@@ -118,30 +115,69 @@ try:
 except Exception:
     pass
 
-# 4. FIXED Slider Update Functions (No tuples, explicitly handles string inputs)
+# 4. Slider Update Functions (No tuples, explicitly handles string inputs)
 def update_background_music_volume(val):
-    global background_music_volume
+    global background_music_volume, is_muted
     try:
         background_music_volume = round(float(val) / 100.0, 2)
         pygame.mixer.music.set_volume(background_music_volume)
+        
+        # If user drags slider up, automatically uncheck mute
+        if background_music_volume > 0 and is_muted:
+            mute_var.set(0)
+            is_muted = False
         save_settings()
     except Exception:
         pass
 
 def update_emergency_volume(val):
-    global emergency_volume
+    global emergency_volume, is_muted
     try:
         emergency_volume = round(float(val) / 100.0, 2)
-        # Actively updates running channels in real-time as you drag the slider
         pygame.mixer.Channel(1).set_volume(emergency_volume)
         pygame.mixer.Channel(2).set_volume(emergency_volume)
+        
+        # If user drags slider up, automatically uncheck mute
+        if emergency_volume > 0 and is_muted:
+            mute_var.set(0)
+            is_muted = False
         save_settings()
     except Exception:
         pass
 
+def toggle_mute():
+    global is_muted, background_music_volume, emergency_volume
+    global pre_mute_music_volume, pre_mute_emergency_volume
+
+    if mute_var.get() == 1:
+        pre_mute_music_volume = background_music_volume
+        pre_mute_emergency_volume = emergency_volume
+
+        background_music_volume = 0
+        emergency_volume = 0
+        is_muted = True
+
+    else:
+        background_music_volume = pre_mute_music_volume
+        emergency_volume = pre_mute_emergency_volume
+        is_muted = False
+
+    # Actively update the mixer audio levels
+    try:
+        pygame.mixer.music.set_volume(background_music_volume)
+        pygame.mixer.Channel(1).set_volume(emergency_volume)
+        pygame.mixer.Channel(2).set_volume(emergency_volume)
+    except Exception:
+        pass
+
+    music_slider.set(int(background_music_volume * 100))
+    emergency_slider.set(int(emergency_volume * 100))
+    save_settings()
+
 # 5. UI Control Menu
 def open_settings_menu():
-    global settings_window, background_music_volume, emergency_volume
+    global settings_window, background_music_volume, emergency_volume, is_muted
+    global mute_var, music_slider, emergency_slider # Made global so toggle_mute can access them
     
     if settings_window is not None and settings_window.winfo_exists():
         settings_window.lift()
@@ -149,7 +185,7 @@ def open_settings_menu():
         
     settings_window = tk.Toplevel(root)
     settings_window.title("Mission Audio Systems")
-    settings_window.geometry("320x280") # Increased height slightly from 240 to 280 to fit the new labels comfortably
+    settings_window.geometry("320x330") # Increased height from 280 to 330 to comfortably fit the checkbox
     settings_window.resizable(False, False)
     settings_window.configure(bg="#1c1c1c")
     settings_window.attributes("-topmost", True)
@@ -160,8 +196,8 @@ def open_settings_menu():
     # --- SLIDER 1: BACKGROUND MUSIC ---
     music_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        label="Background Music", # Added label text
-        font=("Helvetica", 9),     # Styled the label text font
+        label="Background Music", 
+        font=("Helvetica", 9),     
         command=update_background_music_volume, 
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#00ff00", highlightthickness=0
     )
@@ -171,13 +207,31 @@ def open_settings_menu():
     # --- SLIDER 2: EMERGENCY ALARMS ---
     emergency_slider = tk.Scale(
         settings_window, from_=0, to=100, orient="horizontal", 
-        label="Sound Effects",    # Added label text
-        font=("Helvetica", 9),     # Styled the label text font
+        label="Sound Effects",    
+        font=("Helvetica", 9),     
         command=update_emergency_volume, 
         bg="#1c1c1c", fg="#ffffff", troughcolor="#333333", activebackground="#ff3333", highlightthickness=0
     )
     emergency_slider.set(int(emergency_volume * 100))
-    emergency_slider.pack(fill="x", padx=30, pady=(0, 15))
+    emergency_slider.pack(fill="x", padx=30, pady=(0, 10))
+    
+    # --- MUTE ALL CHECKBOX ---
+    mute_var = tk.IntVar()
+    mute_var.set(1 if is_muted else 0)
+    
+    mute_check = tk.Checkbutton(
+        settings_window, 
+        text="Mute All Sounds", 
+        variable=mute_var, 
+        command=toggle_mute,
+        font=("Helvetica", 10),
+        bg="#1c1c1c", 
+        fg="#ffffff", 
+        selectcolor="#1c1c1c",       # Dark background inside the checkbox tick box
+        activebackground="#1c1c1c",  # Prevents white flashes when clicking row
+        activeforeground="#ffffff"
+    )
+    mute_check.pack(pady=(5, 15))
     
     close_btn = tk.Button(settings_window, text="Apply Changes", command=settings_window.destroy, bg="#333333", fg="#ffffff", activebackground="#555555", activeforeground="#ffffff", relief="flat", bd=0)
     close_btn.pack(pady=5)
