@@ -90,20 +90,10 @@ def save_settings():
 # Initial settings load
 load_settings()
 
-def handle_press(event):
-    global key_states
-    if event.keysym in key_states:
-        key_states[event.keysym] = True
-
-def handle_release(event):
-    global key_states
-    if event.keysym in key_states:
-        key_states[event.keysym] = False
-
 # 3. Audio Engine Initialization
 try:
     pygame.mixer.init()
-    pygame.mixer.set_reserved(3) 
+    pygame.mixer.set_reserved(6) 
 except Exception:
     pass
 
