@@ -1387,7 +1387,7 @@ make_button_interactive(b2a_1); make_button_interactive(b2a_2)
 
 # 4. Stage 3A Elements
 tk.Label(stage3a_frame, text="AUTOMATED LANDING FAILURE! CHOOSE FLIGHT CONTROLS:", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
-b3a_1 = tk.Button(stage3a_frame, text="1) MANUAL CONTROL - Commander flies manual flight joystick", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3a("1"))
+b3a_1 = tk.Button(stage3a_frame, text="1) MANUAL CONTROL - (INTERACTIVE)", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3a("1"))
 b3a_1.pack(in_=stage3a_frame, pady=4)
 b3a_2 = tk.Button(stage3a_frame, text="2) AUTO-PILOT - Trust flight computer mapping systems", font=font_console, bg=BG_panel, fg=text_color, bd=0, padx=15, pady=8, highlightthickness=1, highlightbackground="#30363D", width=65, wraplength=550, justify="left", command=lambda: handle_choice3a("2"))
 b3a_2.pack(in_=stage3a_frame, pady=4)
