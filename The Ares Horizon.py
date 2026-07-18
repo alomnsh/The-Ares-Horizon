@@ -11,6 +11,9 @@ from PIL import Image, ImageTk
 import pygame
 import json
 
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":1"
+
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
@@ -24,14 +27,13 @@ def handle_release(event):
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
-# 1. Initialize variables
+# 1. Initialize volumes cleanly as raw floats
 is_muted = False
 pre_mute_music_volume = 0.5
 pre_mute_emergency_volume = 0.5
 background_music_volume = 0.5
 emergency_volume = 0.5 
 settings_window = None
-DEFAULT_TYPING_SPEED = 0.03
 
 SETTING_FILE = os.path.join(script_directory, "settings.json")
 
