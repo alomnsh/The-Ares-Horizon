@@ -25,15 +25,61 @@ def handle_release(event):
     if event.keysym in key_states:
         key_states[event.keysym] = False
 
-script_directory = os.path.dirname(os.path.abspath(__file__))
+# --- CRASH-PROOF AUDIO LOADER ENGINE ---
+def safe_load_sound(file_name, default_fallback=False):
+    """Checks for file tracks matching local naming conventions safely on Linux clusters."""
+    if os.path.exists(file_name):
+        try:
+            return pygame.mixer.Sound(file_name)
+        except Exception:
+            return default_fallback
+    # Fallback to scanning folder structure for mixed-case matching variations
+    base_dir = os.path.dirname(os.path.abspath(file_name)) if os.path.dirname(file_name) else script_directory
+    target_name = os.path.basename(file_name).lower()
+    if os.path.exists(base_dir):
+        for f in os.listdir(base_dir):
+            if f.lower() == target_name:
+                try:
+                    full_path = os.path.join(base_dir, f)
+                    return pygame.mixer.Sound(full_path)
+                except Exception:
+                    return default_fallback
+    return default_fallback
 
-# 1. Initialize volumes cleanly as raw floats
-is_muted = False
-pre_mute_music_volume = 0.5
-pre_mute_emergency_volume = 0.5
-background_music_volume = 0.5
-emergency_volume = 0.5 
-settings_window = None
+# Initialize Mixer
+try:
+    pygame.mixer.init()
+    pygame.mixer.set_reserved(6) 
+except Exception:
+    pass
+
+warning_sound = False
+space_warning_sound = False
+
+# Hardcoded script directory path asset assignments
+bg_music_file = os.path.join(script_directory, "Dream Sequence.mp3")
+warning_file = os.path.join(script_directory, "Warning.mp3")
+pull_up_file = os.path.join(script_directory, "Pull Up.mp3")
+roger_that_file = os.path.join(script_directory, "Roger That.mp3")
+space_warning_file = os.path.join(script_directory, "Spacecraft Warning.mp3")
+click_file = os.path.join(script_directory, "Click.mp3")
+mission_success_file = os.path.join(script_directory, "Mission Success.mp3")
+mission_failed_file = os.path.join(script_directory, "Mission Failed.mp3")
+
+# Safely load looping track profiles without hard-crashing the container display frames
+try:
+    if os.path.exists(bg_music_file):
+        pygame.mixer.music.load(bg_music_file)
+        pygame.mixer.music.set_volume(background_music_volume if 'background_music_volume' in globals() else 0.5)
+        pygame.mixer.music.play(-1)
+    else:
+        # Scan files for capitalization variations
+        for f in os.listdir(script_directory):
+            if f.lower() == "dream sequence.mp3":
+                pygame.mixer.music.load(os.path.join(script_directory, f))
+                pygame.mixer.music.play(-1)
+except Exception as e:
+    print(f"Audio device notice handled cleanly: {e}")
 
 SETTING_FILE = os.path.join(script_directory, "settings.json")
 
