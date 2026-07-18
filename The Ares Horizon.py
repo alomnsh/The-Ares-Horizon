@@ -24,13 +24,14 @@ def handle_release(event):
 
 script_directory = os.path.dirname(os.path.abspath(__file__))
 
-# 1. Initialize volumes cleanly as raw floats
+# 1. Initialize variables
 is_muted = False
 pre_mute_music_volume = 0.5
 pre_mute_emergency_volume = 0.5
 background_music_volume = 0.5
 emergency_volume = 0.5 
 settings_window = None
+DEFAULT_TYPING_SPEED = 0.03
 
 SETTING_FILE = os.path.join(script_directory, "settings.json")
 
@@ -38,6 +39,8 @@ SETTING_FILE = os.path.join(script_directory, "settings.json")
 def load_settings():
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
+    global text_speed
+
     if os.path.exists(SETTING_FILE):
         try:
             with open(SETTING_FILE, "r") as f:
@@ -46,6 +49,8 @@ def load_settings():
                 is_muted = data.get("is_muted", False)
                 pre_mute_music_volume = float(data.get("pre_mute_music_volume", 0.5))
                 pre_mute_emergency_volume = float(data.get("pre_mute_emergency_volume", 0.5))
+
+                text_speed = data.get("text_speed", DEFAULT_TYPING_SPEED)
 
                 # Extract music volume safely
                 raw_music = data.get("background_music_volume", 0.5)
@@ -66,12 +71,24 @@ def load_settings():
             is_muted = False
             pre_mute_emergency_volume = 0.5
             pre_mute_music_volume = 0.5
+            text_speed = DEFAULT_TYPING_SPEED
             
+    else:
+        background_music_volume = 0.5
+        emergency_volume = 0.5
+        is_muted = False
+        pre_mute_emergency_volume = 0.5
+        pre_mute_music_volume = 0.5
+        text_speed = DEFAULT_TYPING_SPEED
+
     # Absolute guard rails: clamp volumes between 0.0 and 1.0
     background_music_volume = max(0.0, min(1.0, float(background_music_volume)))
     emergency_volume = max(0.0, min(1.0, float(emergency_volume)))
     pre_mute_music_volume = max(0.0, min(1.0, float(pre_mute_music_volume)))
     pre_mute_emergency_volume = max(0.0, min(1.0, float(pre_mute_emergency_volume)))
+
+    # Text speed rail: prevent negative speeds or excessive delays
+    text_speed = max(0.0, min(0.15, float(text_speed)))
 
 def save_settings():
     try:
@@ -80,7 +97,8 @@ def save_settings():
             "emergency_volume" : emergency_volume,
             "is muted" : is_muted,
             "pre_mute_music_volume": pre_mute_music_volume,
-            "pre_mute_emergency_volume": pre_mute_emergency_volume
+            "pre_mute_emergency_volume": pre_mute_emergency_volume,
+            "text_speed": text_speed
         }
         with open(SETTING_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -168,6 +186,7 @@ def reset_all_settings():
     """Forces all configurations settings back to default"""
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
+    global text_speed
 
     # Reset all data
     background_music_volume = 0.5
@@ -175,13 +194,15 @@ def reset_all_settings():
     is_muted = False
     pre_mute_emergency_volume = 0.5
     pre_mute_music_volume = 0.5
+    text_speed = DEFAULT_TYPING_SPEED
 
     set_mixer_volumes()
     save_settings()
 
-# --- 4. PYGAME CANVAS ENGINE WITH HIGH-VISIBILITY COLOR-FILL TRACKS ---
+# --- 4. PYGAME CANVAS ENGINE WITH HIGH-VISIBILITY COLOR-FILL TRACKS (PART 1) ---
 def open_settings_menu():
     global background_music_volume, emergency_volume, is_muted
+    global text_speed  # <-- Added global variable tracking
     
     # Temporarily freeze all audio outputs while interacting with controls
     trigger_click_sound()
@@ -190,25 +211,29 @@ def open_settings_menu():
     pygame.init()
     pygame.font.init()
     
-    # EXPANDED HEIGHT: Changed from 330 to 390 to support the new confirmation interface
-    menu_w, menu_h = 320, 390
+    # EXPANDED HEIGHT: Changed from 390 to 470 to support the new Text Speed interface smoothly
+    menu_w, menu_h = 320, 470
     menu_screen = pygame.display.set_mode((menu_w, menu_h))
-    pygame.display.set_caption("Mission Audio Systems")
+    pygame.display.set_caption("Mission Audio & Text Systems")
     menu_clock = pygame.time.Clock()
     menu_font = pygame.font.SysFont("Courier", 14, bold=True)
     
     # Component Hitboxes (Tracks thickened from 10px to 14px for better visibility)
     music_track_rect = pygame.Rect(40, 80, 240, 14)
     emergency_track_rect = pygame.Rect(40, 160, 240, 14)
-    checkbox_rect = pygame.Rect(40, 220, 20, 20)
-    reset_btn_rect = pygame.Rect(40, 265, 240, 35)
-    confirm_yes_rect = pygame.Rect(40, 265, 110, 35)
-    confirm_no_rect = pygame.Rect(170, 265, 110, 35)
-    close_btn_rect = pygame.Rect(95, 330, 130, 35)
+    text_track_rect = pygame.Rect(40, 240, 240, 14)  # <-- Added text speed slider track
+    
+    # Shifted checkboxes and buttons downwards due to text speed placement
+    checkbox_rect = pygame.Rect(40, 290, 20, 20)
+    reset_btn_rect = pygame.Rect(40, 335, 240, 35)
+    confirm_yes_rect = pygame.Rect(40, 335, 110, 35)
+    confirm_no_rect = pygame.Rect(170, 335, 110, 35)
+    close_btn_rect = pygame.Rect(95, 400, 130, 35)
     
     # State tracking variables for explicit holding locks
     is_dragging_music = False
     is_dragging_emergency = False
+    is_dragging_text = False  # <-- Added state tracker for text slider drag
     
     # Confirmation sub-menu processing flag
     show_reset_confirmation = False
@@ -245,6 +270,8 @@ def open_settings_menu():
                             is_dragging_music = True
                         elif emergency_track_rect.inflate(0, 20).collidepoint(event.pos):
                             is_dragging_emergency = True
+                        elif text_track_rect.inflate(0, 20).collidepoint(event.pos):  # <-- Check text speed track click
+                            is_dragging_text = True
                     else:
                         # Process Confirmation Sub-Menu Click Responses
                         if confirm_yes_rect.collidepoint(event.pos):
@@ -259,26 +286,36 @@ def open_settings_menu():
                 if event.button == 1:  # Releasing Left Click breaks all locks
                     is_dragging_music = False
                     is_dragging_emergency = False
+                    is_dragging_text = False
+                    save_settings()  # Automatically save JSON configurations on release
                     
         # 3. Safety Backup Check: If the mouse button is not being pressed at all, kill drag states
         if not mouse_pressed[0] or show_reset_confirmation:
             is_dragging_music = False
             is_dragging_emergency = False
+            is_dragging_text = False
         else:
             # Fallback Drag Catch: If they are pressing the mouse over a track and weren't dragging yet, let them slide it!
-            if not is_dragging_music and not is_dragging_emergency:
+            if not is_dragging_music and not is_dragging_emergency and not is_dragging_text:
                 if music_track_rect.inflate(0, 20).collidepoint(mouse_pos):
                     is_dragging_music = True
                 elif emergency_track_rect.inflate(0, 20).collidepoint(mouse_pos):
                     is_dragging_emergency = True
+                elif text_track_rect.inflate(0, 20).collidepoint(mouse_pos):  # <-- Fallback check
+                    is_dragging_text = True
                     
-        # 4. mouse_pos[0] cleanly extracts the absolute horizontal X position integer
+        # 4. mouse_pos cleanly extracts the absolute horizontal X position integer
         if is_dragging_music:
             relative_x = max(0, min(mouse_pos[0] - music_track_rect.x, music_track_rect.width))
             update_music_from_slider(relative_x / music_track_rect.width)
         elif is_dragging_emergency:
             relative_x = max(0, min(mouse_pos[0] - emergency_track_rect.x, emergency_track_rect.width))
             update_emergency_from_slider(relative_x / emergency_track_rect.width)
+        elif is_dragging_text:  # <-- Calculate text speed configuration mapping
+            relative_x = max(0, min(mouse_pos[0] - text_track_rect.x, text_track_rect.width))
+            percentage = relative_x / text_track_rect.width
+            # Map percentages cleanly: 100% right means 0.0s delay (fastest); 0% left means 0.15s delay (slowest)
+            text_speed = max(0.0, min(0.15, 0.15 * (1.0 - percentage)))
         
         # 5. Draw Layout Canvas (#1c1c1c Dark Theme)
         menu_screen.fill((28, 28, 28))
@@ -287,17 +324,22 @@ def open_settings_menu():
         music_pct = int(background_music_volume * 100)
         emergency_pct = int(emergency_volume * 100)
         
+        # Invert the display calculation so 0.0s delay prints as "100% speed"
+        text_speed_pct = int((1.0 - (text_speed / 0.15)) * 100)
+        
         # Generate Text Strings with Percentages appended
-        title_txt = menu_font.render("AUDIO CONTROLS", True, (255, 255, 255))
+        title_txt = menu_font.render("SYSTEM SETTINGS", True, (255, 255, 255))
         music_txt = menu_font.render(f"Background Music: {music_pct}%", True, (180, 180, 180))
         emergency_txt = menu_font.render(f"Sound Effects: {emergency_pct}%", True, (180, 180, 180))
+        text_speed_txt = menu_font.render(f"Typewriting Speed: {text_speed_pct}%", True, (180, 180, 180)) # <-- Text speed label
         mute_txt = menu_font.render("Mute All Sounds", True, (255, 255, 255))
         close_txt = menu_font.render("Apply Changes", True, (255, 255, 255))
         
-        menu_screen.blit(title_txt, (85, 15))
+        menu_screen.blit(title_txt, (95, 15))
         menu_screen.blit(music_txt, (40, 55))
         menu_screen.blit(emergency_txt, (40, 135))
-        menu_screen.blit(mute_txt, (75, 220))
+        menu_screen.blit(text_speed_txt, (40, 215))  # <-- Blit text speed string labels
+        menu_screen.blit(mute_txt, (75, 290))
         
         # --- RENDER MUSIC SLIDER ---
         pygame.draw.rect(menu_screen, (45, 45, 45), music_track_rect, border_radius=4)
@@ -323,6 +365,20 @@ def open_settings_menu():
         pygame.draw.circle(menu_screen, (20, 20, 20), (h2_x, emergency_track_rect.centery), 11)
         pygame.draw.circle(menu_screen, emergency_color, (h2_x, emergency_track_rect.centery), 9)
         
+        # --- RENDER TEXT SPEED SLIDER ---
+        pygame.draw.rect(menu_screen, (45, 45, 45), text_track_rect, border_radius=4)
+        # Convert text speed back to tracking slider coordinate layout position
+        current_speed_pct = 1.0 - (text_speed / 0.15)
+        h3_x = text_track_rect.x + int(current_speed_pct * text_track_rect.width)
+        
+        text_speed_color = (40, int(100 + (current_speed_pct * 140)), int(180 + (current_speed_pct * 75)))
+        if h3_x > text_track_rect.x:
+            fill3_rect = pygame.Rect(text_track_rect.x, text_track_rect.y, h3_x - text_track_rect.x, text_track_rect.height)
+            pygame.draw.rect(menu_screen, text_speed_color, fill3_rect, border_radius=4)
+            
+        pygame.draw.circle(menu_screen, (20, 20, 20), (h3_x, text_track_rect.centery), 11)
+        pygame.draw.circle(menu_screen, text_speed_color, (h3_x, text_track_rect.centery), 9)
+        
         # --- RENDER MUTE CHECKBOX ---
         pygame.draw.rect(menu_screen, (51, 51, 51), checkbox_rect, border_radius=4)
         if is_muted:
@@ -335,31 +391,26 @@ def open_settings_menu():
             reset_txt = menu_font.render("Reset All Settings", True, (240, 160, 160))
             menu_screen.blit(reset_txt, (reset_btn_rect.x + 45, reset_btn_rect.y + 10))
         else:
-            # Confirmation State: Draw prompt message label and options
-            confirm_msg_txt = menu_font.render("Are you sure?", True, (255, 100, 100))
-            menu_screen.blit(confirm_msg_txt, (105, 248))
+            # Confirmation State: Render split validation buttons
+            pygame.draw.rect(menu_screen, (30, 60, 30), confirm_yes_rect, border_radius=5)
+            pygame.draw.rect(menu_screen, (70, 30, 30), confirm_no_rect, border_radius=5)
             
-            # Action Choice Block Targets
-            pygame.draw.rect(menu_screen, (100, 30, 30), confirm_yes_rect, border_radius=5)
-            pygame.draw.rect(menu_screen, (50, 50, 50), confirm_no_rect, border_radius=5)
+            yes_txt = menu_font.render("CONFIRM", True, (160, 240, 160))
+            no_txt = menu_font.render("CANCEL", True, (240, 160, 160))
             
-            yes_txt = menu_font.render("YES, RESET", True, (255, 255, 255))
-            no_txt = menu_font.render("CANCEL", True, (255, 255, 255))
-            
-            menu_screen.blit(yes_txt, (confirm_yes_rect.x + 16, confirm_yes_rect.y + 10))
+            menu_screen.blit(yes_txt, (confirm_yes_rect.x + 28, confirm_yes_rect.y + 10))
             menu_screen.blit(no_txt, (confirm_no_rect.x + 32, confirm_no_rect.y + 10))
             
-        # --- RENDER CLOSE BUTTON ---
-        pygame.draw.rect(menu_screen, (60, 60, 60), close_btn_rect, border_radius=5)
-        menu_screen.blit(close_txt, (close_btn_rect.x + 10, close_btn_rect.y + 10))
+        # --- RENDER CLOSE PANEL ACTION BUTTON ---
+        pygame.draw.rect(menu_screen, (50, 50, 50), close_btn_rect, border_radius=5)
+        menu_screen.blit(close_txt, (close_btn_rect.x + 12, close_btn_rect.y + 10))
         
         pygame.display.flip()
         menu_clock.tick(60)
         
-    # 6. Release input grab, destroy window context, and return focus safely to Tkinter main loop
+    # Free focus locks and quit layout window context safely
     pygame.event.set_grab(False)
     pygame.display.quit()
-    save_settings()
 
 def trigger_warning_sound():
     global warning_sound, emergency_volume
@@ -553,10 +604,9 @@ output_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 scroller.config(command=output_text.yview)
 
 # Text animations 
-def typewriter(text, text_widget, color=text_color, bold=False):
+def typewriter(text, text_widget, color=text_color, bold=False, override_speed=None):
     """Animates text into the GUI Text widget safely, checking if it exists first."""
     try:
-        # Check if the text widget was destroyed or closed
         if not text_widget.winfo_exists():
             return
     except Exception:
@@ -567,15 +617,20 @@ def typewriter(text, text_widget, color=text_color, bold=False):
     font_style = ("Courier", 14, "bold" if bold else "normal")
     text_widget.tag_configure(tag_name, foreground=color, font=font_style)
     
+    # Choose between the custom override speed or the global saved text_speed setting
+    current_sleep_delay = override_speed if override_speed is not None else text_speed
+
     for letter in text:
         try:
-            # Safety check before inserting every single letter
             if not text_widget.winfo_exists():
                 return
             text_widget.insert(tk.END, letter, tag_name)
             text_widget.see(tk.END)
             text_widget.update()
-            time.sleep(0.000000000000001) 
+            
+            # Apply the isolated sleep delay
+            time.sleep(current_sleep_delay) 
+            
         except Exception:
             return
         
@@ -584,7 +639,7 @@ def typewriter(text, text_widget, color=text_color, bold=False):
         text_widget.config(state=tk.DISABLED)
     except Exception:
         return
-\
+
 # Update progress bars function
 def update_progress(text, text_widget, color=color_cyan, bold=False, add_newline=False):
     """Updates the terminal loading bar in place by instantly overwriting the previous line."""
@@ -681,24 +736,23 @@ def run_boot_sequence():
     welcome_frame.pack_forget()  
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
     
-    # Initial diagnostic logs
-    #active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan)))
-    #active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green)))
-    #active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green)))
+    # Explicit override_speed ensures cinematic timings stay fully matched up
+    active_timers.append(root.after(100, lambda: typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", output_text, color=color_cyan, override_speed=0.01)))
+    active_timers.append(root.after(1800, lambda: typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", output_text, color=color_green, override_speed=0.01)))
+    active_timers.append(root.after(4200, lambda: typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", output_text, color=color_green, override_speed=0.01)))
     
     # Initialize the Progress Bar header row
-    #active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True)))
-    #active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan)))
-    #active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
-    #active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
-    #active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
+    active_timers.append(root.after(6800, lambda: typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", output_text, color=color_yellow, bold=True, override_speed=0.01)))
+    active_timers.append(root.after(8500, lambda: typewriter("PROGRESS: [███.....................] 15%", output_text, color=color_cyan, override_speed=0.01)))
+    active_timers.append(root.after(10000, lambda: update_progress("PROGRESS: [█████████...............] 35%", output_text, color=color_cyan)))
+    active_timers.append(root.after(11500, lambda: update_progress("PROGRESS: [██████████████..........] 55%", output_text, color=color_cyan)))
+    active_timers.append(root.after(13000, lambda: update_progress("PROGRESS: [███████████████████.....] 75%", output_text, color=color_cyan)))
     
     # Final step finishes the bar, locks it to green, and pushes the cursor down with add_newline=True
-    #active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
+    active_timers.append(root.after(14500, lambda: update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", output_text, color=color_green, bold=True, add_newline=True)))
     
-    # Wait for completion, then clear screen and trigger Chapter 1
-    #active_timers.append(root.after(17500, trigger_game_start))
-    trigger_game_start()
+    # ONLY trigger the game start AFTER the full 17.5 second timeline expires
+    active_timers.append(root.after(17500, trigger_game_start))
 
 def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1."""
