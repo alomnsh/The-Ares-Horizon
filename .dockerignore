@@ -1,0 +1,12 @@
+# Exclude Reshiping files
+The Ares Horizon (Reship V).py
+The Ares Horizon (Reship V).exe
+
+# Exclude local Git configurations and Python caches
+.git
+.gitignore
+.github
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
