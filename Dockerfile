@@ -43,9 +43,9 @@ RUN echo '#!/bin/bash\n\
 # Safe removal profiles ensure dirty locks do not block startup\n\
 rm -rf /tmp/.X11-unix/X1 /tmp/.X1-lock\n\
 \n\
-# Boot TigerVNC Standalone Server running native internal proxy loops matching standard viewports\n\
-vncserver :1 -geometry 1024x768 -depth 24 -SecurityTypes None -localhost no &\n\
-sleep 2\n\
+# FIXED: Added required safety override flags to force TigerVNC to cooperate on public cloud instances\n\
+vncserver :1 -geometry 1024x768 -depth 24 -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &\n\
+sleep 3\n\
 \n\
 # Boot your basic window workspace framework manager profiles\n\
 DISPLAY=:1 fluxbox &\n\
@@ -55,7 +55,7 @@ sleep 1\n\
 DISPLAY=:1 python3 "The Ares Horizon.py" &\n\
 sleep 1\n\
 \n\
-# FIXED: Use the absolute, built-in system paths to launch the Render-optimized web client proxy\n\
+# Use the absolute, built-in system paths to launch the Render-optimized web client proxy\n\
 /usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 10000\n\
 ' > /home/user/app/start.sh && chmod +x /home/user/app/start.sh
 
