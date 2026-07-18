@@ -4,7 +4,7 @@ FROM debian:bookworm-slim
 # Force non-interactive package installations to prevent build hangs
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install Linux core UI stacks, virtual displays, audio utilities, imaging support, and web proxies
+# 1. Install Linux core UI stacks, virtual displays, audio utilities, imaging support, TigerVNC, and Python Web requirements
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -15,14 +15,14 @@ RUN apt-get update && apt-get install -y \
     libjpeg-dev \
     zlib1g-dev \
     xvfb \
-    x11vnc \
-    websockify \
-    novnc \
+    tigervnc-standalone-server \
+    tigervnc-tools \
     fluxbox \
     alsa-utils \
+    git \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Strict Security: Create a dedicated non-root user for cloud compatibility
+# 2. Tighten security profiles via custom non-root runtime environments
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
@@ -31,36 +31,35 @@ ENV HOME=/home/user \
 
 WORKDIR /home/user/app
 
-# 3. Import project assets and fix folder execution permissions
+# 3. Pull down the highly optimized native Python VNC web rendering client
+RUN git clone https://github.com /home/user/app/novnc && \
+    git clone https://github.com /home/user/app/novnc/utils/websockify
+
+# 4. Import project assets and fix folder execution permissions
 COPY --chown=user:user . /home/user/app
 
-# Flat path binding bypasses connection drops by duplicating static assets directly
-RUN cp -r /usr/share/novnc/* /home/user/app/ && \
-    cp /usr/share/novnc/vnc.html /home/user/app/index.html
-
-# Install Python requirements cleanly to the local user space
+# Sync local dependencies directly to user environments
 RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
-# 4. Create the automated system runtime boot sequence script
+# 5. Create a clean system boot sequence layout script
 RUN echo '#!/bin/bash\n\
-# Initialize a virtual hidden monitor canvas matching desktop dimensions\n\
-Xvfb :1 -screen 0 1024x768x24 &\n\
+# Safe removal profiles ensure dirty locks do not block startup\n\
+rm -rf /tmp/.X11-unix/X1 /tmp/.X1-lock\n\
+\n\
+# Boot TigerVNC Standalone Server running native internal proxy loops matching standard viewports\n\
+vncserver :1 -geometry 1024x768 -depth 24 -SecurityTypes None -localhost no &\n\
+sleep 2\n\
+\n\
+# Boot your basic window workspace framework manager profiles\n\
+DISPLAY=:1 fluxbox &\n\
 sleep 1\n\
 \n\
-# Boot a simple, ultra-lightweight Linux window manager\n\
-fluxbox &\n\
+# Launch core game scripts directly in the target virtual frame\n\
+DISPLAY=:1 python3 "The Ares Horizon.py" &\n\
 sleep 1\n\
 \n\
-# Map the local window buffer to a secure background VNC bridge port\n\
-x11vnc -forever -shared -rfbport 5900 -nopw -display :1 &\n\
-sleep 1\n\
-\n\
-# FIXED STRATEGY: Points directly to index web roots to stop websocket route splitting on Render\n\
-websockify --web=/home/user/app 10000 localhost:5900 &\n\
-sleep 1\n\
-\n\
-# Run your core game file directly in the cloud container\n\
-python3 "The Ares Horizon.py"\n\
+# Launch web client via integrated auto-headers which automatically correct Render routing\n\
+/home/user/app/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 10000\n\
 ' > /home/user/app/start.sh && chmod +x /home/user/app/start.sh
 
 # Open Render network interface channels
