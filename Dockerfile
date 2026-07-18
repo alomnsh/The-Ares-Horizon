@@ -10,6 +10,8 @@ RUN apt-get update && apt-get install -y \
     python3-pip \
     python3-tk \
     python3-pygame \
+    python3-pil.imagetk \
+    procps \
     libjpeg-dev \
     zlib1g-dev \
     xvfb \
