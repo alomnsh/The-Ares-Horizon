@@ -164,6 +164,21 @@ def update_emergency_from_slider(percentage):
         is_muted = False
     save_settings()
 
+def reset_all_settings():
+    """Forces all configurations settings back to default"""
+    global background_music_volume, emergency_volume, is_muted
+    global pre_mute_emergency_volume, pre_mute_music_volume
+
+    # Reset all data
+    background_music_volume = 0.5
+    emergency_volume = 0.5
+    is_muted = False
+    pre_mute_emergency_volume = 0.5
+    pre_mute_music_volume = 0.5
+
+    set_mixer_volumes()
+    save_settings()
+
 # --- 4. PYGAME CANVAS ENGINE WITH HIGH-VISIBILITY COLOR-FILL TRACKS ---
 def open_settings_menu():
     global background_music_volume, emergency_volume, is_muted
@@ -175,7 +190,8 @@ def open_settings_menu():
     pygame.init()
     pygame.font.init()
     
-    menu_w, menu_h = 320, 330
+    # EXPANDED HEIGHT: Changed from 330 to 390 to support the new confirmation interface
+    menu_w, menu_h = 320, 390
     menu_screen = pygame.display.set_mode((menu_w, menu_h))
     pygame.display.set_caption("Mission Audio Systems")
     menu_clock = pygame.time.Clock()
@@ -185,13 +201,19 @@ def open_settings_menu():
     music_track_rect = pygame.Rect(40, 80, 240, 14)
     emergency_track_rect = pygame.Rect(40, 160, 240, 14)
     checkbox_rect = pygame.Rect(40, 220, 20, 20)
-    close_btn_rect = pygame.Rect(95, 270, 130, 35)
+    reset_btn_rect = pygame.Rect(40, 265, 240, 35)
+    confirm_yes_rect = pygame.Rect(40, 265, 110, 35)
+    confirm_no_rect = pygame.Rect(170, 265, 110, 35)
+    close_btn_rect = pygame.Rect(95, 330, 130, 35)
     
     # State tracking variables for explicit holding locks
     is_dragging_music = False
     is_dragging_emergency = False
     
-    # FORCE WINDOW FOCUS: Makes sure your OS registers mouse inputs on this window instantly
+    # Confirmation sub-menu processing flag
+    show_reset_confirmation = False
+    
+    # FORCE WINDOW FOCUS
     pygame.event.set_grab(True)
     
     menu_running = True
@@ -207,16 +229,31 @@ def open_settings_menu():
                 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:  # Left Click Down
-                    if checkbox_rect.collidepoint(event.pos):
-                        toggle_mute()
-                    elif close_btn_rect.collidepoint(event.pos):
+                    if close_btn_rect.collidepoint(event.pos):
                         menu_running = False
                     
-                    # Track dragging activation cleanly
-                    if music_track_rect.inflate(0, 20).collidepoint(event.pos):
-                        is_dragging_music = True
-                    elif emergency_track_rect.inflate(0, 20).collidepoint(event.pos):
-                        is_dragging_emergency = True
+                    # Lock sliders out entirely if user is interacting with prompt
+                    if not show_reset_confirmation:
+                        if checkbox_rect.collidepoint(event.pos):
+                            toggle_mute()
+                        elif reset_btn_rect.collidepoint(event.pos):
+                            trigger_click_sound()
+                            show_reset_confirmation = True
+                        
+                        # Track dragging activation cleanly
+                        if music_track_rect.inflate(0, 20).collidepoint(event.pos):
+                            is_dragging_music = True
+                        elif emergency_track_rect.inflate(0, 20).collidepoint(event.pos):
+                            is_dragging_emergency = True
+                    else:
+                        # Process Confirmation Sub-Menu Click Responses
+                        if confirm_yes_rect.collidepoint(event.pos):
+                            trigger_click_sound()
+                            reset_all_settings()
+                            show_reset_confirmation = False
+                        elif confirm_no_rect.collidepoint(event.pos):
+                            trigger_click_sound()
+                            show_reset_confirmation = False
                         
             elif event.type == pygame.MOUSEBUTTONUP:
                 if event.button == 1:  # Releasing Left Click breaks all locks
@@ -224,7 +261,7 @@ def open_settings_menu():
                     is_dragging_emergency = False
                     
         # 3. Safety Backup Check: If the mouse button is not being pressed at all, kill drag states
-        if not mouse_pressed[0]:
+        if not mouse_pressed[0] or show_reset_confirmation:
             is_dragging_music = False
             is_dragging_emergency = False
         else:
@@ -263,18 +300,14 @@ def open_settings_menu():
         menu_screen.blit(mute_txt, (75, 220))
         
         # --- RENDER MUSIC SLIDER ---
-        # Draw background empty channel line
         pygame.draw.rect(menu_screen, (45, 45, 45), music_track_rect, border_radius=4)
         h1_x = music_track_rect.x + int(background_music_volume * music_track_rect.width)
         
-        # Calculate dynamic green fill color
         music_color = (int(30 + (background_music_volume * 100)), int(80 + (background_music_volume * 175)), 40)
         if h1_x > music_track_rect.x:
-            # Draw color-filled rectangle trailing behind the handle knob
             fill1_rect = pygame.Rect(music_track_rect.x, music_track_rect.y, h1_x - music_track_rect.x, music_track_rect.height)
             pygame.draw.rect(menu_screen, music_color, fill1_rect, border_radius=4)
         
-        # Draw handle border and circle indicator
         pygame.draw.circle(menu_screen, (20, 20, 20), (h1_x, music_track_rect.centery), 11)
         pygame.draw.circle(menu_screen, music_color, (h1_x, music_track_rect.centery), 9)
         
@@ -282,7 +315,6 @@ def open_settings_menu():
         pygame.draw.rect(menu_screen, (45, 45, 45), emergency_track_rect, border_radius=4)
         h2_x = emergency_track_rect.x + int(emergency_volume * emergency_track_rect.width)
         
-        # Calculate dynamic warning red fill color (yellow-orange shifts to solid red)
         emergency_color = (int(200 + (emergency_volume * 55)), int(160 - (emergency_volume * 140)), 20)
         if h2_x > emergency_track_rect.x:
             fill2_rect = pygame.Rect(emergency_track_rect.x, emergency_track_rect.y, h2_x - emergency_track_rect.x, emergency_track_rect.height)
@@ -295,6 +327,27 @@ def open_settings_menu():
         pygame.draw.rect(menu_screen, (51, 51, 51), checkbox_rect, border_radius=4)
         if is_muted:
             pygame.draw.rect(menu_screen, (0, 255, 0), checkbox_rect.inflate(-8, -8), border_radius=2)
+            
+        # --- RENDER THE RESET CONFIGURATION INTERFACE ---
+        if not show_reset_confirmation:
+            # Main State: Draw standard clear button layout
+            pygame.draw.rect(menu_screen, (70, 30, 30), reset_btn_rect, border_radius=5)
+            reset_txt = menu_font.render("Reset All Settings", True, (240, 160, 160))
+            menu_screen.blit(reset_txt, (reset_btn_rect.x + 45, reset_btn_rect.y + 10))
+        else:
+            # Confirmation State: Draw prompt message label and options
+            confirm_msg_txt = menu_font.render("Are you sure?", True, (255, 100, 100))
+            menu_screen.blit(confirm_msg_txt, (105, 248))
+            
+            # Action Choice Block Targets
+            pygame.draw.rect(menu_screen, (100, 30, 30), confirm_yes_rect, border_radius=5)
+            pygame.draw.rect(menu_screen, (50, 50, 50), confirm_no_rect, border_radius=5)
+            
+            yes_txt = menu_font.render("YES, RESET", True, (255, 255, 255))
+            no_txt = menu_font.render("CANCEL", True, (255, 255, 255))
+            
+            menu_screen.blit(yes_txt, (confirm_yes_rect.x + 16, confirm_yes_rect.y + 10))
+            menu_screen.blit(no_txt, (confirm_no_rect.x + 32, confirm_no_rect.y + 10))
             
         # --- RENDER CLOSE BUTTON ---
         pygame.draw.rect(menu_screen, (60, 60, 60), close_btn_rect, border_radius=5)
