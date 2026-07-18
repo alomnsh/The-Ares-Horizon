@@ -11,6 +11,9 @@ from PIL import Image, ImageTk
 import pygame
 import json
 
+if "DISPLAY" not in os.environ:
+    os.environ["DISPLAY"] = ":1"
+
 #If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
