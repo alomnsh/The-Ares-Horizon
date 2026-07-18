@@ -43,7 +43,7 @@ RUN echo '#!/bin/bash\n\
 # Safe removal profiles ensure dirty locks do not block startup\n\
 rm -rf /tmp/.X11-unix/X1 /tmp/.X1-lock\n\
 \n\
-# FIXED: Added required safety override flags to force TigerVNC to cooperate on public cloud instances\n\
+# Boot TigerVNC Standalone Server running native internal proxy loops matching standard viewports\n\
 vncserver :1 -geometry 1024x768 -depth 24 -SecurityTypes None -localhost no --I-KNOW-THIS-IS-INSECURE &\n\
 sleep 3\n\
 \n\
@@ -51,8 +51,8 @@ sleep 3\n\
 DISPLAY=:1 fluxbox &\n\
 sleep 1\n\
 \n\
-# Launch core game scripts directly in the target virtual frame\n\
-DISPLAY=:1 python3 "The Ares Horizon.py" &\n\
+# CRITICAL UPDATE: Captures the raw python crash logs and dumps them right to your Render console window\n\
+DISPLAY=:1 python3 "The Ares Horizon.py" 2>&1 \n\
 sleep 1\n\
 \n\
 # Use the absolute, built-in system paths to launch the Render-optimized web client proxy\n\
