@@ -22,7 +22,7 @@ RUN apt-get update && apt-get install -y \
     alsa-utils \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Strict Security: Create a dedicated non-root user for Hugging Face compatibility
+# 2. Strict Security: Create a dedicated non-root user for cloud compatibility
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
@@ -51,16 +51,16 @@ sleep 1\n\
 x11vnc -forever -shared -rfbport 5900 -nopw -display :1 &\n\
 sleep 1\n\
 \n\
-# Launch websockify to stream the VNC output straight into HTML5 port 7860\n\
-/usr/share/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 7860 &\n\
+# UPDATED: Launch websockify to stream the VNC output straight into Render default port 10000\n\
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 10000 &\n\
 sleep 1\n\
 \n\
 # Run your core game file directly in the cloud container\n\
 python3 "The Ares Horizon.py"\n\
 ' > /home/user/app/start.sh && chmod +x /home/user/app/start.sh
 
-# Open Hugging Face Space network interface channels
-EXPOSE 7860
+# Open Render network interface channels
+EXPOSE 10000
 
 # Kick off the system runtime boot script on app launch
 CMD ["/home/user/app/start.sh"]
