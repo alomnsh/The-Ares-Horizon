@@ -34,6 +34,7 @@ pre_mute_emergency_volume = 0.5
 background_music_volume = 0.5
 emergency_volume = 0.5 
 settings_window = None
+DEFAULT_TYPING_SPEED = 0.03
 
 SETTING_FILE = os.path.join(script_directory, "settings.json")
 
