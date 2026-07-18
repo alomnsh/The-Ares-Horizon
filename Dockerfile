@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y \
     nginx \
     && rm -rf /var/lib/apt/lists/*
 
-# 2. Configure Nginx to cleanly handle Render proxy websockets without dropping headers
+# 2. FIXED PROXY LOCATION: Notice the trailing slashes which fix the invalid header packet drops
 RUN echo 'server {\n\
     listen 10000;\n\
     root /usr/share/novnc;\n\
@@ -33,8 +33,8 @@ RUN echo 'server {\n\
         try_files $uri $uri/ =404;\n\
     }\n\
 \n\
-    location /websockify {\n\
-        proxy_pass http://127.0.0.1:5901;\n\
+    location /websockify/ {\n\
+        proxy_pass http://127.0.0;\n\
         proxy_http_version 1.1;\n\
         proxy_set_header Upgrade $http_upgrade;\n\
         proxy_set_header Connection "Upgrade";\n\
@@ -58,7 +58,7 @@ COPY --chown=user:user . /home/user/app
 # Install Python requirements cleanly to the local user space
 RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
-# 5. Create the bulletproof system runtime boot sequence script
+# 5. Create the automated system runtime boot sequence script
 RUN echo '#!/bin/bash\n\
 # Start Nginx web router engine via root authority prior to dropping down privileges\n\
 nginx -g "daemon on;"\n\
