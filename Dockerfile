@@ -51,8 +51,8 @@ sleep 1\n\
 x11vnc -forever -shared -rfbport 5900 -nopw -display :1 &\n\
 sleep 1\n\
 \n\
-# UPDATED: Launch websockify to stream the VNC output straight into Render default port 10000\n\
-/usr/share/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 10000 &\n\
+# RENDER OPTIMIZATION: Manual websockify proxy execution bypasses invalid client header breaks\n\
+websockify --web=/usr/share/novnc --heartbeat=30 10000 localhost:5900 &\n\
 sleep 1\n\
 \n\
 # Run your core game file directly in the cloud container\n\
