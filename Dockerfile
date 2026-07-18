@@ -4,7 +4,7 @@ FROM debian:bookworm-slim
 # Force non-interactive package installations to prevent build hangs
 ENV DEBIAN_FRONTEND=noninteractive
 
-# 1. Install Linux core UI stacks, virtual displays, audio utilities, imaging support, TigerVNC, and Python Web requirements
+# 1. Install Linux core UI stacks, virtual displays, audio utilities, imaging support, TigerVNC, and noVNC
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -17,9 +17,10 @@ RUN apt-get update && apt-get install -y \
     xvfb \
     tigervnc-standalone-server \
     tigervnc-tools \
+    websockify \
+    novnc \
     fluxbox \
     alsa-utils \
-    git \
     && rm -rf /var/lib/apt/lists/*
 
 # 2. Tighten security profiles via custom non-root runtime environments
@@ -31,17 +32,13 @@ ENV HOME=/home/user \
 
 WORKDIR /home/user/app
 
-# 3. Pull down the highly optimized native Python VNC web rendering client
-RUN git clone https://github.com /home/user/app/novnc && \
-    git clone https://github.com /home/user/app/novnc/utils/websockify
-
-# 4. Import project assets and fix folder execution permissions
+# 3. Import project assets and fix folder execution permissions
 COPY --chown=user:user . /home/user/app
 
 # Sync local dependencies directly to user environments
 RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
-# 5. Create a clean system boot sequence layout script
+# 4. Create a clean system boot sequence layout script
 RUN echo '#!/bin/bash\n\
 # Safe removal profiles ensure dirty locks do not block startup\n\
 rm -rf /tmp/.X11-unix/X1 /tmp/.X1-lock\n\
@@ -58,8 +55,8 @@ sleep 1\n\
 DISPLAY=:1 python3 "The Ares Horizon.py" &\n\
 sleep 1\n\
 \n\
-# Launch web client via integrated auto-headers which automatically correct Render routing\n\
-/home/user/app/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 10000\n\
+# FIXED: Use the absolute, built-in system paths to launch the Render-optimized web client proxy\n\
+/usr/share/novnc/utils/novnc_proxy --vnc localhost:5901 --listen 10000\n\
 ' > /home/user/app/start.sh && chmod +x /home/user/app/start.sh
 
 # Open Render network interface channels
