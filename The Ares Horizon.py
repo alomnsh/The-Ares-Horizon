@@ -30,9 +30,9 @@ script_directory = os.path.dirname(os.path.abspath(__file__))
 # 1. Initialize volumes cleanly as raw floats
 is_muted = False
 pre_mute_music_volume = 0.5
-pre_mute_emergency_volume = 0.5
+pre_mute_emergency_volume = 0.25
 background_music_volume = 0.5
-emergency_volume = 0.5 
+emergency_volume = 0.25 
 settings_window = None
 DEFAULT_TYPING_SPEED = 0.03
 
@@ -70,17 +70,17 @@ def load_settings():
                     emergency_volume = float(raw_emergency)
         except Exception:
             background_music_volume = 0.5
-            emergency_volume = 0.5
+            emergency_volume = 0.25
             is_muted = False
-            pre_mute_emergency_volume = 0.5
+            pre_mute_emergency_volume = 0.25
             pre_mute_music_volume = 0.5
             text_speed = DEFAULT_TYPING_SPEED
             
     else:
         background_music_volume = 0.5
-        emergency_volume = 0.5
+        emergency_volume = 0.25
         is_muted = False
-        pre_mute_emergency_volume = 0.5
+        pre_mute_emergency_volume = 0.25
         pre_mute_music_volume = 0.5
         text_speed = DEFAULT_TYPING_SPEED
 
@@ -193,9 +193,9 @@ def reset_all_settings():
 
     # Reset all data
     background_music_volume = 0.5
-    emergency_volume = 0.5
+    emergency_volume = 0.25
     is_muted = False
-    pre_mute_emergency_volume = 0.5
+    pre_mute_emergency_volume = 0.25
     pre_mute_music_volume = 0.5
     text_speed = DEFAULT_TYPING_SPEED
 

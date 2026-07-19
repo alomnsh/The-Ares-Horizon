@@ -1,8 +1,8 @@
 {
     "background_music_volume": 0.5,
-    "emergency_volume": 0.5,
+    "emergency_volume": 0.25,
     "is muted": false,
     "pre_mute_music_volume": 0.5,
-    "pre_mute_emergency_volume": 0.5,
-    "text_speed": 0.03
+    "pre_mute_emergency_volume": 0.25,
+    "text_speed": 0.0
 }
