@@ -41,7 +41,7 @@ Play the game on your own computer by doing the following steps (The game is a d
    ```bash
    python3 "The Ares Horizon (Reship V).py"
    ```
-> ⚠️ **VOLUME WARNING:** Please set your system audio to around **30%** before starting. The terminal features cinematic alarms and emergency sound effects that may be loud!
+> ⚠️ **VOLUME WARNING:** The game comes with default volume settings, you can adjust them too your need, it may me too loud for some people
 
 ## Features
 * **Real-Time Progress Bars:** The code uses `ttk.Progressbar` to track the crew safety points and the mission budget remaining
@@ -49,6 +49,7 @@ Play the game on your own computer by doing the following steps (The game is a d
 * **Typewriter Effect:** The text streams onto the screen character-by-character to replicate an authentic, old-school Mission Control terminal.
 * **Mini-Game:** A 60 FPS `Pygame` canvas embedded inside the Tkinter window for the final descent phase.
 * **Interactive UI:** Old choice nodes and story text are cleared between transitions, and feautures custom hover transformations on gameplay buttons.
+* **Setting Menu:** The user can change the volumes of sounds, how fast the typewriter types, mute all sounds, or reset every setting to default. Menu build with `pygame` and integrated with `tkinter`
 
 ## How it Works
 * **Hybrid Tkinter & Pygame Engine:** The application connects Tkinter's geometric window manager with an active Pygame physics loop using cross-process OS window hooks.
@@ -59,6 +60,6 @@ Play the game on your own computer by doing the following steps (The game is a d
 * GUI concepts and layout inspiration from the [Hack Club Jams Guide](https://jams.hackclub.com/jam/story-game).
 
 ## AI Disclosure
-* Used Google's AI to help with fixing bugs with my typewriter function and bugs with my boot sequence
+* Used Google's AI to help with fixing bugs with my function and bugs with my boot sequence
 * Used Gemini for help with learning Pygame and trying to implement into my mini-game
-* AI usage was less than 10% of the code
+* AI usage was less than 5% of the code
