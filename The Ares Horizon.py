@@ -194,7 +194,7 @@ def reset_all_settings():
     """Forces all configurations settings back to default"""
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
-    global text_speed
+    global text_speed, is_minigame_unlocked
 
     # Reset all data
     background_music_volume = 0.5
@@ -203,6 +203,7 @@ def reset_all_settings():
     pre_mute_emergency_volume = 0.25
     pre_mute_music_volume = 0.5
     text_speed = DEFAULT_TYPING_SPEED
+    is_minigame_unlocked = False
 
     set_mixer_volumes()
     save_settings()
@@ -704,21 +705,31 @@ def update_gui():
 # First screen after you press try again
 def game_restart_screen():
     """Wipes the boot console clean and initializes Chapter 1."""
+    global try_again_counter 
+    
     trigger_click_sound()
     cancel_all_timers() 
-    log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(15, 0)) 
+    
     if not root.winfo_exists():
         return
 
-    output_text.config(state=tk.NORMAL)
-    output_text.delete("1.0", tk.END)
-    output_text.config(state=tk.DISABLED)
-    
-    log_container.pack_forget()
+    # Clear old screen logs safely
+    try:
+        output_text.config(state=tk.NORMAL)
+        output_text.delete("1.0", tk.END)
+        output_text.config(state=tk.DISABLED)
+        log_container.pack_forget()
+    except Exception:
+        pass
+        
+    # Ensure screens are packed and visible
     dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
     log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0))
     update_gui()
+    
+    # Print try attempt counter
     typewriter(f"This is Try No. {try_again_counter}", output_text, bold=True)
+    
     typewriter("\nThe Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!", output_text)
     typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.", output_text)
 
@@ -731,11 +742,12 @@ def game_restart_screen():
     typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", output_text, color=color_red)
     typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', output_text, color=color_red)
     
+    # Clean render swap using pack layout hierarchy rules
     try:
-        stage1_frame.place(relx=0.5, rely=0.85, anchor="center", relwidth=0.9)
+        stage1_frame.pack(fill=tk.X, padx=15, pady=10)
     except Exception:
         return
-
+    
 # First loading screen when game is booted up   
 def run_boot_sequence():
     """Plays the mainframe boot animation with a custom in-place updating console loading bar."""
@@ -798,8 +810,16 @@ def trigger_game_start():
 def handle_choice1(choice):
     stop_all_sounds()
     trigger_click_sound()
+    try:
+        stage1_frame.place_forget()
+    except Exception:
+        pass
 
-    stage1_frame.place_forget()
+    try:
+        stage1_frame.pack_forget()
+    except Exception:
+        pass
+        
     global crew_safety, mission_budget, science_points
 
     output_text.config(state=tk.NORMAL)
@@ -1332,7 +1352,9 @@ def landing_success():
 def reboot_mission():
     global crew_safety, mission_budget, science_points, try_again_counter, was_last_run_victory
     cancel_all_timers()
-    restart_frame.place_forget()
+    
+    # 1. Hide the retry popup layout panel instantly
+    restart_frame.place_forget() # or .pack_forget() depending on your layout style
     
     # Reset tracking state metrics
     crew_safety = 100
@@ -1341,7 +1363,6 @@ def reboot_mission():
     try_again_counter += 1
     update_gui()
     
-    # Wipe the terminal console logs clean
     try:
         dashboard.pack_forget()  
         log_container.pack_forget()
@@ -1352,21 +1373,21 @@ def reboot_mission():
     except Exception:
         pass
 
-    # Dynamic Choice Logic based on last session outcome
+    try:
+        stage1_frame.place_forget()
+        stage2a_frame.place_forget()
+        stage2b_frame.place_forget()
+        stage3a_frame.place_forget()
+        stage3b_frame.place_forget()
+    except Exception:
+        pass
+
     if was_last_run_victory:
         was_last_run_victory = False 
-        
-        # Hide any lingering stage choices from previous session run
-        try:
-            stage3a_frame.place_forget()
-        except Exception:
-            pass
-            
-        # Rebuild the menu options and show the welcome screen
         update_welcome_screen_options()
         welcome_frame.pack(fill=tk.BOTH, expand=True) 
     else:
-        # If they crashed, jump directly back into Chapter 1
+        # They crashed/failed: skip menu, jump right back into Chapter 1
         game_restart_screen()
 
 # Add a routing flag right above the end_game_session function
@@ -1398,13 +1419,32 @@ def launch_story_mode():
 # Helper function to track the standalone launch click
 def launch_standalone_minigame():
     global is_playing_standalone_minigame
-    is_playing_standalone_minigame = True 
-
+    is_playing_standalone_minigame = True  # Flag that the shortcut button was pressed
+    
+    # 1. Hide the welcome menu interface
     try:
-        welcome_frame.pack_forget()  
+        welcome_frame.pack_forget()   
+    except Exception:
+        pass
+
+    # FIX: Explicitly hide the Chapter 1 / Stage 1 & 2 choice panels 
+    # so they never bleed into the standalone minigame layout!
+    try:  
+        stage1_frame.place_forget()
+        stage2a_frame.place_forget()
+        stage2b_frame.place_forget()
     except Exception:
         pass
         
+    # 2. Build the game's core containers for the minigame workspace
+    try:
+        dashboard.pack(side=tk.TOP, fill=tk.X, padx=15, pady=15)
+        log_container.pack(fill=tk.BOTH, expand=True, padx=15, pady=(5, 0))
+        update_gui()
+    except Exception:
+        pass
+
+    # 3. Direct route into the minigame difficulty prompt
     landing_minigame_difficulty()
 
 # ==========================================
