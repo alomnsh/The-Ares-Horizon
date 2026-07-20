@@ -6,8 +6,8 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 ## How to Play
 
 ### Option 1: Quick Play (Windows Only - No Setup Required)
-1. Head over to the **[Releases](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/releases/tag/v1.0.1)** page.
-2. Download the `The Ares Horizon (Reship V).exe` file from the latest release assets.
+1. Head over to the **[Releases](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/releases/tag/v2.0.0)** page.
+2. Download the `The.Ares.Horizon.exe` file from the latest release assets.
 3. Double-click to run and play instantly!
 
 ### Option 2: Run via Source Code (Cross-Platform Setup)
