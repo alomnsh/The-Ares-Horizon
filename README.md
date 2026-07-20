@@ -12,35 +12,52 @@ A choice python adventure game where the player takes a high-stake role of a Fli
 
 ### Option 2: Run via Source Code (Cross-Platform Setup)
 
-Play the game on your own computer by doing the following steps (The game is a desktop based GUI, so it has to be hosted on your computer and cannot run on cloud):
+The game runs locally using a Pygame-based desktop GUI interface. To prevent graphic rendering breaks or installation blockades on Unix environments, follow these precise environment setup steps:
 
-1. **Install System Dependencies (For Mac & Linux Users)**
-   Open your **Terminal** and run the command matching your operating system so your computer can handle Python window graphics:
+#### 1. Install System Dependencies
+Open your **Terminal** and install the underlying graphic and audio system libraries required to render the Pygame display wrapper:
 
-   * **macOS:** Make sure you have Homebrew installed, then run:
-     ```bash
-     brew install python tcl-tk
-     ```
-   * **Linux (Ubuntu/Debian/Mint):** Run:
-     ```bash
-     sudo apt update && sudo apt install python3-tk python3-pip -y
-     ```
+* **macOS:** Ensure you have [Homebrew](https://brew.sh) installed, then copy and paste:
+  ```bash
+  brew install sdl2 sdl2_image sdl2_mixer sdl2_ttf pkg-config portmidi
+  ```
+* **Linux (Ubuntu/Debian/Mint):** Update your package registries and install the native multimedia core:
+  ```bash
+  sudo apt update
+  sudo apt install build-essential python3-dev python3-venv python3-pip libsdl2-dev libsdl2-image-dev libsdl2-mixer-dev libsdl2-ttf-dev libfreetype6-dev libportmidi-dev -y
+  ```
 
-2. **Clone the repository**
-   ```bash
-   git clone https://github.com
-   cd The-Ares-Horizon-Adventure-Game
-   ```
+#### 2. Clone the Repository & Configure Environment
+Clone your branch and initialize an isolated execution loop to sidestep "Externally Managed Environment" (`PEP 668`) system blocks:
 
-3. **Install the Packages**
-   ```bash
-   pip3 install -r requirements.txt
-   ```
+```bash
+# Clone and enter the repository folder
+git clone https://github.com
+cd The-Ares-Horizon-Adventure-Game
 
-4. **Launch the game**
-   ```bash
-   python3 "The Ares Horizon (Reship V).py"
-   ```
+# Create and boot up a clean local virtual environment
+python3 -m venv venv
+source venv/bin/activate
+```
+
+#### 3. Install Python Dependencies
+With your virtual environment initialized, run your installation tree:
+```bash
+pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+*Note for Python 3.14+ Users:* If standard installation errors out due to uncompiled upstream structures, install the community-managed release directly into your active virtual environment:
+```bash
+pip install pygame --ce
+```
+
+#### 4. Launch the Game
+Execute the main script layout from your shell:
+```bash
+python "The Ares Horizon.py"
+```
+
 > ⚠️ **VOLUME WARNING:** The game comes with default volume settings, you can adjust them too your need, it may me too loud for some people
 
 ## Features
