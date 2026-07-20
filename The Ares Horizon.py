@@ -42,7 +42,7 @@ SETTING_FILE = os.path.join(script_directory, "settings.json")
 def load_settings():
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
-    global text_speed
+    global text_speed, is_minigame_unlocked
 
     if os.path.exists(SETTING_FILE):
         try:
@@ -54,6 +54,8 @@ def load_settings():
                 pre_mute_emergency_volume = float(data.get("pre_mute_emergency_volume", 0.5))
 
                 text_speed = data.get("text_speed", DEFAULT_TYPING_SPEED)
+
+                is_minigame_unlocked = bool(data.get("is_minigame_unlocked", False))
 
                 # Extract music volume safely
                 raw_music = data.get("background_music_volume", 0.5)
@@ -75,6 +77,7 @@ def load_settings():
             pre_mute_emergency_volume = 0.25
             pre_mute_music_volume = 0.5
             text_speed = DEFAULT_TYPING_SPEED
+            is_minigame_unlocked = False
             
     else:
         background_music_volume = 0.5
@@ -83,6 +86,7 @@ def load_settings():
         pre_mute_emergency_volume = 0.25
         pre_mute_music_volume = 0.5
         text_speed = DEFAULT_TYPING_SPEED
+        is_minigame_unlocked = False
 
     # Absolute guard rails: clamp volumes between 0.0 and 1.0
     background_music_volume = max(0.0, min(1.0, float(background_music_volume)))
@@ -101,7 +105,8 @@ def save_settings():
             "is muted" : is_muted,
             "pre_mute_music_volume": pre_mute_music_volume,
             "pre_mute_emergency_volume": pre_mute_emergency_volume,
-            "text_speed": text_speed
+            "text_speed": text_speed,
+            "is_minigame_unlocked": is_minigame_unlocked
         }
         with open(SETTING_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -1296,7 +1301,7 @@ def landing_minigame_difficulty():
     btn_hard = tk.Button(button_container, text="HARD MODE", font=font_console, bg=color_red, fg="white", command=lambda: select_mode("HARD"), width=20)
     btn_hard.pack(pady=10)
 
-#CRASH SCREEN
+# CRASH SCREEN
 def space_ship_crash():
     global crew_safety, mission_budget
     trigger_mission_failed_sound()
@@ -1305,27 +1310,27 @@ def space_ship_crash():
     mission_budget = 0
     end_game_session()
 
+# MISSON SUCCESS SCREEN
+# Track if the player won the game in their last run
+was_last_run_victory = False
+
 #MISSON SUCCESS SCREEN
 def landing_success():
+    global is_minigame_unlocked, was_last_run_victory
+
+    is_minigame_unlocked = True
+    was_last_run_victory = True
+
+    save_settings()
+
     trigger_mission_success_sound()
     typewriter("HERIOC VICTORY!!!", output_text, color= "green")
-    typewriter("You flew beatufully!! the crew and the ship are safe!!!", output_text, color= "green")
+    typewriter("You flew beatufully!! The crew and the ship are safe!!!", output_text, color= "green")
     end_game_session()
 
-def end_game_session():
-    typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
-    restart_frame.place(relx=0.5, rely=0.90, anchor="center")
-
-# 1. Define your new specific restart sequence function
-def run_restart_boot_sequence():
-    """Launches specifically when retrying the mission, not the first boot."""
-    print("Launching specialized restart sequence...")
-    # Add your restart-specific logic here (e.g., skip intro cutscenes)
-    # run_boot_sequence() # You can still call this inside if needed
-
-# A fuction that activates when you press try again
+# A function that activates when you press try again
 def reboot_mission():
-    global crew_safety, mission_budget, science_points, try_again_counter
+    global crew_safety, mission_budget, science_points, try_again_counter, was_last_run_victory
     cancel_all_timers()
     restart_frame.place_forget()
     
@@ -1336,6 +1341,7 @@ def reboot_mission():
     try_again_counter += 1
     update_gui()
     
+    # Wipe the terminal console logs clean
     try:
         dashboard.pack_forget()  
         log_container.pack_forget()
@@ -1346,28 +1352,137 @@ def reboot_mission():
     except Exception:
         pass
 
+    # Dynamic Choice Logic based on last session outcome
+    if was_last_run_victory:
+        was_last_run_victory = False 
+        
+        # Hide any lingering stage choices from previous session run
+        try:
+            stage3a_frame.place_forget()
+        except Exception:
+            pass
+            
+        # Rebuild the menu options and show the welcome screen
+        update_welcome_screen_options()
+        welcome_frame.pack(fill=tk.BOTH, expand=True) 
+    else:
+        # If they crashed, jump directly back into Chapter 1
+        game_restart_screen()
+
+# Add a routing flag right above the end_game_session function
+is_playing_standalone_minigame = False
+
+def end_game_session():
+    global is_playing_standalone_minigame
+    typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", output_text, color=color_cyan)
+    
+    # Check if they came from the standalone button path
+    if is_playing_standalone_minigame:
+        # Redirect directly back to the minigame difficulty selection
+        landing_minigame_difficulty()
+    else:
+        # Send them to the normal game restart screen flow
+        restart_frame.place(relx=0.5, rely=0.90, anchor="center")
+
+def launch_story_mode():
+    global is_playing_standalone_minigame
+    is_playing_standalone_minigame = False 
+    
+    try:
+        welcome_frame.pack_forget()
+    except Exception:
+        pass
+        
     game_restart_screen()
+
+# Helper function to track the standalone launch click
+def launch_standalone_minigame():
+    global is_playing_standalone_minigame
+    is_playing_standalone_minigame = True 
+
+    try:
+        welcome_frame.pack_forget()  
+    except Exception:
+        pass
+        
+    landing_minigame_difficulty()
 
 # ==========================================
 # POPULATE WIDGETS INTO THE FRAMES
 # ==========================================
 
 # --- 1. Welcome Screen elements ---
-btn_start = tk.Button(welcome_frame, 
-                        text="START GAME", 
-                        font=("Courier", 16, "bold"), 
-                        bg=BG_panel, 
-                        fg=text_color, 
-                        bd=0, 
-                        padx=50, 
-                        pady=25, 
-                        highlightthickness=1, 
-                        highlightbackground="#30363D", 
-                        activebackground="#21262D", 
-                        cursor="hand2", 
-                        command=run_boot_sequence)
-btn_start.pack(expand=True) 
-make_button_interactive(btn_start)
+welcome_btn_container = tk.Frame(welcome_frame, bg=BG_main)
+welcome_btn_container.pack(expand=True)
+
+def update_welcome_screen_options():
+    """Clears old buttons and draws options based on minigame unlock status."""
+    for widget in welcome_btn_container.winfo_children():
+        widget.destroy()
+        
+    if not is_minigame_unlocked:
+        # 1. LOCKED STATE: Only show the regular Start button
+        btn_start = tk.Button(welcome_btn_container, 
+                                text="START GAME", 
+                                font=("Courier", 16, "bold"), 
+                                bg=BG_panel, 
+                                fg=text_color, 
+                                bd=0, 
+                                padx=50, 
+                                pady=25, 
+                                highlightthickness=1, 
+                                highlightbackground="#30363D", 
+                                activebackground="#21262D", 
+                                cursor="hand2", 
+                                command=run_boot_sequence)
+        btn_start.pack(expand=True) 
+        make_button_interactive(btn_start)
+    else:
+        lbl_choice = tk.Label(welcome_btn_container, 
+                              text="CHOOSE YOUR PATHWAY:", 
+                              bg=BG_main, 
+                              fg=color_yellow, 
+                              font=("Courier", 14, "bold"))
+        lbl_choice.pack(pady=15)
+        
+        split_frame = tk.Frame(welcome_btn_container, bg=BG_main)
+        split_frame.pack()
+        
+        # Left Button: Plays the normal game story
+        btn_story = tk.Button(split_frame, 
+                                text="PLAY STORY", 
+                                font=("Courier", 14, "bold"), 
+                                bg=BG_panel, 
+                                fg=text_color, 
+                                bd=0, 
+                                padx=30, 
+                                pady=20, 
+                                highlightthickness=1, 
+                                highlightbackground="#30363D", 
+                                activebackground="#21262D", 
+                                cursor="hand2", 
+                                command=launch_story_mode)
+        btn_story.pack(side="left", padx=20)
+        make_button_interactive(btn_story)
+        
+        # Right Button: Skips the story and loads the minigame directly
+        btn_direct_minigame = tk.Button(split_frame, 
+                                text="LAUNCH MINIGAME", 
+                                font=("Courier", 14, "bold"), 
+                                bg=BG_panel, 
+                                fg=color_cyan, 
+                                bd=0, 
+                                padx=30, 
+                                pady=20, 
+                                highlightthickness=1, 
+                                highlightbackground="#30363D", 
+                                activebackground="#21262D", 
+                                cursor="hand2", 
+                                command=launch_standalone_minigame)
+        btn_direct_minigame.pack(side="right", padx=20)
+        make_button_interactive(btn_direct_minigame)
+
+update_welcome_screen_options()
 
 # 2. Stage 1 Elements
 tk.Label(stage1_frame, text="AWAITING STRATEGIC DIRECTIVE INSTRUCTIONS...", bg=BG_main, fg=color_yellow, font=("Courier", 13, "bold"), width=60).pack(pady=6)
@@ -1426,10 +1541,29 @@ def on_close_window():
     root.destroy()
 
 # --- 6. PERMANENT INTERACTION SHORTCUT (Bottom Left Corner) ---
+def launch_paused_settings():
+    """Launches the settings menu and pauses all text/timers in Tkinter until closed."""
+    # 1. Trigger the click effect
+    trigger_click_sound()
+    
+    # 2. Create a temporary, invisible helper modal window
+    pause_modal = tk.Toplevel(root)
+    pause_modal.withdraw() 
+    
+    # Force focus onto this modal context to intercept app inputs cleanly
+    pause_modal.grab_set()
+    
+    # 3. Open your existing Pygame settings layout natively on the main loop
+    open_settings_menu()
+    
+    # 4. Once open_settings_menu() finishes and closes, release locks and clean up
+    pause_modal.grab_release()
+    pause_modal.destroy()
+
 settings_btn = tk.Button(
     root, 
     text="⚙️ Settings", 
-    command=open_settings_menu,    # When pressed, spins up our standalone Pygame dashboard sub-window
+    command=launch_paused_settings, 
     font=("Courier", 11, "bold"), 
     bg="#161b22",                 
     fg="#7EE787",                 
@@ -1441,7 +1575,6 @@ settings_btn = tk.Button(
 )
 settings_btn.place(relx=0.0, rely=1.0, x=15, y=-15, anchor="sw")
 settings_btn.lift()
-
 
 # Tell Tkinter to run our cleanup function when the window closes
 root.protocol("WM_DELETE_WINDOW", on_close_window)
