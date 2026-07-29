@@ -25,9 +25,10 @@ COPY . .
 # Render expects port 8080 exposed for web traffic
 EXPOSE 8080
 
-# 1. Start a virtual screen at 1024x768 resolution
-# 2. Run a window manager (Openbox) so Tkinter's fullscreen/centering works smoothly
-# 3. Spin up the VNC server and web streamer
+# 1. Start virtual display
+# 2. Run window manager so fullscreen works
+# 3. Suppress audio card requirements
+# 4. Use the correct absolute Debian binary path for novnc_proxy
 CMD Xvfb :99 -screen 0 1024x768x16 & \
     sleep 1 && \
     export DISPLAY=:99 && \
@@ -35,4 +36,4 @@ CMD Xvfb :99 -screen 0 1024x768x16 & \
     openbox & \
     python3 "The Ares Horizon.py" & \
     x11vnc -forever -shared -display :99 -nopw -listen localhost & \
-    novnc --vnc localhost:5900 --listen 8080
+    /usr/libexec/novnc/novnc_proxy --vnc localhost:5900 --listen 8080
