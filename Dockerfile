@@ -34,4 +34,4 @@ CMD Xvfb :99 -screen 0 1024x768x16 & \
     openbox & \
     python3 "The Ares Horizon.py" & \
     x11vnc -forever -shared -display :99 -nopw -listen localhost & \
-    python3 -m websockify 8080 localhost:5900 --web /usr/share/novnc
+    python3 -m websockify 8080 localhost:5900 --web /usr/share/novnc --heartbeat 10
