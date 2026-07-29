@@ -31,7 +31,8 @@ EXPOSE 8080
 CMD Xvfb :99 -screen 0 1024x768x16 & \
     sleep 1 && \
     export DISPLAY=:99 && \
+    export SDL_AUDIODRIVER=dummy && \
     openbox & \
     python3 "The Ares Horizon.py" & \
     x11vnc -forever -shared -display :99 -nopw -listen localhost & \
-    /usr/share/novnc/utils/launch.sh --vnc localhost:5900 --listen 8080
+    /usr/bin/novnc_proxy --vnc localhost:5900 --listen 8080
