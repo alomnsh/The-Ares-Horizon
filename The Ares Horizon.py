@@ -540,6 +540,8 @@ root.overrideredirect(True)
 root.update_idletasks()
 root.configure(bg=BG_main)
 
+root.deiconify()
+
 #Exits the game if escape key is pressed
 def force_exit_system(event):
     import pygame
