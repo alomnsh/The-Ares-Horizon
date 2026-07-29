@@ -35,4 +35,4 @@ CMD Xvfb :99 -screen 0 1024x768x16 & \
     openbox & \
     python3 "The Ares Horizon.py" & \
     x11vnc -forever -shared -display :99 -nopw -listen localhost & \
-    /usr/bin/novnc_proxy --vnc localhost:5900 --listen 8080
+    novnc --vnc localhost:5900 --listen 8080
