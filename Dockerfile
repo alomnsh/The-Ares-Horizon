@@ -1,6 +1,6 @@
 FROM debian:bookworm-slim
 
-# Install system dependencies for GUI, Audio, and noVNC streaming
+# Install system dependencies for GUI and Xvfb
 RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
@@ -9,13 +9,11 @@ RUN apt-get update && apt-get install -y \
     x11vnc \
     novnc \
     openbox \
-    alsa-utils \
-    libasound2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install Python requirements
+# Install Python requirements (including websockify)
 COPY requirements.txt .
 RUN pip3 install --no-cache-dir -r requirements.txt --break-system-packages
 
@@ -28,7 +26,7 @@ EXPOSE 8080
 # 1. Start virtual display
 # 2. Run window manager so fullscreen works
 # 3. Suppress audio card requirements
-# 4. Use the correct absolute Debian binary path for novnc_proxy
+# 4. Use python's websockify directly to host the noVNC web layer safely on port 8080
 CMD Xvfb :99 -screen 0 1024x768x16 & \
     sleep 1 && \
     export DISPLAY=:99 && \
@@ -36,4 +34,4 @@ CMD Xvfb :99 -screen 0 1024x768x16 & \
     openbox & \
     python3 "The Ares Horizon.py" & \
     x11vnc -forever -shared -display :99 -nopw -listen localhost & \
-    /usr/libexec/novnc/novnc_proxy --vnc localhost:5900 --listen 8080
+    python3 -m websockify 8080 localhost:5900 --web /usr/share/novnc
