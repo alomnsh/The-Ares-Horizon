@@ -1,4 +1,2 @@
 pygame
-termcolor
-Pillow
 websockify
