@@ -10,6 +10,7 @@ import random
 from PIL import Image, ImageTk
 import pygame
 import json
+import asyncio
 
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
@@ -528,47 +529,100 @@ def cancel_all_timers():
     active_timers.clear()
 
 root = tk.Tk()
-root.title("The Ares Horizon — Mission Control Terminal")
 
-# 1. Keep preferred game dimensions
-window_width = 1280
-window_height = 720
-root.geometry(f"{window_width}x{window_height}+0+0")
+pygame.font.init()
+pygame.init()
 
-root.overrideredirect(True)
+screen_info = pygame.display.Info()
 
-root.update_idletasks()
-root.configure(bg=BG_main)
+# 2. Launch directly into the monitor's native hardware resolution
+WINDOW_WIDTH = screen_info.current_w
+WINDOW_HEIGHT = screen_info.current_h
 
-root.deiconify()
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
+pygame.display.set_caption("The Ares Horizon — Mission Control Terminal")
 
-#Exits the game if escape key is pressed
-def force_exit_system(event):
-    import pygame
-    try:
-        pygame.quit()
-    except:
-        pass
-    os._exit(0)
-root.bind("<Escape>", force_exit_system)
+# Variable to track fullscreen toggle state
+is_fullscreen = True
 
-#Exits the game if exit is typed in order
-typed_buffer = ""
-def check_exit_sequence(event):
-    import pygame
-    global typed_buffer
+clock = pygame.time.Clock()
+
+ui_font = pygame.font.SysFont("Courier", 14, bold = True)
+
+close_btn_rect = pygame.Rect(820, 15, 115, 30)
+
+def draw_close_button(surface, mouse_pos):
+    """Renders the close button dynamically pinned to the top right corner."""
+
+    current_w = surface.get_width()
+    
+    close_btn_rect = pygame.Rect(current_w - 130, 15, 115, 30)
+    
+    if close_btn_rect.collidepoint(mouse_pos):
+        button_color = (170, 40, 30)
+        text_color = (255, 255, 255)
+    else:
+        button_color = (70, 30, 30)
+        text_color = (240, 160, 160)
         
-    typed_buffer += event.char.lower()
-           
-    if len(typed_buffer) > 10:
-        typed_buffer = typed_buffer[-4:]
-            
-    if typed_buffer.endswith("exit"):
-        try: pygame.quit()
-        except: pass
-        os._exit(0)
+    pygame.draw.rect(surface, button_color, close_btn_rect, border_radius=5)
+    
+    close_text = ui_font.render("CLOSE GAME", True, text_color)
+    text_x = close_btn_rect.x + (close_btn_rect.width - close_text.get_width()) // 2
+    text_y = close_btn_rect.y + (close_btn_rect.height - close_text.get_height()) // 2
+    surface.blit(close_text, (text_x, text_y))
+    
+    return close_btn_rect
 
-root.bind("<Key>", check_exit_sequence)
+async def main():
+    global screen, is_fullscreen
+    running = True
+    
+    while running:
+        # Track the absolute grid position coordinates of the user mouse pointer
+        mouse_pos = pygame.mouse.get_pos()
+        
+        # --- PYGAME EVENT LOOP ---
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                running = False
+                
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_ESCAPE:
+                    running = False
+
+                elif event.key == pygame.K_F11:
+                    is_fullscreen = not is_fullscreen
+                    if is_fullscreen:
+                        # Switch to monitor's hardware dimensions in fullscreen
+                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+                    else:
+                        # Fall back cleanly to standard desktop window constraints
+                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED)
+
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                if event.button == 1:
+                    current_close_rect = pygame.Rect(screen.get_width() - 130, 15, 115, 30)
+                    if current_close_rect.collidepoint(event.pos):
+                        running = False
+
+
+        # --- DRAWING / RENDERING LAYER ---
+        screen.fill((11, 14, 20)) 
+
+        draw_close_button(screen, mouse_pos)
+
+        pygame.display.flip()
+        
+        clock.tick(60)
+        
+        await asyncio.sleep(0)
+
+    pygame.quit()
+    sys.exit()
+
+if __name__ == "__main__":
+    asyncio.run(main())
 
 # Global styles setup for progress bars
 style = ttk.Style()
