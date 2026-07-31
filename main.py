@@ -133,14 +133,14 @@ except Exception:
 warning_sound = False
 space_warning_sound = False
 
-bg_music_file = os.path.join(script_directory, "Dream Sequence.mp3")
-warning_file = os.path.join(script_directory, "Warning.mp3")
-pull_up_file = os.path.join(script_directory, "Pull Up.mp3")
-roger_that_file = os.path.join(script_directory, "Roger That.mp3")
-space_warning_file = os.path.join(script_directory, "Spacecraft Warning.mp3")
-click_file = os.path.join(script_directory, "Click.mp3")
-mission_success_file = os.path.join(script_directory, "Mission Success.mp3")
-mission_failed_file = os.path.join(script_directory, "Mission Failed.mp3")
+bg_music_file = os.path.join(script_directory, "Dream Sequence.ogg")
+warning_file = os.path.join(script_directory, "Warning.ogg")
+pull_up_file = os.path.join(script_directory, "Pull Up.ogg")
+roger_that_file = os.path.join(script_directory, "Roger That.ogg")
+space_warning_file = os.path.join(script_directory, "Spacecraft Warning.ogg")
+click_file = os.path.join(script_directory, "Click.ogg")
+mission_success_file = os.path.join(script_directory, "Mission Success.ogg")
+mission_failed_file = os.path.join(script_directory, "Mission Failed.ogg")
 
 # Start background music loop
 try:
