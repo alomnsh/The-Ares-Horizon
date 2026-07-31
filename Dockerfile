@@ -4,6 +4,7 @@ RUN apt-get update && apt-get install -y \
     python3 \
     python3-pip \
     python3-tk \
+    python3-pil.imagetk \
     xvfb \
     x11vnc \
     novnc \
@@ -22,5 +23,5 @@ CMD Xvfb :99 -screen 0 1280x720x16 & \
     export DISPLAY=:99 && \
     export SDL_AUDIODRIVER=dummy && \
     python3 "The Ares Horizon.py" & \
-    x11vnc -forever -shared -display :99 -nopw -listen localhost -bg --sync && \
+    x11vnc -forever -shared -display :99 -nopw -listen localhost -bg -sync && \
     python3 -m websockify 8080 localhost:5900 --web /usr/share/novnc --heartbeat 10
