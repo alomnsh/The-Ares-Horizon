@@ -1,11 +1,9 @@
 #Importing packages
 import os
 import time
-import termcolor
 import sys
 import math
 import random
-from PIL import Image, ImageTk
 import pygame
 import json
 import asyncio
