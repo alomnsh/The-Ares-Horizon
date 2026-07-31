@@ -77,6 +77,8 @@ python "The Ares Horizon.py"
 * GUI concepts and layout inspiration from the [Hack Club Jams Guide](https://jams.hackclub.com/jam/story-game).
 
 ## AI Disclosure
+* The work that AI did was supervised by me and completely understood before implementation
 * Used Google's AI to help with fixing bugs with my function and bugs with my boot sequence
 * Used Gemini for help with learning Pygame and trying to implement into my mini-game
-* AI usage was less than 5% of the code
+* Used Gemini for help in converting my code into `pygame` for publishing purposes
+* AI usage was less than 15% of the code
