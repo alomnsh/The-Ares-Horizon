@@ -532,9 +532,9 @@ is_fullscreen = True
 
 clock = pygame.time.Clock()
 
-ui_font = pygame.font.SysFont("OCR A Extended", 16, bold = True)
+ui_font = pygame.font.SysFont("ocraextended", 16, bold = True)
 
-font_console = pygame.font.SysFont("Tw Cen MT", 22, bold=False)
+font_console = pygame.font.SysFont("twcen", 20, bold=False)
 
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 
@@ -698,12 +698,13 @@ async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=Fals
 
 def update_progress(text, add_newline=False, color=(88, 166, 255)):
     """Updates the terminal log in place, preserving colors."""
-    global terminal_logs
+    global terminal_logs, cleaned_text
     
     if not terminal_logs:
         terminal_logs.append(["", color])
         
     # Overwrite text and preserve color tuple
+    cleaned_text = text.replace("\u200a", "").strip()
     terminal_logs[-1] = [text, color]
     
     if add_newline:
