@@ -230,7 +230,7 @@ async def open_settings_menu(main_screen):
     menu_y = (base_h - menu_h) // 2
     
     menu_clock = pygame.time.Clock()
-    menu_font = pygame.font.SysFont("Lucida Consolas", 14, bold=True)
+    menu_font = pygame.font.SysFont("OCR A Extended", 14, bold=True)
 
     # Component Hitboxes
     music_track_rect = pygame.Rect(menu_x + 40, menu_y + 80, 240, 14)
@@ -532,9 +532,9 @@ is_fullscreen = True
 
 clock = pygame.time.Clock()
 
-ui_font = pygame.font.SysFont("Lucida Consolas", 16, bold = True)
+ui_font = pygame.font.SysFont("OCR A Extended", 16, bold = True)
 
-font_console = pygame.font.SysFont("Lucida Consolas", 17, bold=False)
+font_console = pygame.font.SysFont("Tw Cen MT", 22, bold=False)
 
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 
@@ -667,7 +667,7 @@ async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=Fals
     terminal_logs.append(["", color])
     line_index = len(terminal_logs) - 1
     
-    max_chars_per_line = 85
+    max_chars_per_line = 300
     current_line_text = ""
     char_counter = 0
     
@@ -681,7 +681,7 @@ async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=Fals
                 current_line_text = ""
                 continue
             
-            current_line_text += letter
+            current_line_text += letter + "\u200a"
             terminal_logs[line_index][0] = current_line_text
             char_counter += 1
 
@@ -795,13 +795,13 @@ async def trigger_game_start():
     await typewriter("The Orion-X spacecraft is sitting on the launch pad ready to takeoff to take astronauts to Mars!", color=(230, 237, 243))
     await typewriter("As the Flight Director, you are responsible for the safety of the astronauts and the success of the mission.", color=(230, 237, 243))
 
-    await typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", color=(242, 204, 96))  # Yellow accent text color
+    await typewriter("\nSTAGE-1: T-MINUS COUNTDOWN", color=(242, 204, 96)) 
     await typewriter("", color=(230, 237, 243))
     await typewriter("The Orion-X awaits launch", color=(230, 237, 243))
 
     trigger_warning_sound()
 
-    await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))  # Alert Red color
+    await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))
     await typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', color=(219, 43, 31))
     
     # 4. SWAP STATE TO NARRATIVE MODE: Once all text animations finish, instantly show Stage 1 choice buttons
@@ -1108,7 +1108,7 @@ def run_physics_frame(surface):
     pad_screen_y = victory_altitude - int(altitude)
     if -100 < pad_screen_y < f_h + 100:
         pygame.draw.rect(surface, (0, 255, 100), (left_wall, pad_screen_y, 350, 30))
-        pad_font = pygame.font.SysFont("Lucida Consolas", 16, bold=True)
+        pad_font = pygame.font.SysFont("OCR A Extended", 16, bold=True)
         pad_text = pad_font.render("---TOUCHDOWN ZONE---", True, (0, 0, 0))
         surface.blit(pad_text, (screen_center_x - (pad_text.get_width() // 2), pad_screen_y + 6))
 
@@ -1117,7 +1117,7 @@ def run_physics_frame(surface):
     pygame.draw.rect(surface, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
     
     # Render Bottom Right Heads-Up Display (HUD Mode Label)
-    hud_font = pygame.font.SysFont("Lucida Consolas", 18, bold=True)
+    hud_font = pygame.font.SysFont("OCR A Extended", 18, bold=True)
     hud_string = f"SYS-MODE: {current_difficulty}"
     text_surface = hud_font.render(hud_string, True, (255, 255, 255))
     surface.blit(text_surface, (f_w - text_surface.get_width() - 25, f_h - text_surface.get_height() - 25))
@@ -1129,7 +1129,7 @@ def run_physics_frame(surface):
     # Draw Countdown Prepare Overlay Strings
     if prep_timer_frames > 0:
         seconds_left = (prep_timer_frames // 60) + 1
-        count_font = pygame.font.SysFont("Lucida Consolas", 48, bold=True)
+        count_font = pygame.font.SysFont("OCR A Extended", 48, bold=True)
         count_string = f"PREPARE: {seconds_left}"
         count_surface = count_font.render(count_string, True, (0, 240, 240))
         surface.blit(count_surface, (screen_center_x - (count_surface.get_width() // 2), (f_h // 2) - 150))
@@ -1274,7 +1274,7 @@ def draw_difficulty_menu(surface, mouse_pos):
     pygame.draw.rect(surface, (48, 54, 61), card_rect, width=2, border_radius=8) 
     
     # 3. Draw Title Label Text Header
-    title_font = pygame.font.SysFont("Lucida Consolas", 16, bold=True)
+    title_font = pygame.font.SysFont("OCR A Extended", 16, bold=True)
     title_surf = title_font.render("CHOOSE DIFFICULTY", True, (230, 237, 243))
     title_x = card_x + (card_w - title_surf.get_width()) // 2
     surface.blit(title_surf, (title_x, card_y + 35))
@@ -1408,8 +1408,8 @@ def draw_welcome_screen(surface, mouse_pos):
     scr_h = surface.get_height()
     
     # 1. RENDER RETRO MISSION TITLE HEADERS
-    title_font = pygame.font.SysFont("Lucida Consolas", 26, bold=True)
-    sub_font = pygame.font.SysFont("Lucida Consolas", 13, bold=False)
+    title_font = pygame.font.SysFont("OCR A Extended", 26, bold=True)
+    sub_font = pygame.font.SysFont("OCR A Extended", 13, bold=False)
     
     title_surf = title_font.render("THE ARES HORIZON", True, (126, 231, 135))
     subtitle_surf = sub_font.render("MISSION CONTROL TERMINAL", True, (230, 237, 243))
@@ -1511,7 +1511,7 @@ STAGE_CONTENT = {
 }
 
 def draw_choice_interface(surface, mouse_pos):
-    """Draws narrative choices stacked neatly above the bottom margin of the terminal window, with fully centered labels and choice title."""
+    """Draws narrative choices stacked neatly above the bottom margin of the terminal window, with fully centered, letter-spaced labels and choice title."""
     global current_stage
     
     if current_stage not in STAGE_CONTENT:
@@ -1525,7 +1525,10 @@ def draw_choice_interface(surface, mouse_pos):
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
     
     title_color = (219, 43, 31) if current_stage == "restart" else (242, 204, 96)
-    title_surface = ui_font.render(content["title"], True, title_color)
+    
+    # FIX: Add letter-spacing padding to the choice title string
+    padded_title = "".join([char + "\u200a" for char in content["title"]])
+    title_surface = ui_font.render(padded_title, True, title_color)
     
     title_x = console_rect.x + (console_rect.width - title_surface.get_width()) // 2
     title_y = console_rect.bottom - 130 
@@ -1553,7 +1556,9 @@ def draw_choice_interface(surface, mouse_pos):
     pygame.draw.rect(surface, bg1, b1_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b1_rect, width=1, border_radius=4)
     
-    text1_surf = active_font.render(content["c1"], True, fg1)
+    # FIX: Add letter-spacing padding to choice 1 string before measuring width
+    padded_c1 = "".join([char + "\u200a" for char in content["c1"]])
+    text1_surf = active_font.render(padded_c1, True, fg1)
     text1_x = b1_rect.x + (btn_w - text1_surf.get_width()) // 2
     text1_y = b1_rect.y + (btn_h - text1_surf.get_height()) // 2
     surface.blit(text1_surf, (text1_x, text1_y))
@@ -1570,7 +1575,9 @@ def draw_choice_interface(surface, mouse_pos):
     pygame.draw.rect(surface, bg2, b2_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b2_rect, width=1, border_radius=4)
     
-    text2_surf = active_font.render(content["c2"], True, fg2)
+    # FIX: Add letter-spacing padding to choice 2 string before measuring width
+    padded_c2 = "".join([char + "\u200a" for char in content["c2"]])
+    text2_surf = active_font.render(padded_c2, True, fg2)
     text2_x = b2_rect.x + (btn_w - text2_surf.get_width()) // 2
     text2_y = b2_rect.y + (btn_h - text2_surf.get_height()) // 2
     surface.blit(text2_surf, (text2_x, text2_y))
@@ -1596,7 +1603,7 @@ def draw_terminal_console(surface):
     pygame.draw.rect(surface, (15, 18, 23), console_rect)          
     pygame.draw.rect(surface, (48, 54, 61), console_rect, width=1) 
     
-    line_spacing = 18 
+    line_spacing = 30
     padding_x, padding_y = 15, 15
     
     # 110 pixels from the vertical ceiling space to protect text lines from button
