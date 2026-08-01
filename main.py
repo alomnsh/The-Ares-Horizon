@@ -1584,7 +1584,7 @@ def draw_choice_interface(surface, mouse_pos):
 
 # Holds a running list of string messages displayed on the screen console
 terminal_logs = [
-    ["ARES HORIZON OPERATING SYSTEM v4.6.0", (126, 231, 135)],
+    ["ARES HORIZON OPERATING SYSTEM v2.1.0", (126, 231, 135)],
 ]
 
 def draw_terminal_console(surface):
