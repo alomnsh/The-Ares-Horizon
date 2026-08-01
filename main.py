@@ -532,8 +532,8 @@ is_fullscreen = True
 
 clock = pygame.time.Clock()
 
-ui_font = pygame.font.SysFont(["ocraextended", "consolas", "courier"], 16, bold=True)
-font_console = pygame.font.SysFont(["twcen", "arial", "sans-serif"], 22, bold=False)
+ui_font = pygame.font.SysFont(["ocraextended"], 16, bold=True)
+font_console = pygame.font.SysFont(["twcen"], 20, bold=False)
 
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 
