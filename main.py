@@ -141,6 +141,7 @@ mission_success_file = os.path.join(script_directory, "Mission Success.ogg")
 mission_failed_file = os.path.join(script_directory, "Mission Failed.ogg")
 ocra_path = os.path.join(script_directory, "ocra.TTF")
 twcen_path = os.path.join(script_directory, "twcen.TTF")
+twcenbold_path = os.path.join(script_directory, "twcenbold.TTF")
 
 # Start background music loop
 try:
@@ -232,7 +233,7 @@ async def open_settings_menu(main_screen):
     menu_y = (base_h - menu_h) // 2
     
     menu_clock = pygame.time.Clock()
-    menu_font = pygame.font.SysFont("OCR A Extended", 14, bold=True)
+    menu_font = pygame.font.Font(twcenbold_path, 14)
 
     # Component Hitboxes
     music_track_rect = pygame.Rect(menu_x + 40, menu_y + 80, 240, 14)
@@ -1110,7 +1111,7 @@ def run_physics_frame(surface):
     pad_screen_y = victory_altitude - int(altitude)
     if -100 < pad_screen_y < f_h + 100:
         pygame.draw.rect(surface, (0, 255, 100), (left_wall, pad_screen_y, 350, 30))
-        pad_font = pygame.font.SysFont("OCR A Extended", 16, bold=True)
+        pad_font = pygame.font.Font(twcenbold_path, 16)
         pad_text = pad_font.render("---TOUCHDOWN ZONE---", True, (0, 0, 0))
         surface.blit(pad_text, (screen_center_x - (pad_text.get_width() // 2), pad_screen_y + 6))
 
@@ -1119,7 +1120,7 @@ def run_physics_frame(surface):
     pygame.draw.rect(surface, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
     
     # Render Bottom Right Heads-Up Display (HUD Mode Label)
-    hud_font = pygame.font.SysFont("OCR A Extended", 18, bold=True)
+    hud_font = pygame.font.Font(twcenbold_path, 18)
     hud_string = f"SYS-MODE: {current_difficulty}"
     text_surface = hud_font.render(hud_string, True, (255, 255, 255))
     surface.blit(text_surface, (f_w - text_surface.get_width() - 25, f_h - text_surface.get_height() - 25))
@@ -1131,7 +1132,7 @@ def run_physics_frame(surface):
     # Draw Countdown Prepare Overlay Strings
     if prep_timer_frames > 0:
         seconds_left = (prep_timer_frames // 60) + 1
-        count_font = pygame.font.SysFont("OCR A Extended", 48, bold=True)
+        count_font = pygame.font.Font(twcenbold_path, 48)
         count_string = f"PREPARE: {seconds_left}"
         count_surface = count_font.render(count_string, True, (0, 240, 240))
         surface.blit(count_surface, (screen_center_x - (count_surface.get_width() // 2), (f_h // 2) - 150))
@@ -1276,7 +1277,7 @@ def draw_difficulty_menu(surface, mouse_pos):
     pygame.draw.rect(surface, (48, 54, 61), card_rect, width=2, border_radius=8) 
     
     # 3. Draw Title Label Text Header
-    title_font = pygame.font.SysFont("OCR A Extended", 16, bold=True)
+    title_font = pygame.font.Font(twcenbold_path, 16)
     title_surf = title_font.render("CHOOSE DIFFICULTY", True, (230, 237, 243))
     title_x = card_x + (card_w - title_surf.get_width()) // 2
     surface.blit(title_surf, (title_x, card_y + 35))
@@ -1410,8 +1411,8 @@ def draw_welcome_screen(surface, mouse_pos):
     scr_h = surface.get_height()
     
     # 1. RENDER RETRO MISSION TITLE HEADERS
-    title_font = pygame.font.SysFont("OCR A Extended", 26, bold=True)
-    sub_font = pygame.font.SysFont("OCR A Extended", 13, bold=False)
+    title_font = pygame.font.Font(twcenbold_path, 26)
+    sub_font = pygame.font.Font(twcenbold_path, 13, bold=False)
     
     title_surf = title_font.render("THE ARES HORIZON", True, (126, 231, 135))
     subtitle_surf = sub_font.render("MISSION CONTROL TERMINAL", True, (230, 237, 243))
