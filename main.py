@@ -1412,7 +1412,7 @@ def draw_welcome_screen(surface, mouse_pos):
     
     # 1. RENDER RETRO MISSION TITLE HEADERS
     title_font = pygame.font.Font(twcenbold_path, 26)
-    sub_font = pygame.font.Font(twcenbold_path, 13, bold=False)
+    sub_font = pygame.font.Font(twcenbold_path, 13)
     
     title_surf = title_font.render("THE ARES HORIZON", True, (126, 231, 135))
     subtitle_surf = sub_font.render("MISSION CONTROL TERMINAL", True, (230, 237, 243))
