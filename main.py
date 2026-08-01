@@ -1555,8 +1555,6 @@ def draw_choice_interface(surface, mouse_pos):
         
     pygame.draw.rect(surface, bg1, b1_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b1_rect, width=1, border_radius=4)
-    
-    # FIX: Add letter-spacing padding to choice 1 string before measuring width
     padded_c1 = "".join([char + "\u200a" for char in content["c1"]])
     text1_surf = active_font.render(padded_c1, True, fg1)
     text1_x = b1_rect.x + (btn_w - text1_surf.get_width()) // 2
