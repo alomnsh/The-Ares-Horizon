@@ -1604,7 +1604,6 @@ def draw_terminal_console(surface):
     line_spacing = 30
     padding_x, padding_y = 15, 15
     
-    # 110 pixels from the vertical ceiling space to protect text lines from button
     usable_height = console_rect.height if current_stage not in STAGE_CONTENT else console_rect.height - 110
     
     max_visible_lines = (usable_height - (padding_y * 2)) // line_spacing
