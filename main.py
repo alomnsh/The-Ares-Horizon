@@ -623,6 +623,7 @@ def draw_telemetry_dashboard(surface):
     pygame.draw.rect(surface, (11, 14, 20), budget_track, border_radius=4)
  
     # Draw Fill
+    fill_width = 0
     if mission_budget > 0:
         fill_width = int(bar_width * (max(0, min(100, mission_budget)) / 100.0))
     budget_fill = pygame.Rect(budget_bar_x, 24, fill_width, bar_height)
