@@ -402,7 +402,8 @@ async def open_settings_menu(main_screen):
         if not show_reset_confirmation:
             pygame.draw.rect(main_screen, (70, 30, 30), reset_btn_rect, border_radius=5)
             reset_txt = menu_font.render("Reset All Settings", True, (240, 160, 160))
-            main_screen.blit(reset_txt, (reset_btn_rect.x + 45, reset_btn_rect.y + 10))
+            text_x = reset_btn_rect.x + (reset_btn_rect.width - reset_txt.get_width()) //2
+            main_screen.blit(reset_txt, (text_x, reset_btn_rect.y + 10))
         else:
             pygame.draw.rect(main_screen, (30, 60, 30), confirm_yes_rect, border_radius=5)
             pygame.draw.rect(main_screen, (70, 30, 30), confirm_no_rect, border_radius=5)
@@ -415,7 +416,9 @@ async def open_settings_menu(main_screen):
             
         # --- RENDER CLOSE PANEL ACTION BUTTON ---
         pygame.draw.rect(main_screen, (50, 50, 50), close_btn_rect, border_radius=5)
-        main_screen.blit(close_txt, (close_btn_rect.x + 12, close_btn_rect.y + 10))
+        text_x = close_btn_rect.x + (close_btn_rect.width - close_txt.get_width()) // 2
+        text_y = close_btn_rect.y + (close_btn_rect.height - close_txt.get_height()) // 2
+        main_screen.blit(close_txt, (text_x, text_y))
         
         pygame.display.flip()
         menu_clock.tick(60)
