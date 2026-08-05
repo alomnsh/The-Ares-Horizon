@@ -200,8 +200,10 @@ function show_infobox() {
         }
 
         #progress {
-            height: 20px;
-            width: 300px;
+            position: absolute;
+            visibility: hidden;
+            height: 1px;
+            width: 1px;
         }
 
         #infobox {
@@ -304,11 +306,11 @@ function show_infobox() {
 
 <body>
 
-    <!-- Kept hidden to prevent layout shifting while downloading assets -->
-    <div id="transfer" align=center style="display:none;">
+    <!-- Kept active for Pygbag data hooks, but visually hidden -->
+    <div id="transfer" align="center" style="position: absolute; visibility: hidden; width:1px; height:1px;">
         <div class="emscripten" id="status">Downloading...</div>
         <div class="emscripten">
-            <progress value="0" max="100" id="progress" hidden=1></progress>
+            <progress value="0" max="100" id="progress"></progress>
         </div>
     </div>
 
@@ -387,14 +389,14 @@ frameborder="1"
         // make your js customization here
         console.log(__FILE__, "custom_onload")
 
-        pyconsole.hidden = debug_hidden
-        system.hidden = debug_hidden
-        transfer.hidden = debug_hidden
-        info.hidden = debug_hidden
-        box.hidden =  debug_hidden
+        document.getElementById("pyconsole").hidden = debug_hidden
+        document.getElementById("system").hidden = debug_hidden
+        document.getElementById("info").hidden = debug_hidden
+        document.getElementById("box").hidden = debug_hidden
 
         show_infobox()
     }
+
 
     function custom_prerun(){
         // no python main and no (MEMFS + VFS) yet.
