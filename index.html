@@ -206,12 +206,20 @@ function show_infobox() {
 
         #infobox {
             position: fixed; /* center relative to viewport */
-            background: green;
-            color: blue;
+            background: rgba(5, 11, 20, 0.9);
+            color: #00d2ff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 14px;
+            letter-spacing: 2px;
             font-weight: bold;
-            padding: 12px 24px;
+            padding: 16px 32px;
  /*           display: none; */
+            border: 1px solid rgba(0, 210, 255, 0.4);
+            border-radius: 4px;
+            box-shadow: 0 0 15px rgba(0, 210, 255, 0.2);
             z-index: 999999;
+            text-align: center;
+            text-transform: uppercase;
         }
         div.emscripten { text-align: center; }
         div.emscripten_border { border: 1px solid black; }
@@ -237,10 +245,16 @@ function show_infobox() {
         }
 
         body {
-            font-family: arial;
             margin: 0;
-            padding: none;
-            background-color:powderblue;
+            padding: 0;
+            background-color: #050b14;
+            background-image: 
+                linear-gradient(rgba(0, 210, 255, 0.03) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0, 210, 255, 0.03) 1px, transparent 1px),
+                radial-gradient(rgba(255,255,255,0.15) 1px, transparent 1px);
+            background-size: 40px 40px, 40px 40px, 200px 200px;
+            background-position: center;
+            overflow: hidden;
         }
 
         .topright{
@@ -290,29 +304,20 @@ function show_infobox() {
 
 <body>
 
-    <div id="transfer" align=center>
-<!--        <div class="spinner" id='spinner'></div> -->
+    <!-- Kept hidden to prevent layout shifting while downloading assets -->
+    <div id="transfer" align=center style="display:none;">
         <div class="emscripten" id="status">Downloading...</div>
         <div class="emscripten">
-            <progress value="0" max="100" id="progress"></progress>
+            <progress value="0" max="100" id="progress" hidden=1></progress>
         </div>
     </div>
 
+    <!-- Clean, full-bleed canvas setup for the active application window -->
+    <canvas class="emscripten" id="canvas" width="1px" height="1px" oncontextmenu="event.preventDefault()" tabindex=1></canvas>
+    <canvas class="emscripten" id="canvas3d" width="1280px" height="720px" oncontextmenu="event.preventDefault()" tabindex=1 hidden></canvas>
 
-
-    <canvas class="emscripten" id="canvas"
-width="1px"
-height="1px"
-    oncontextmenu="event.preventDefault()" tabindex=1>
-    </canvas>
-
-    <canvas class="emscripten" id="canvas3d"
-width="1280px"
-height="720px"
-    oncontextmenu="event.preventDefault()" tabindex=1 hidden>
-    </canvas>
-
-    <div id="infobox">Loading, please wait ...</div>
+    <!-- Space-Themed Custom Loading Text Element -->
+    <div id="infobox">LOADING MISSION: THE ARES HORIZON...</div>
 
     <div id=html></div>
 
@@ -431,6 +436,9 @@ frameborder="1"
     function frame_online(url) {
         window.frames["iframe"].location = url;
     }
+    
+    window.addEventListener('resize', show_infobox);
+    setTimeout(show_infobox, 100);
 
     </script>
 

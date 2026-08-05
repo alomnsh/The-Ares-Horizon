@@ -532,7 +532,7 @@ WINDOW_WIDTH = screen_info.current_w
 WINDOW_HEIGHT = screen_info.current_h
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
-pygame.display.set_caption("The Ares Horizon — Mission Control Terminal")
+pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
 is_fullscreen = True
 
@@ -751,7 +751,7 @@ async def game_restart_screen():
 async def run_boot_sequence():
     """Plays the mainframe boot animation sequentially using clean async sleep pauses."""
     trigger_click_sound()
-    # 1. Chronological Timeline Executions (Replacing root.after delay rules)
+    # 1. Chronological Timeline Executions
     await typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", color=COLOR_CYAN, override_speed=0.01)
     await asyncio.sleep(1.7) # Delays next line until 1800ms mark from boot startup
     
@@ -1296,7 +1296,7 @@ def draw_difficulty_menu(surface, mouse_pos):
     
     # --- RENDER EASY MODE BUTTON (COLOR_CYAN) ---
     is_easy_hover = easy_rect.collidepoint(mouse_pos)
-    easy_bg = (130, 200, 255) if is_easy_hover else (88, 166, 255) # Hover highlight logic
+    easy_bg = (130, 200, 255) if is_easy_hover else (88, 166, 255)
     pygame.draw.rect(surface, easy_bg, easy_rect, border_radius=4)
     easy_txt = font_console.render("EASY MODE", True, (11, 14, 20))
     surface.blit(easy_txt, (easy_rect.x + (btn_w - easy_txt.get_width()) // 2, easy_rect.y + (btn_h - easy_txt.get_height()) // 2))
@@ -1533,7 +1533,7 @@ def draw_choice_interface(surface, mouse_pos):
     
     title_color = (219, 43, 31) if current_stage == "restart" else (242, 204, 96)
     
-    # FIX: Add letter-spacing padding to the choice title string
+    # Add letter-spacing padding to the choice title string
     padded_title = "".join([char + "\u200a" for char in content["title"]])
     title_surface = ui_font.render(padded_title, True, title_color)
     
@@ -1558,7 +1558,7 @@ def draw_choice_interface(surface, mouse_pos):
         bg1, fg1 = (48, 54, 61), (255, 255, 255)
     else:
         bg1 = (22, 27, 34)
-        fg1 = content.get("color1", (100, 200, 255))
+        fg1 = content.get("color2", (245, 210, 110))
         
     pygame.draw.rect(surface, bg1, b1_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b1_rect, width=1, border_radius=4)
@@ -1580,7 +1580,7 @@ def draw_choice_interface(surface, mouse_pos):
     pygame.draw.rect(surface, bg2, b2_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b2_rect, width=1, border_radius=4)
     
-    # FIX: Add letter-spacing padding to choice 2 string before measuring width
+    # Add letter-spacing padding to choice 2 string before measuring width
     padded_c2 = "".join([char + "\u200a" for char in content["c2"]])
     text2_surf = active_font.render(padded_c2, True, fg2)
     text2_x = b2_rect.x + (btn_w - text2_surf.get_width()) // 2
@@ -1649,10 +1649,7 @@ async def main():
             # 1. KEYBOARD CONTINUOUS INPUT TRACKING LAYER
             # ----------------------------------------------------
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_ESCAPE:
-                    running = False
-                    
-                elif event.key == pygame.K_F11:
+                if event.key == pygame.K_F11:
                     is_fullscreen = not is_fullscreen
                     if is_fullscreen:
                         screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
