@@ -8,8 +8,8 @@ HEADERS = {"Authorization": f"token {TOKEN}", "Accept": "application/vnd.github.
 DATA_FILE = "traffic_history.json"
 
 def fetch_data():
-    v_url = f"https://github.com{REPO}/traffic/views"
-    c_url = f"https://github.com{REPO}/traffic/clones"
+    v_url = f"https://github.com"
+    c_url = f"https://github.com"
     print(f"DEBUG - Views URL: {v_url}")
     print(f"DEBUG - Clones URL: {c_url}")
     return requests.get(v_url, headers=HEADERS).json().get('views', []), requests.get(c_url, headers=HEADERS).json().get('clones', [])
