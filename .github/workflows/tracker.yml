@@ -1,0 +1,36 @@
+name: Lifetime Traffic Tracker
+
+on:
+  schedule:
+    - cron: '0 0 * * *' 
+  workflow_dispatch:
+
+jobs:
+  track:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+    - name: Checkout Code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+
+    - name: Install Dependencies
+      run: pip install requests
+
+    - name: Run Script
+      env:
+        TRAFFIC_TOKEN: ${{ secrets.TRAFFIC_TOKEN }}
+      run: python track_traffic.py
+
+    - name: Save Changes
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@://github.com"
+        git add traffic_history.json
+        git diff --quiet && git diff --staged --quiet || (git commit -m "chore: update traffic logs [skip ci]" && git push)
