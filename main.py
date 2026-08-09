@@ -543,6 +543,28 @@ font_console = pygame.font.Font(twcen_path, 20)
 
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 
+def create_crt_mask():
+    """Generates a reusable horizontal scanline mask layer to maximize CPU efficiency."""
+    
+    # Create a scratch canvas matching your exact screen resolution supporting an alpha channel
+    mask = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
+    
+    # 1. Bake horizontal dark scanning paths
+    for y in range(0, WINDOW_HEIGHT, 2):
+        pygame.draw.line(mask, (5, 8, 12, 85), (0, y), (WINDOW_WIDTH, y))
+        
+    # 2. Absolute Edge Vignette Corners
+    edge_thickness = 25
+    pygame.draw.rect(mask, (0, 0, 0, 65), (0, 0, WINDOW_WIDTH, edge_thickness))
+    pygame.draw.rect(mask, (0, 0, 0, 65), (0, WINDOW_HEIGHT - edge_thickness, WINDOW_WIDTH, edge_thickness))
+    pygame.draw.rect(mask, (0, 0, 0, 65), (0, 0, edge_thickness, WINDOW_HEIGHT))
+    pygame.draw.rect(mask, (0, 0, 0, 65), (WINDOW_WIDTH - edge_thickness, 0, edge_thickness, WINDOW_HEIGHT))
+    
+    return mask
+
+# Initialize the full screen mask using the global hardware window parameters
+crt_mask_layer = create_crt_mask()
+
 def draw_close_button(surface, mouse_pos):
     """Renders the close button dynamically pinned to the top right corner."""
 
@@ -1698,6 +1720,22 @@ terminal_logs = [
     ["ARES HORIZON OPERATING SYSTEM v2.1.0", (126, 231, 135)],
 ]
 
+def draw_crt_overlay(surface):
+    """Temporarily clears surface clipping to stretch scanlines perfectly to the edge."""
+    global crt_mask_layer
+    
+    # Save any active viewport clipping boxes set by other menu interfaces
+    old_clip = surface.get_clip()
+    
+    # Clear out any active constraints so we can paint the true edges of the monitor
+    surface.set_clip(None)
+    
+    # Blit our master hardware-sized mask at absolute coordinate
+    surface.blit(crt_mask_layer, (0, 0))
+    
+    # Restore original interface boundaries
+    surface.set_clip(old_clip)
+
 def draw_terminal_console(surface):
     """Renders a responsive text log console container, leaving bottom padding space for choices."""
     global terminal_logs, current_stage
@@ -1890,6 +1928,8 @@ async def main():
         
         # Keep close game handle alive in all layers as an absolute application recovery bypass
         draw_close_button(screen, mouse_pos)
+
+        draw_crt_overlay(screen)
 
         pygame.display.flip()
         clock.tick(60)
