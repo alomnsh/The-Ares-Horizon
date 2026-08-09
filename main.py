@@ -553,9 +553,22 @@ def draw_close_button(surface, mouse_pos):
     if close_btn_rect.collidepoint(mouse_pos):
         button_color = (170, 40, 30)
         TEXT_COLOR = (255, 255, 255)
+        glow_color = (230, 50, 40)
+        glow_max_alpha = 55
+        glow_radius = 8
     else:
         button_color = (70, 30, 30)
         TEXT_COLOR = (240, 160, 160)
+        glow_color = (120, 40, 40)
+        glow_max_alpha = 25
+        glow_radius = 5
+
+    for i in range(glow_radius, 0, -1):
+        glow_surf = pygame.Surface((close_btn_rect.width + i*2, close_btn_rect.height + i*2), pygame.SRCALPHA)
+        alpha = int(glow_max_alpha * (1.0 - (i / glow_radius)))
+        
+        pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
+        surface.blit(glow_surf, (close_btn_rect.x - i, close_btn_rect.y - i))
         
     pygame.draw.rect(surface, button_color, close_btn_rect, border_radius=5)
     
@@ -565,6 +578,21 @@ def draw_close_button(surface, mouse_pos):
     surface.blit(close_text, (text_x, text_y))
     
     return close_btn_rect
+
+def draw_glowing_rect(surface, base_color, rect, glow_radius = 8, max_alpha = 45):
+    """Draws a core interface shape surrounded by an ambient alpha-gradient bloom"""
+
+    for i in range(glow_radius, 0, -1):
+        glow_surf = pygame.Surface((rect.width + i*2, rect.height + i*2), pygame.SRCALPHA)
+
+        alpha = int(max_alpha * (1.0 - (i / glow_radius)))
+        glow_color = (base_color[0], base_color[1], base_color[2], alpha)
+
+        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius= 4)
+
+        surface.blit(glow_surf, (rect.x - i, rect.y - i))
+
+    pygame.draw.rect(surface, base_color, rect, border_radius=4)
 
 # Global styles setup for progress bars
 def draw_telemetry_dashboard(surface):
@@ -602,7 +630,7 @@ def draw_telemetry_dashboard(surface):
     if crew_safety > 0:
         fill_width = int(bar_width * (max(0, min(100, crew_safety)) / 100.0))
         safety_fill = pygame.Rect(col1_center, 24, fill_width, bar_height)
-        pygame.draw.rect(surface, current_safety_color, safety_fill, border_radius=4)
+        draw_glowing_rect(surface, current_safety_color, safety_fill, glow_radius=6, max_alpha=60)
 
     # ----------------------------------------------------
     # DRAW MISSION BUDGET ELEMENT
@@ -630,7 +658,7 @@ def draw_telemetry_dashboard(surface):
     if mission_budget > 0:
         fill_width = int(bar_width * (max(0, min(100, mission_budget)) / 100.0))
     budget_fill = pygame.Rect(budget_bar_x, 24, fill_width, bar_height)
-    pygame.draw.rect(surface, COLOR_YELLOW, budget_fill, border_radius=4)
+    draw_glowing_rect(surface, COLOR_YELLOW, budget_fill, glow_radius=6, max_alpha=60)
 
 
     # ----------------------------------------------------
@@ -645,17 +673,29 @@ def draw_settings_button(surface, mouse_pos):
     
     settings_btn_rect = pygame.Rect(15, current_h - 45, 115, 30)
     
-    # Handle hovering states (activebackground equivalent)
+    # Handle hovering states
     if settings_btn_rect.collidepoint(mouse_pos):
-        button_color = (48, 54, 61)   # Original activebackground #30363D
+        button_color = (48, 54, 61)
+        glow_color = (126, 231, 135)
+        glow_max_alpha = 50           
+        glow_radius = 8
     else:
-        button_color = (22, 27, 34)   # Original bg #161b22
+        button_color = (22, 27, 34)
+        glow_color = (46, 117, 52)
+        glow_max_alpha = 20           
+        glow_radius = 4
+
+    for i in range(glow_radius, 0, -1):
+        glow_surf = pygame.Surface((settings_btn_rect.width + i*2, settings_btn_rect.height + i*2), pygame.SRCALPHA)
+        alpha = int(glow_max_alpha * (1.0 - (i / glow_radius)))
         
-    # Draw button background card frame with thin border (bd=1, relief="solid")
+        pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
+        surface.blit(glow_surf, (settings_btn_rect.x - i, settings_btn_rect.y - i))
+        
+    # Draw button background card frame with thin border
     pygame.draw.rect(surface, button_color, settings_btn_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), settings_btn_rect, width=1, border_radius=4)
     
-    # Render original emoji label layout text (#7EE787 text color)
     settings_text = ui_font.render("SETTINGS", True, (126, 231, 135))
     text_x = settings_btn_rect.x + (settings_btn_rect.width - settings_text.get_width()) // 2
     text_y = settings_btn_rect.y + (settings_btn_rect.height - settings_text.get_height()) // 2
@@ -1437,7 +1477,20 @@ def draw_welcome_screen(surface, mouse_pos):
         btn_start_rect = pygame.Rect((scr_w - w) // 2, scr_h // 2 - 20, w, h)
         
         # Hover vs Idle highlighting check
-        bg_color = (48, 54, 61) if btn_start_rect.collidepoint(mouse_pos) else (22, 27, 34)
+        if btn_start_rect.collidepoint(mouse_pos):
+            bg_color = (48, 54, 61)
+            glow_color = (0, 180, 216)
+            glow_max_alpha, glow_radius = 65, 12
+        else:
+            bg_color = (22, 27, 34)
+            glow_color = (14, 116, 144)
+            glow_max_alpha, glow_radius = 25, 6
+
+        for i in range(glow_radius, 0, -1):
+            glow_surf = pygame.Surface((btn_start_rect.width + i*2, btn_start_rect.height + i*2), pygame.SRCALPHA)
+            alpha = int(glow_max_alpha * (1.0 - (i / glow_radius)))
+            pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
+            surface.blit(glow_surf, (btn_start_rect.x - i, btn_start_rect.y - i))
         
         pygame.draw.rect(surface, bg_color, btn_start_rect, border_radius=4)
         pygame.draw.rect(surface, (48, 54, 61), btn_start_rect, width=1, border_radius=4)
@@ -1461,6 +1514,21 @@ def draw_welcome_screen(surface, mouse_pos):
         btn_story_rect = pygame.Rect(scr_w // 2 - w - center_gap, scr_h // 2, w, h)
         # Right button position (Launch Minigame)
         btn_minigame_rect = pygame.Rect(scr_w // 2 + center_gap, scr_h // 2, w, h)
+
+        if btn_story_rect.collidepoint(mouse_pos):
+            bg_story = (48, 54, 61)
+            glow_story_color = (247, 127, 0)
+            g_story_alpha, g_story_radius = 55, 8
+        else:
+            bg_story = (22, 27, 34)
+            glow_story_color = (130, 70, 10)
+            g_story_alpha, g_story_radius = 20, 4
+
+        for i in range(g_story_radius, 0, -1):
+            glow_surf = pygame.Surface((btn_story_rect.width + i*2, btn_story_rect.height + i*2), pygame.SRCALPHA)
+            alpha = int(g_story_alpha * (1.0 - (i / g_story_radius)))
+            pygame.draw.rect(glow_surf, (*glow_story_color, alpha), glow_surf.get_rect())
+            surface.blit(glow_surf, (btn_story_rect.x - i, btn_story_rect.y - i))
         
         # Draw Play Story Button Frame
         bg_story = (48, 54, 61) if btn_story_rect.collidepoint(mouse_pos) else (22, 27, 34)
@@ -1470,6 +1538,21 @@ def draw_welcome_screen(surface, mouse_pos):
         story_txt = ui_font.render("PLAY STORY", True, (230, 237, 243))
         surface.blit(story_txt, (btn_story_rect.x + (w - story_txt.get_width()) // 2, 
                                  btn_story_rect.y + (h - story_txt.get_height()) // 2))
+
+        if btn_minigame_rect.collidepoint(mouse_pos):
+            bg_mini = (48, 54, 61)
+            glow_mini_color = (0, 180, 216)
+            g_mini_alpha, g_mini_radius = 60, 10
+        else:
+            bg_mini = (22, 27, 34)
+            glow_mini_color = (14, 116, 144)
+            g_mini_alpha, g_mini_radius = 20, 4
+            
+        for i in range(g_mini_radius, 0, -1):
+            glow_surf = pygame.Surface((btn_minigame_rect.width + i*2, btn_minigame_rect.height + i*2), pygame.SRCALPHA)
+            alpha = int(g_mini_alpha * (1.0 - (i / g_mini_radius)))
+            pygame.draw.rect(glow_surf, (*glow_mini_color, alpha), glow_surf.get_rect())
+            surface.blit(glow_surf, (btn_minigame_rect.x - i, btn_minigame_rect.y - i))
         
         # Draw Launch Minigame Button Frame
         bg_mini = (48, 54, 61) if btn_minigame_rect.collidepoint(mouse_pos) else (22, 27, 34)
@@ -1550,15 +1633,28 @@ def draw_choice_interface(surface, mouse_pos):
     b2_rect = pygame.Rect(btn_x, title_y + 65, btn_w, btn_h) 
     
     active_font = ui_font if current_stage == "restart" else font_console
+
+    if current_stage == "restart":
+        glow_base_color = (219, 43, 31)
+    else:
+        glow_base_color = (247, 127, 0)
     
     # ----------------------------------------------------
     # --- RENDER CHOICE BUTTON 1 ---
     # ----------------------------------------------------
     if b1_rect.collidepoint(mouse_pos):
         bg1, fg1 = (48, 54, 61), (255, 255, 255)
+        g1_max_alpha, g1_radius = 55, 8
     else:
         bg1 = (22, 27, 34)
         fg1 = content.get("color2", (245, 210, 110))
+        g1_max_alpha, g1_radius = 20, 4
+
+    for i in range(g1_radius, 0, -1):
+        glow_surf = pygame.Surface((b1_rect.width + i*2, b1_rect.height + i*2), pygame.SRCALPHA)
+        alpha = int(g1_max_alpha * (1.0 - (i / g1_radius)))
+        pygame.draw.rect(glow_surf, (*glow_base_color, alpha), glow_surf.get_rect())
+        surface.blit(glow_surf, (b1_rect.x - i, b1_rect.y - i))
         
     pygame.draw.rect(surface, bg1, b1_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b1_rect, width=1, border_radius=4)
@@ -1573,10 +1669,18 @@ def draw_choice_interface(surface, mouse_pos):
     # ----------------------------------------------------
     if b2_rect.collidepoint(mouse_pos):
         bg2, fg2 = (48, 54, 61), (255, 255, 255)
+        g2_max_alpha, g2_radius = 55, 8
     else:
         bg2 = (22, 27, 34)
         fg2 = content.get("color2", (245, 210, 110))
-        
+        g2_max_alpha, g2_radius = 20, 4
+
+    for i in range(g2_radius, 0, -1):
+        glow_surf = pygame.Surface((b2_rect.width + i*2, b2_rect.height + i*2), pygame.SRCALPHA)
+        alpha = int(g2_max_alpha * (1.0 - (i / g2_radius)))
+        pygame.draw.rect(glow_surf, (*glow_base_color, alpha), glow_surf.get_rect())
+        surface.blit(glow_surf, (b2_rect.x - i, b2_rect.y - i))
+    
     pygame.draw.rect(surface, bg2, b2_rect, border_radius=4)
     pygame.draw.rect(surface, (48, 54, 61), b2_rect, width=1, border_radius=4)
     
@@ -1603,7 +1707,16 @@ def draw_terminal_console(surface):
     
     # 1. Main Terminal Window Rectangle Layout Container
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
-    
+
+    glow_color = (0, 180, 216)
+
+    for i in range(12, 0, -1):
+        glow_surf = pygame.Surface((console_rect.width + i*2, console_rect.height + i*2), pygame.SRCALPHA)
+        alpha = int(35 * (1.0 - (i / 12)))
+        
+        pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
+        surface.blit(glow_surf, (console_rect.x - i, console_rect.y - i))
+        
     # Draw backdrop card graphics
     pygame.draw.rect(surface, (15, 18, 23), console_rect)          
     pygame.draw.rect(surface, (48, 54, 61), console_rect, width=1) 
