@@ -26,7 +26,7 @@ jobs:
           python -m pip install pygbag
           python -m pygbag --build .
 
-      - name: Deploy to GitHub Pages
+      - name: Houston. We Have Liftoff
         uses: JamesIves/github-pages-deploy-action@v4
         with:
           folder: build/web
