@@ -13,6 +13,7 @@ current_difficulty = "EASY"
 is_boot_completed = False
 key_states = {}
 terminal_logs = []
+thruster_particles = []
 text_speed = 0.045 
 is_minigame_unlocked = False
 
@@ -551,14 +552,14 @@ def create_crt_mask():
     
     # 1. Bake horizontal dark scanning paths
     for y in range(0, WINDOW_HEIGHT, 2):
-        pygame.draw.line(mask, (5, 8, 12, 85), (0, y), (WINDOW_WIDTH, y))
+        pygame.draw.line(mask, (5, 8, 12, 100), (0, y), (WINDOW_WIDTH, y))
         
     # 2. Absolute Edge Vignette Corners
     edge_thickness = 25
-    pygame.draw.rect(mask, (0, 0, 0, 65), (0, 0, WINDOW_WIDTH, edge_thickness))
-    pygame.draw.rect(mask, (0, 0, 0, 65), (0, WINDOW_HEIGHT - edge_thickness, WINDOW_WIDTH, edge_thickness))
-    pygame.draw.rect(mask, (0, 0, 0, 65), (0, 0, edge_thickness, WINDOW_HEIGHT))
-    pygame.draw.rect(mask, (0, 0, 0, 65), (WINDOW_WIDTH - edge_thickness, 0, edge_thickness, WINDOW_HEIGHT))
+    pygame.draw.rect(mask, (0, 0, 0, 85), (0, 0, WINDOW_WIDTH, edge_thickness))
+    pygame.draw.rect(mask, (0, 0, 0, 85), (0, WINDOW_HEIGHT - edge_thickness, WINDOW_WIDTH, edge_thickness))
+    pygame.draw.rect(mask, (0, 0, 0, 85), (0, 0, edge_thickness, WINDOW_HEIGHT))
+    pygame.draw.rect(mask, (0, 0, 0, 85), (WINDOW_WIDTH - edge_thickness, 0, edge_thickness, WINDOW_HEIGHT))
     
     return mask
 
@@ -1113,6 +1114,48 @@ async def handle_choice3b(choice):
 #LANDING MINI GAME 
 #===========================================================================
 
+def spawn_thruster_spark(ship_x, ship_y, ship_width=50, ship_height=90):
+    """Spawns an energetic engine exhaust spark at the base of the lander."""
+    global thruster_particles
+    # Calculate the exact center-bottom nozzle area of the spaceship
+    engine_x = ship_x + (ship_width // 2)
+    engine_y = ship_y + ship_height -8
+    
+    thruster_particles.append({
+        "x": float(engine_x + random.randint(-18, 18)),
+        "y": float(engine_y),
+        "vx": random.uniform(-1.2, 1.2),
+        "vy": random.uniform(4.0, 7.5),
+        "life": 255
+    })
+
+def update_and_draw_thrusters(surface):
+    """Updates active exhaust particle physics matrices and renders them to the screen canvas."""
+    global thruster_particles
+    for p in thruster_particles[:]:
+        # Translate position based on speed vectors
+        p["x"] += p["vx"]
+        p["y"] += p["vy"]
+        p["life"] -= 14 
+        
+        # Remove completely faded particles
+        if p["life"] <= 0:
+            thruster_particles.remove(p)
+            continue
+            
+        # Color shifting based on particle heat/lifespan
+        if p["life"] > 160:
+            spark_color = (0, 210, 255, p["life"])
+        elif p["life"] > 80:
+            spark_color = (14, 116, 144, p["life"])
+        else:
+            spark_color = (71, 85, 105, p["life"])
+            
+        # Create a tiny 3x3 pixel square to draw the spark
+        spark_surf = pygame.Surface((3, 3), pygame.SRCALPHA)
+        spark_surf.fill(spark_color)
+        surface.blit(spark_surf, (int(p["x"]), int(p["y"])))
+
 def run_physics_frame(surface):
     """Updates game mechanics and handles collisions directly on the primary screen canvas."""
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
@@ -1181,18 +1224,21 @@ def run_physics_frame(surface):
         pad_text = pad_font.render("---TOUCHDOWN ZONE---", True, (0, 0, 0))
         surface.blit(pad_text, (screen_center_x - (pad_text.get_width() // 2), pad_screen_y + 6))
 
-    # Mask trailing spike bases using side column frames
+    update_and_draw_thrusters(surface)
+
     pygame.draw.rect(surface, (40, 40, 45), (0, 0, left_wall, f_h))
     pygame.draw.rect(surface, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
     
-    # Render Bottom Right Heads-Up Display (HUD Mode Label)
     hud_font = pygame.font.Font(twcenbold_path, 18)
-    hud_string = f"SYS-MODE: {current_difficulty}"
-    text_surface = hud_font.render(hud_string, True, (255, 255, 255))
+    text_surface = hud_font.render(f"SYS-MODE: {current_difficulty}", True, (255, 255, 255))
     surface.blit(text_surface, (f_w - text_surface.get_width() - 25, f_h - text_surface.get_height() - 25))
     
     # 4. Spaceship Modeling & Rendering Matrix
     ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
+
+    for _ in range(2):
+        spawn_thruster_spark(ship_rect.x, ship_rect.y, ship_width=50, ship_height=90)
+        
     surface.blit(ship_surface, (ship_rect.x, ship_rect.y))
     
     # Draw Countdown Prepare Overlay Strings
@@ -1252,6 +1298,7 @@ def start_landing_simulation_canvas():
     velocity_y = 0.0
     ship_angle = 0.0
     game_running = True
+    thruster_particles.clear()
     
     # Initialize countdown and movement trackers
     prep_timer_frames = 180
@@ -1709,7 +1756,7 @@ def draw_choice_interface(surface, mouse_pos):
     # Add letter-spacing padding to choice 2 string before measuring width
     padded_c2 = "".join([char + "\u200a" for char in content["c2"]])
     text2_surf = active_font.render(padded_c2, True, fg2)
-    text2_x = b2_rect.x + (btn_w - text2_surf.get_width()) // 2
+    text2_x = b2_rect.x + (btn_w - text2_surf.get_width()) // 2 
     text2_y = b2_rect.y + (btn_h - text2_surf.get_height()) // 2
     surface.blit(text2_surf, (text2_x, text2_y))
     
