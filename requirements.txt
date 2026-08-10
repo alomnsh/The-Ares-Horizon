@@ -1,2 +1,1 @@
-pygame
-websockify
+pygame-- ce
