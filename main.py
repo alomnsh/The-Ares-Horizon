@@ -16,6 +16,9 @@ terminal_logs = []
 thruster_particles = []
 text_speed = 0.045 
 is_minigame_unlocked = False
+draw_boot_bar = False
+boot_bar_pct = 0
+is_game_paused = False
 
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
@@ -220,10 +223,11 @@ def reset_all_settings():
 async def open_settings_menu(main_screen):
     """Renders a centered settings modal dialog box directly onto the main game canvas."""
     global background_music_volume, emergency_volume, is_muted
-    global text_speed
+    global text_speed, is_game_paused
     
     # Temporarily freeze all audio outputs while interacting with controls
     trigger_click_sound()
+    is_game_paused = True
     
     # Track the main window's dynamic width and height for perfect center positioning
     base_w = main_screen.get_width()
@@ -426,6 +430,8 @@ async def open_settings_menu(main_screen):
         
         # Yield control back to browser compilation system layout safely
         await asyncio.sleep(0)
+        
+    is_game_paused = False
 
 def trigger_warning_sound():
     global warning_sound, emergency_volume
@@ -728,9 +734,7 @@ def draw_settings_button(surface, mouse_pos):
 
 async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=False):
     """Animates text into the terminal log list while responding instantly to text_speed changes."""
-    global terminal_logs, text_speed, screen, clock
-    
-    current_sleep_delay = override_speed if override_speed is not None else text_speed
+    global terminal_logs, text_speed, screen, clock, is_game_paused
     
     # Append an entry holding a blank text canvas paired with color target
     terminal_logs.append(["", color])
@@ -742,6 +746,10 @@ async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=Fals
     
     for letter in text:
         try:
+            while is_game_paused:
+                await asyncio.sleep(0.05)
+            current_sleep_delay = override_speed if override_speed is not None else text_speed
+
             # Handle dynamic word wrapping
             if len(current_line_text) >= max_chars_per_line and letter == " ":
                 terminal_logs[line_index][0] = current_line_text.strip()
@@ -812,39 +820,81 @@ async def game_restart_screen():
     current_stage = "stage1"
 
 async def run_boot_sequence():
-    """Plays the mainframe boot animation sequentially using clean async sleep pauses."""
+    """Plays a clean, friendly, and non-overwhelming terminal welcome sequence."""
+    global draw_boot_bar, boot_bar_pct
     trigger_click_sound()
-    # 1. Chronological Timeline Executions
-    await typewriter("CONNECTING TO NASA CENTRAL MAINFRAME...", color=COLOR_CYAN, override_speed=0.01)
-    await asyncio.sleep(1.7) # Delays next line until 1800ms mark from boot startup
     
-    await typewriter("LOADING ORION-X CRITICAL TELEMETRY STACKS... [OK]", color=COLOR_GREEN, override_speed=0.01)
-    await asyncio.sleep(2.3) # Reaches the 4200ms mark chronologically
+    # Ensure progress bar state starts fresh
+    draw_boot_bar = False
+    boot_bar_pct = 0
+
+    # --- STAGE 1: WELCOME BANNER ---
+    await typewriter("THE ARES HORIZON // TERMINAL BOOT SEQUENCE", color=COLOR_YELLOW, override_speed=0.005)
+    await asyncio.sleep(0.3)
     
-    await typewriter("ESTABLISHING ENCRYPTED LINK TO LAUNCH PAD... [OK]", color=COLOR_GREEN, override_speed=0.01)
-    await asyncio.sleep(2.5) # Reaches the 6800ms mark chronologically
+    dump_lines = [
+        "  > USER PROFILE LOADED... WELCOME COMMANDER",
+        "  > SECURE SATELLITE CONNECTION STATUS... [ONLINE]",
+        "  > LIFE SUPPORT & CABIN SYSTEMS CHECK... [SAFE]"
+    ]
+    for line in dump_lines:
+        await typewriter(line, color=COLOR_CYAN, override_speed=0.002)
+        trigger_click_sound()
+        await asyncio.sleep(0.12)
+        
+    await asyncio.sleep(0.3)
+
+    # --- STAGE 2: SIMPLE SHIP HEALTH CHECK ---
+    await typewriter("\nPRE-FLIGHT HARDWARE INTEGRITY TEST:", color=COLOR_YELLOW, override_speed=0.005)
+    await asyncio.sleep(0.15)
     
-    # 2. Initialize the Progress Bar header row
-    await typewriter("\nINITIALIZING MAIN OPERATIONS ARRAY...", color=COLOR_YELLOW, override_speed=0.01)
-    await asyncio.sleep(1.6) # Reaches the 8500ms mark chronologically
+    systems = [
+        ("STEERING GYROS", "CALIBRATED"),
+        ("ENGINE THRUSTERS", "STABLE"),
+        ("HEAT SHIELDS", "READY")
+    ]
+    for name, status in systems:
+        # Padded dots for columns alignment matrix
+        dots = "." * (25 - len(name))
+        msg = f"  >> {name} {dots} [{status}]"
+        await typewriter(msg, color=COLOR_GREEN, override_speed=0.003)
+        trigger_click_sound()
+        await asyncio.sleep(0.15)
+
+    await asyncio.sleep(0.3)
+
+    # --- STAGE 3: GAME LOAD INITIATION ---
+    await typewriter("\nSETTING UP FLIGHT DEEP MONITOR INTERFACE PANEL...", color=COLOR_YELLOW, override_speed=0.005)
     
-    # 3. Animate loading updates inside the terminal window log tracking arrays
-    await typewriter("PROGRESS: [███.....................] 15%", color=COLOR_CYAN, override_speed=0.01)
-    await asyncio.sleep(1.4) # Reaches the 10000ms mark chronologically
+    # 1. Turn on the graphics flag so main engine loop handles drawing the bar safely
+    draw_boot_bar = True
     
-    update_progress("PROGRESS: [█████████...............] 35%")
-    await asyncio.sleep(1.4) # Reaches the 11500ms mark chronologically
+    # 2. Smoothly increment the tracker step-by-step using async delays
+    while boot_bar_pct < 100:
+        boot_bar_pct += 1
+        
+        if boot_bar_pct % 15 == 0 or boot_bar_pct > 96:
+            trigger_click_sound()
+            
+        # Realistic processing timeline variations
+        if 42 <= boot_bar_pct <= 48:
+            await asyncio.sleep(0.05)
+        elif 88 <= boot_bar_pct <= 93:
+            await asyncio.sleep(0.04)
+        else:
+            await asyncio.sleep(0.015)
+
+    # 3. Hold at 100% briefly, then shut off the progress bar graphics container frame
+    await asyncio.sleep(0.4)
+    draw_boot_bar = False
+
+    # --- STAGE 4: MAIN GAME TRANSITION ---
+    await typewriter("\nINTERFACE SETUP COMPLETED SUCCESSFULLY.", color=COLOR_CYAN, override_speed=0.005)
+    await typewriter("ALL MODULES ACTIVE. OPENING MAIN DASHBOARD...", color=COLOR_GREEN, override_speed=0.003)
+    trigger_click_sound()
+    await asyncio.sleep(1.0)
     
-    update_progress("PROGRESS: [██████████████..........] 55%")
-    await asyncio.sleep(1.4) # Reaches the 13000ms mark chronologically
-    
-    update_progress("PROGRESS: [███████████████████.....] 75%")
-    await asyncio.sleep(1.4) # Reaches the 14500ms mark chronologically
-    
-    update_progress("PROGRESS: [████████████████████████] 100% [Loading Complete]", add_newline=True)
-    await asyncio.sleep(2.9) # Reaches the 17500ms full boot sequence timeline constraint
-    
-    # 4. Safely advance to main operations gameplay setup
+    # Advance to main screen
     await trigger_game_start()
 
 async def trigger_game_start():
@@ -1959,6 +2009,26 @@ async def main():
             
         elif current_stage == "boot_sequence":
             draw_terminal_console(screen)
+
+            global draw_boot_bar, boot_bar_pct
+            if draw_boot_bar:
+                # Define layout positioning geometry
+                bar_width, bar_height = 450, 24
+                bar_x = (screen.get_width() - bar_width) // 2
+                bar_y = screen.get_height() - 220
+                
+                # Draw background track
+                pygame.draw.rect(screen, (48, 54, 61), (bar_x, bar_y, bar_width, bar_height), width=1)
+                pygame.draw.rect(screen, (22, 27, 34), (bar_x + 3, bar_y + 3, bar_width - 6, bar_height - 6))
+
+                # Calculate and paint the current progress fill width matching the async variable
+                current_fill_width = int((bar_width - 6) * (boot_bar_pct / 100.0))
+                if current_fill_width > 0:
+                    pygame.draw.rect(screen, (0, 180, 216), (bar_x + 3, bar_y + 3, current_fill_width, bar_height - 6))
+
+                # Render percentage label string underneath
+                pct_text = font_console.render(f"LOADING ALL SYSTEMS {boot_bar_pct}%", True, (0, 180, 216))
+                screen.blit(pct_text, ((screen.get_width() - pct_text.get_width()) // 2, bar_y + bar_height + 12))
             
         elif current_stage == "difficulty_menu":
             draw_difficulty_menu(screen, mouse_pos)
