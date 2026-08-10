@@ -14,6 +14,7 @@ is_boot_completed = False
 key_states = {}
 terminal_logs = []
 thruster_particles = []
+starfield_matrix = []
 text_speed = 0.045 
 is_minigame_unlocked = False
 draw_boot_bar = False
@@ -1212,6 +1213,45 @@ async def handle_choice3b(choice):
 #LANDING MINI GAME 
 #===========================================================================
 
+def initialize_space_starfield(count=60):
+    """Bakes a randomized collection of coordinate points to map your background deep space depth."""
+    global starfield_matrix
+    starfield_matrix.clear()
+    
+    for _ in range(count):
+        # Pick random placement across standard coordinate space layouts
+        starfield_matrix.append({
+            "x": random.uniform(0, 1.0),
+            "y": random.uniform(-0.1, 1.1),
+            "speed_multiplier": random.uniform(0.3, 1.4),
+            "size": random.choice([1, 1, 2, 3])
+        })
+
+def update_and_draw_starfield(surface, current_altitude, left_bound, right_bound):
+    """Updates background space vectors and renders parallax stars inside your central flight lane."""
+    global starfield_matrix
+    
+    scr_w, scr_h = surface.get_size()
+    
+    for star in starfield_matrix:
+        # Compute dynamic vertical positions using your game's current upward altitude progression
+        scroll_offset = int(current_altitude * star["speed_multiplier"])
+        pixel_y = int((star["y"] * scr_h) - scroll_offset) % scr_h
+        
+        lane_width = right_bound - left_bound
+        pixel_x = int(left_bound + (star["x"] * lane_width))
+        
+        # Determine brightness based on layer depth
+        brightness = int(100 + (star["speed_multiplier"] * 110))
+
+        r_val = min(255, max(0, int(brightness)))
+        g_val = min(255, max(0, int(brightness)))
+        b_val = min(255, max(0, int(brightness * 1.15)))
+        star_color = (r_val, g_val, b_val)
+        
+        # Draw a clean, hardware pixel block square matching console layout grid styles
+        pygame.draw.rect(surface, star_color, (pixel_x, pixel_y, star["size"], star["size"]))
+
 def spawn_thruster_spark(ship_x, ship_y, ship_width=50, ship_height=90):
     """Spawns an energetic engine exhaust spark at the base of the lander."""
     global thruster_particles
@@ -1259,7 +1299,9 @@ def run_physics_frame(surface):
     global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
     global prep_timer_frames, current_stage
     global move_left_active, move_right_active
-    global victory_altitude, pad_screen_y
+    global victory_altitude, pad_screen_y, is_emergency_active
+
+    is_emergency_active = False
 
     if not game_running:
         return
@@ -1300,6 +1342,8 @@ def run_physics_frame(surface):
     
     # 3. Graphics Rendering Operations
     surface.fill((15, 15, 25)) 
+
+    update_and_draw_starfield(surface, altitude, left_wall, right_wall)
     
     # Loop and draw moving spike segments dynamically
     for obs in obstacles:
@@ -1389,7 +1433,9 @@ def start_landing_simulation_canvas():
     """Initializes the physics engine properties and obstacles natively inside the global state machine."""
     global current_stage, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
-    global move_left_active, move_right_active, prep_timer_frames, victory_altitude
+    global move_left_active, move_right_active, prep_timer_frames, victory_altitude, is_emergency_active
+
+    is_emergency_active = False
     
     # 1. Reset Physics Engine States
     altitude = 0.0
@@ -1466,6 +1512,8 @@ def start_landing_simulation_canvas():
         current_side = chosen_side
         width = random.choice([small_w, medium_w, large_w])
         obstacles.append({"y": obs_y, "side": chosen_side, "width": width})
+
+    initialize_space_starfield(count=65)
 
     # 7. ROUTE ENGINE STATE MACHINE: Advance instantly into active minigame loop context
     current_stage = "landing_simulation"
@@ -1569,7 +1617,7 @@ async def end_game_session():
     global is_playing_standalone_minigame, current_stage
 
     trigger_screen_shake(intensity=16, duration=25)
-    
+
     await typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", color=(88, 166, 255)) # Cyan
     
     # Check if they came from the standalone button path shortcut
