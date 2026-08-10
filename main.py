@@ -19,6 +19,7 @@ is_minigame_unlocked = False
 draw_boot_bar = False
 boot_bar_pct = 0
 is_game_paused = False
+is_emergency_active = False
 
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
@@ -565,6 +566,37 @@ def trigger_screen_shake(intensity=8, duration=15):
         shake_intensity = intensity
         shake_duration = duration
 
+def draw_emergency_ambient_glow(surface):
+    global is_emergency_active
+    
+    if not is_emergency_active:
+        return
+        
+    scr_w, scr_h = surface.get_size()
+    time_ms = pygame.time.get_ticks()
+    
+    # Creates an organic breathing wave curve
+    pulse_wave = (math.sin(time_ms * 0.0035) + 1.0) / 2.0
+    breathing_curve = math.pow(pulse_wave, 2.0)
+    
+    # Balanced intensity
+    max_alpha = int(25 + (breathing_curve * 60))
+    
+    glow_surf = pygame.Surface((scr_w, scr_h), pygame.SRCALPHA)
+    
+    vignette_depth = 35
+    for i in range(vignette_depth):
+        factor = (vignette_depth - i) / float(vignette_depth)
+        layer_alpha = max(1, int(max_alpha * factor))
+        glow_color = (160, 15, 15, layer_alpha)
+
+        pygame.draw.rect(glow_surf, glow_color, (i, i, scr_w - i*2, scr_h - i*2), width=1)
+        
+    old_clip = surface.get_clip()
+    surface.set_clip(None)
+    surface.blit(glow_surf, (0, 0))
+    surface.set_clip(old_clip)
+
 def draw_close_button(surface, mouse_pos):
     """Renders the close button dynamically pinned to the top right corner."""
 
@@ -782,11 +814,12 @@ def update_progress(text, add_newline=False, color=(88, 166, 255)):
 
 async def game_restart_screen():
     """Wipes the boot console clean and launches the initial narrative story text intro sequence."""
-    global try_again_counter, current_stage, terminal_logs, is_boot_completed
+    global try_again_counter, current_stage, terminal_logs, is_boot_completed, is_emergency_active
     
     trigger_click_sound()
 
     is_boot_completed = True
+    is_emergency_active = False
     
     # 1. Clear the terminal log array completely to prepare a fresh, blank canvas
     terminal_logs.clear()
@@ -805,8 +838,11 @@ async def game_restart_screen():
     await typewriter("The Orion-X awaits launch", color=(230, 237, 243))
     
     trigger_warning_sound()
-    
-    await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31)) # Alert Red color
+
+    is_emergency_active = True
+    trigger_screen_shake(intensity=10, duration=15)
+
+    await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))
     await typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', color=(219, 43, 31))
     
     # 4. SWAP STATE TO NARRATIVE MODE: Once all text animations complete, show the Stage 1 choice buttons
@@ -818,83 +854,84 @@ async def run_boot_sequence():
     trigger_click_sound()
     
     # Ensure progress bar state starts fresh
-    draw_boot_bar = False
-    boot_bar_pct = 0
+    #draw_boot_bar = False
+    #boot_bar_pct = 0
 
     # --- STAGE 1: WELCOME BANNER ---
-    await typewriter("THE ARES HORIZON // TERMINAL BOOT SEQUENCE", color=COLOR_YELLOW, override_speed=0.005)
-    await asyncio.sleep(0.3)
+    #await typewriter("THE ARES HORIZON // TERMINAL BOOT SEQUENCE", color=COLOR_YELLOW, override_speed=0.005)
+    #await asyncio.sleep(0.3)
     
-    dump_lines = [
-        "  > USER PROFILE LOADED... WELCOME COMMANDER",
-        "  > SECURE SATELLITE CONNECTION STATUS... [ONLINE]",
-        "  > LIFE SUPPORT & CABIN SYSTEMS CHECK... [SAFE]"
-    ]
-    for line in dump_lines:
-        await typewriter(line, color=COLOR_CYAN, override_speed=0.002)
-        trigger_click_sound()
-        await asyncio.sleep(0.12)
+    #dump_lines = [
+    #    "  > USER PROFILE LOADED... WELCOME COMMANDER",
+    #    "  > SECURE SATELLITE CONNECTION STATUS... [ONLINE]",
+    #    "  > LIFE SUPPORT & CABIN SYSTEMS CHECK... [SAFE]"
+    #]
+    #for line in dump_lines:
+    #    await typewriter(line, color=COLOR_CYAN, override_speed=0.002)
+    #    trigger_click_sound()
+    #    await asyncio.sleep(0.12)
         
-    await asyncio.sleep(0.3)
+    #await asyncio.sleep(0.3)
 
     # --- STAGE 2: SIMPLE SHIP HEALTH CHECK ---
-    await typewriter("\nPRE-FLIGHT HARDWARE INTEGRITY TEST:", color=COLOR_YELLOW, override_speed=0.005)
-    await asyncio.sleep(0.15)
+    #await typewriter("\nPRE-FLIGHT HARDWARE INTEGRITY TEST:", color=COLOR_YELLOW, override_speed=0.005)
+    #await asyncio.sleep(0.15)
     
-    systems = [
-        ("STEERING GYROS", "CALIBRATED"),
-        ("ENGINE THRUSTERS", "STABLE"),
-        ("HEAT SHIELDS", "READY")
-    ]
-    for name, status in systems:
-        # Padded dots for columns alignment matrix
-        dots = "." * (25 - len(name))
-        msg = f"  >> {name} {dots} [{status}]"
-        await typewriter(msg, color=COLOR_GREEN, override_speed=0.003)
-        trigger_click_sound()
-        await asyncio.sleep(0.15)
+    #systems = [
+    #    ("STEERING GYROS", "CALIBRATED"),
+    #    ("ENGINE THRUSTERS", "STABLE"),
+    #    ("HEAT SHIELDS", "READY")
+    #]
+    #for name, status in systems:
+    #    # Padded dots for columns alignment matrix
+    #    dots = "." * (25 - len(name))
+    #    msg = f"  >> {name} {dots} [{status}]"
+    #    await typewriter(msg, color=COLOR_GREEN, override_speed=0.003)
+    #    trigger_click_sound()
+    #    await asyncio.sleep(0.15)
 
-    await asyncio.sleep(0.3)
+    #await asyncio.sleep(0.3)
 
     # --- STAGE 3: GAME LOAD INITIATION ---
-    await typewriter("\nSETTING UP FLIGHT DEEP MONITOR INTERFACE PANEL...", color=COLOR_YELLOW, override_speed=0.005)
+    #await typewriter("\nSETTING UP FLIGHT DEEP MONITOR INTERFACE PANEL...", color=COLOR_YELLOW, override_speed=0.005)
     
     # 1. Turn on the graphics flag so main engine loop handles drawing the bar safely
-    draw_boot_bar = True
+    #draw_boot_bar = True
     
     # 2. Smoothly increment the tracker step-by-step using async delays
-    while boot_bar_pct < 100:
-        boot_bar_pct += 1
+    #while boot_bar_pct < 100:
+    #    boot_bar_pct += 1
         
-        if boot_bar_pct % 15 == 0 or boot_bar_pct > 96:
-            trigger_click_sound()
+    #    if boot_bar_pct % 15 == 0 or boot_bar_pct > 96:
+    #        trigger_click_sound()
             
         # Realistic processing timeline variations
-        if 42 <= boot_bar_pct <= 48:
-            await asyncio.sleep(0.05)
-        elif 88 <= boot_bar_pct <= 93:
-            await asyncio.sleep(0.04)
-        else:
-            await asyncio.sleep(0.015)
+    #    if 42 <= boot_bar_pct <= 48:
+    #        await asyncio.sleep(0.05)
+    #    elif 88 <= boot_bar_pct <= 93:
+    #        await asyncio.sleep(0.04)
+    #    else:
+    #        await asyncio.sleep(0.015)
 
     # 3. Hold at 100% briefly, then shut off the progress bar graphics container frame
-    await asyncio.sleep(0.4)
-    draw_boot_bar = False
+    #await asyncio.sleep(0.4)
+    #draw_boot_bar = False
 
     # --- STAGE 4: MAIN GAME TRANSITION ---
-    await typewriter("\nINTERFACE SETUP COMPLETED SUCCESSFULLY.", color=COLOR_CYAN, override_speed=0.005)
-    await typewriter("ALL MODULES ACTIVE. OPENING MAIN DASHBOARD...", color=COLOR_GREEN, override_speed=0.003)
-    trigger_click_sound()
-    await asyncio.sleep(1.0)
+    #await typewriter("\nINTERFACE SETUP COMPLETED SUCCESSFULLY.", color=COLOR_CYAN, override_speed=0.005)
+    #await typewriter("ALL MODULES ACTIVE. OPENING MAIN DASHBOARD...", color=COLOR_GREEN, override_speed=0.003)
+    #trigger_click_sound()
+    #await asyncio.sleep(1.0)
     
     # Advance to main screen
     await trigger_game_start()
 
 async def trigger_game_start():
     """Wipes the boot console clean and initializes Chapter 1 narrative introduction sequence."""
-    global current_stage, terminal_logs, is_boot_completed
+    global current_stage, terminal_logs, is_boot_completed, is_emergency_active
 
     is_boot_completed = True
+    is_emergency_active = False
     
     # 1. Clear the terminal logs array completely to prepare a fresh, blank canvas
     terminal_logs.clear()
@@ -914,6 +951,9 @@ async def trigger_game_start():
 
     trigger_warning_sound()
 
+    is_emergency_active = True
+    trigger_screen_shake(intensity=10, duration=15)
+
     await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))
     await typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', color=(219, 43, 31))
     
@@ -922,10 +962,11 @@ async def trigger_game_start():
 
 async def handle_choice1(choice):
     """Processes choice inputs for Stage 1, applying penalties and animating dynamic story outcomes."""
-    global crew_safety, mission_budget, science_points, current_stage, terminal_logs
+    global crew_safety, mission_budget, science_points, current_stage, terminal_logs, is_emergency_active
     
     stop_all_sounds()
     trigger_click_sound()
+    is_emergency_active = False
 
     # 1. Clear the terminal log array completely to prepare a fresh narrative backdrop canvas
     terminal_logs.clear()
@@ -960,6 +1001,10 @@ async def handle_choice1(choice):
         # Transition cleanly into the Stage 2A plot fork setup
         await typewriter("\nSTAGE-2: THE ORBITAL ANOMALY", color=(242, 204, 96), bold=True)
         trigger_spacecraft_warning_sound()
+
+        is_emergency_active = True
+        trigger_screen_shake(intensity=10, duration=15)
+
         await typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", color=(219, 43, 31))
         
         # 3a. SWAP STATE TO SHOW STAGE 2A BUTTONS: Once text finishes animating
@@ -991,6 +1036,10 @@ async def handle_choice1(choice):
         # Transition cleanly into the Stage 2B plot fork setup
         await typewriter("\nSTAGE-2: LOST IN SPACE", color=(242, 204, 96), bold=True)
         trigger_warning_sound()
+
+        is_emergency_active = True
+        trigger_screen_shake(intensity=10, duration=15)
+
         await typewriter("Deep in space, a massive radiation storm knocks down your primary navigation computer", color=(219, 43, 31))
         await typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!", color=(219, 43, 31))
         
@@ -1088,10 +1137,12 @@ async def handle_choice3a(choice):
 
 async def handle_choice2b(choice):
     """Processes narrative choice inputs for Stage 2B (Lost in Space)."""
-    global crew_safety, mission_budget, science_points, current_stage, terminal_logs
+    global crew_safety, mission_budget, science_points, current_stage, terminal_logs, is_emergency_active
     
     stop_all_sounds()
     trigger_click_sound()
+
+    is_emergency_active = False
     
     # 1. Clear text log stack and assign temporary typing state
     terminal_logs.clear()
@@ -1109,6 +1160,10 @@ async def handle_choice2b(choice):
         # Transition into Stage 3B low power plot line
         await typewriter("\nSTAGE-3: LOW POWER", color=(242, 204, 96), bold=True) 
         trigger_spacecraft_warning_sound()
+
+        is_emergency_active = True
+        trigger_screen_shake(intensity=10, duration=15)
+
         await typewriter("The crew arrive at Mars in a critically underpowered ship", color=(219, 43, 31))
         await typewriter("With the low power, you cannot run both the heaters and the landing thrusters", color=(219, 43, 31))
         
@@ -1512,6 +1567,8 @@ async def landing_success():
 async def end_game_session():
     """Prints a rolling metric evaluation log and routes users to choice screens."""
     global is_playing_standalone_minigame, current_stage
+
+    trigger_screen_shake(intensity=16, duration=25)
     
     await typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", color=(88, 166, 255)) # Cyan
     
@@ -2037,6 +2094,10 @@ async def main():
         
         # Blit the entire finished game canvas onto the screen applying the shaking displacements
         screen.blit(game_canvas, (camera_offset_x, camera_offset_y))
+
+        global is_emergency_active
+        if is_emergency_active:
+            draw_emergency_ambient_glow(screen)
 
         pygame.display.flip()
         clock.tick(60)
