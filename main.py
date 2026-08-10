@@ -550,10 +550,25 @@ font_console = pygame.font.Font(twcen_path, 20)
 
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 
+game_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
+
+shake_duration = 0
+shake_intensity = 0
+camera_offset_x = 0
+camera_offset_y = 0
+
+def trigger_screen_shake(intensity=8, duration=15):
+    """Activates a camera rattle sequence across a specific frame timeline duration."""
+    global shake_intensity, shake_duration
+    # Only overwrite if the new shake is stronger than a shake currently active
+    if intensity >= shake_intensity:
+        shake_intensity = intensity
+        shake_duration = duration
+
 def create_crt_mask():
     """Generates a reusable horizontal scanline mask layer to maximize CPU efficiency."""
     
-    # Create a scratch canvas matching your exact screen resolution supporting an alpha channel
+    # Create a scratch canvas matching the exact screen resolution supporting an alpha channel
     mask = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
     
     # 1. Bake horizontal dark scanning paths
@@ -1491,6 +1506,7 @@ is_playing_standalone_minigame = False
 async def space_ship_crash():
     """Triggers the crash animation sequences and forces endgame stat calculations."""
     global crew_safety, mission_budget
+    trigger_screen_shake(intensity=16, duration=25)
     trigger_mission_failed_sound()
     
     await typewriter("CRASH: Space shuttle hull compromised!", color=(219, 43, 31))
@@ -1998,53 +2014,69 @@ async def main():
         # ----------------------------------------------------
         # 3. DRAWING / RENDERING STATE MACHINE ROUTING LAYER
         # ----------------------------------------------------
-        screen.fill(BG_MAIN) 
+
+        game_canvas.fill(BG_MAIN) 
     
         if current_stage not in ["welcome"]:
-            draw_telemetry_dashboard(screen)
+            draw_telemetry_dashboard(game_canvas)
 
         # STATE MAPPING ENGINES
         if current_stage == "welcome":
-            draw_welcome_screen(screen, mouse_pos)
+            draw_welcome_screen(game_canvas, mouse_pos)
             
         elif current_stage == "boot_sequence":
-            draw_terminal_console(screen)
-
+            draw_terminal_console(game_canvas)
+            
             global draw_boot_bar, boot_bar_pct
             if draw_boot_bar:
-                # Define layout positioning geometry
                 bar_width, bar_height = 450, 24
-                bar_x = (screen.get_width() - bar_width) // 2
-                bar_y = screen.get_height() - 220
-                
-                # Draw background track
-                pygame.draw.rect(screen, (48, 54, 61), (bar_x, bar_y, bar_width, bar_height), width=1)
-                pygame.draw.rect(screen, (22, 27, 34), (bar_x + 3, bar_y + 3, bar_width - 6, bar_height - 6))
-
-                # Calculate and paint the current progress fill width matching the async variable
+                bar_x = (game_canvas.get_width() - bar_width) // 2
+                bar_y = game_canvas.get_height() - 220 
+                pygame.draw.rect(game_canvas, (48, 54, 61), (bar_x, bar_y, bar_width, bar_height), width=1)
+                pygame.draw.rect(game_canvas, (22, 27, 34), (bar_x + 3, bar_y + 3, bar_width - 6, bar_height - 6))
                 current_fill_width = int((bar_width - 6) * (boot_bar_pct / 100.0))
                 if current_fill_width > 0:
-                    pygame.draw.rect(screen, (0, 180, 216), (bar_x + 3, bar_y + 3, current_fill_width, bar_height - 6))
-
-                # Render percentage label string underneath
-                pct_text = font_console.render(f"LOADING ALL SYSTEMS {boot_bar_pct}%", True, (0, 180, 216))
-                screen.blit(pct_text, ((screen.get_width() - pct_text.get_width()) // 2, bar_y + bar_height + 12))
+                    pygame.draw.rect(game_canvas, (0, 180, 216), (bar_x + 3, bar_y + 3, current_fill_width, bar_height - 6))
+                pct_text = font_console.render(f"SYSTEM SETUP CONTEXT: {boot_bar_pct}%", True, (0, 180, 216))
+                game_canvas.blit(pct_text, ((game_canvas.get_width() - pct_text.get_width()) // 2, bar_y + bar_height + 12))
             
         elif current_stage == "difficulty_menu":
-            draw_difficulty_menu(screen, mouse_pos)
+            draw_difficulty_menu(game_canvas, mouse_pos)
             
         elif current_stage in STAGE_CONTENT:
-            draw_terminal_console(screen)
-            draw_choice_interface(screen, mouse_pos)
+            draw_terminal_console(game_canvas)
+            draw_choice_interface(game_canvas, mouse_pos)
             
         elif current_stage == "landing_simulation":
-            run_physics_frame(screen)
+            run_physics_frame(game_canvas)
 
         if current_stage != "landing_simulation":
-            draw_settings_button(screen, mouse_pos)
+            draw_settings_button(game_canvas, mouse_pos)
         
-        # Keep close game handle alive in all layers as an absolute application recovery bypass
-        draw_close_button(screen, mouse_pos)
+        draw_close_button(game_canvas, mouse_pos)
+
+        global shake_duration, shake_intensity, camera_offset_x, camera_offset_y
+        
+        if shake_duration > 0:
+            # Generate random pixel displacements bounded by the active intensity power scale
+            camera_offset_x = random.randint(-shake_intensity, shake_intensity)
+            camera_offset_y = random.randint(-shake_intensity, shake_intensity)
+            shake_duration -= 1
+            
+            # Smoothly damp down the rumble intensity as the shake nears its timeline end
+            if shake_duration == 0:
+                shake_intensity = 0
+                camera_offset_x = 0
+                camera_offset_y = 0
+        else:
+            camera_offset_x = 0
+            camera_offset_y = 0
+
+        # Clear physical hardware screen completely
+        screen.fill((0, 0, 0))
+        
+        # Blit the entire finished game canvas onto the screen applying the shaking displacements
+        screen.blit(game_canvas, (camera_offset_x, camera_offset_y))
 
         draw_crt_overlay(screen)
 
