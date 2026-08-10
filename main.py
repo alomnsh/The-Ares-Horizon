@@ -538,7 +538,7 @@ screen_info = pygame.display.Info()
 WINDOW_WIDTH = screen_info.current_w
 WINDOW_HEIGHT = screen_info.current_h
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
 is_fullscreen = True
@@ -564,28 +564,6 @@ def trigger_screen_shake(intensity=8, duration=15):
     if intensity >= shake_intensity:
         shake_intensity = intensity
         shake_duration = duration
-
-def create_crt_mask():
-    """Generates a reusable horizontal scanline mask layer to maximize CPU efficiency."""
-    
-    # Create a scratch canvas matching the exact screen resolution supporting an alpha channel
-    mask = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SRCALPHA)
-    
-    # 1. Bake horizontal dark scanning paths
-    for y in range(0, WINDOW_HEIGHT, 2):
-        pygame.draw.line(mask, (5, 8, 12, 100), (0, y), (WINDOW_WIDTH, y))
-        
-    # 2. Absolute Edge Vignette Corners
-    edge_thickness = 25
-    pygame.draw.rect(mask, (0, 0, 0, 85), (0, 0, WINDOW_WIDTH, edge_thickness))
-    pygame.draw.rect(mask, (0, 0, 0, 85), (0, WINDOW_HEIGHT - edge_thickness, WINDOW_WIDTH, edge_thickness))
-    pygame.draw.rect(mask, (0, 0, 0, 85), (0, 0, edge_thickness, WINDOW_HEIGHT))
-    pygame.draw.rect(mask, (0, 0, 0, 85), (WINDOW_WIDTH - edge_thickness, 0, edge_thickness, WINDOW_HEIGHT))
-    
-    return mask
-
-# Initialize the full screen mask using the global hardware window parameters
-crt_mask_layer = create_crt_mask()
 
 def draw_close_button(surface, mouse_pos):
     """Renders the close button dynamically pinned to the top right corner."""
@@ -1833,22 +1811,6 @@ terminal_logs = [
     ["ARES HORIZON OPERATING SYSTEM v2.1.0", (126, 231, 135)],
 ]
 
-def draw_crt_overlay(surface):
-    """Temporarily clears surface clipping to stretch scanlines perfectly to the edge."""
-    global crt_mask_layer
-    
-    # Save any active viewport clipping boxes set by other menu interfaces
-    old_clip = surface.get_clip()
-    
-    # Clear out any active constraints so we can paint the true edges of the monitor
-    surface.set_clip(None)
-    
-    # Blit our master hardware-sized mask at absolute coordinate
-    surface.blit(crt_mask_layer, (0, 0))
-    
-    # Restore original interface boundaries
-    surface.set_clip(old_clip)
-
 def draw_terminal_console(surface):
     """Renders a responsive text log console container, leaving bottom padding space for choices."""
     global terminal_logs, current_stage
@@ -2055,8 +2017,9 @@ async def main():
         
         draw_close_button(game_canvas, mouse_pos)
 
+        screen.fill((10, 12, 16))
+
         global shake_duration, shake_intensity, camera_offset_x, camera_offset_y
-        
         if shake_duration > 0:
             # Generate random pixel displacements bounded by the active intensity power scale
             camera_offset_x = random.randint(-shake_intensity, shake_intensity)
@@ -2071,14 +2034,9 @@ async def main():
         else:
             camera_offset_x = 0
             camera_offset_y = 0
-
-        # Clear physical hardware screen completely
-        screen.fill((0, 0, 0))
         
         # Blit the entire finished game canvas onto the screen applying the shaking displacements
         screen.blit(game_canvas, (camera_offset_x, camera_offset_y))
-
-        draw_crt_overlay(screen)
 
         pygame.display.flip()
         clock.tick(60)
