@@ -21,6 +21,10 @@ draw_boot_bar = False
 boot_bar_pct = 0
 is_game_paused = False
 is_emergency_active = False
+fall_velocity = 0
+ship_fuel = 100.0
+pad_start_x = -1
+_cached_crt_overlay = None
 
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
@@ -567,6 +571,27 @@ def trigger_screen_shake(intensity=8, duration=15):
         shake_intensity = intensity
         shake_duration = duration
 
+def apply_global_crt_filter(surface):
+    """A highly optimized, hardware-friendly version of the CRT filter
+
+    that utilizes a pre-rendered cache layer to eliminate CPU loop overhead.
+    """
+    global _cached_crt_overlay
+    f_w = surface.get_width()
+    f_h = surface.get_height()
+    
+    # 1. Generate the surface layer map only once on initial boot
+    if _cached_crt_overlay is None or _cached_crt_overlay.get_size() != (f_w, f_h):
+        # Create an alpha-transparent canvas surface matched to the display resolution
+        _cached_crt_overlay = pygame.Surface((f_w, f_h), pygame.SRCALPHA)
+        
+        # Write the line matrices to the permanent cache layer memory storage block
+        for y in range(0, f_h, 4):
+            pygame.draw.line(_cached_crt_overlay, (0, 0, 0, 18), (0, y), (f_w, y), width=1)
+            
+    # 2. On all subsequent frames, perform a single fast blit operation (No loops executed)
+    surface.blit(_cached_crt_overlay, (0, 0))
+
 def draw_emergency_ambient_glow(surface):
     global is_emergency_active
     
@@ -841,7 +866,7 @@ async def game_restart_screen():
     trigger_warning_sound()
 
     is_emergency_active = True
-    trigger_screen_shake(intensity=10, duration=15)
+    
 
     await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))
     await typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', color=(219, 43, 31))
@@ -953,7 +978,7 @@ async def trigger_game_start():
     trigger_warning_sound()
 
     is_emergency_active = True
-    trigger_screen_shake(intensity=10, duration=15)
+    
 
     await typewriter("Suddenly, your lead flight engineer, Mark, announces on the comms:", color=(219, 43, 31))
     await typewriter('"Director! The Upper Atmosphere winds just exceeded 8% past our safety limits!"', color=(219, 43, 31))
@@ -1004,7 +1029,7 @@ async def handle_choice1(choice):
         trigger_spacecraft_warning_sound()
 
         is_emergency_active = True
-        trigger_screen_shake(intensity=10, duration=15)
+        
 
         await typewriter("Mark alerts you: Liquid Oxygen pressure in Engine 2 is dropping rapidly!", color=(219, 43, 31))
         
@@ -1039,7 +1064,7 @@ async def handle_choice1(choice):
         trigger_warning_sound()
 
         is_emergency_active = True
-        trigger_screen_shake(intensity=10, duration=15)
+        
 
         await typewriter("Deep in space, a massive radiation storm knocks down your primary navigation computer", color=(219, 43, 31))
         await typewriter("\nMark scrambles: Director, the main computer is dead, we are drifting!", color=(219, 43, 31))
@@ -1163,7 +1188,7 @@ async def handle_choice2b(choice):
         trigger_spacecraft_warning_sound()
 
         is_emergency_active = True
-        trigger_screen_shake(intensity=10, duration=15)
+        
 
         await typewriter("The crew arrive at Mars in a critically underpowered ship", color=(219, 43, 31))
         await typewriter("With the low power, you cannot run both the heaters and the landing thrusters", color=(219, 43, 31))
@@ -1295,145 +1320,282 @@ def update_and_draw_thrusters(surface):
         surface.blit(spark_surf, (int(p["x"]), int(p["y"])))
 
 def run_physics_frame(surface):
-    """Updates game mechanics and handles collisions directly on the primary screen canvas."""
-    global altitude, velocity_y, ship_angle, ship_x, ship_y, game_running, current_difficulty
-    global prep_timer_frames, current_stage
+    """Updates game mechanics, handles infinite horizontal screen wrapping, 
+    and generates a scrolling camera-relative vector terrain layout.
+    """
+    global altitude, ship_angle, ship_x, ship_y, game_running, current_difficulty
+    global prep_timer_frames, current_stage, fall_velocity, ship_fuel, pad_start_x
     global move_left_active, move_right_active
     global victory_altitude, pad_screen_y, is_emergency_active
-
+    global thruster_particles
+    
     is_emergency_active = False
-
     if not game_running:
         return
-        
-    # 1. Pull dynamic window geometry parameters from main surface
+
     f_w = surface.get_width()
     f_h = surface.get_height()
-    
-    screen_center_x = f_w // 2
-    left_wall = screen_center_x - 175
-    right_wall = screen_center_x + 175
-    
-    # 2. Continuous Input Slide and Tilt Physics Calculations
+
+    # Generate landing pad horizontal position if not initialized
+    if pad_start_x < 0:
+        pad_start_x = random.randint(int(f_w * 0.1), int(f_w * 0.8))
+
+    # =========================================================================
+    # HORIZONTAL MOVEMENT AND EDGE SCREEN WRAPPING
+    # =========================================================================
     if move_left_active:
-        ship_x -= 6  
-        ship_angle = min(25, ship_angle + 3)
+        ship_x -= 6.5
+        ship_angle = min(28, ship_angle + 3.5)
     elif move_right_active:
-        ship_x += 6  
-        ship_angle = max(-25, ship_angle - 3)
+        ship_x += 6.5
+        ship_angle = max(-28, ship_angle - 3.5)
     else:
-        ship_angle *= 0.85
-    
-    # Symmetrical edge guards to prevent sliding past the dark gray walls
-    if ship_x - 25 < left_wall:  ship_x = left_wall + 25
-    if ship_x + 25 > right_wall: ship_x = right_wall - 25
-        
-    # Scroll layout speed modifiers based on active difficulty choice
+        ship_angle *= 0.82
+
+    # Infinite wrap coordinates around screen borders
+    if ship_x < 0: ship_x += f_w
+    elif ship_x > f_w: ship_x -= f_w
+
+    # Calculate horizontal camera center offset relative to the ship position
+    camera_offset_x = ship_x - (f_w // 2)
+
+    # =========================================================================
+    # VERTICAL DESCENT AND THRUSTER INPUT PHYSICS
+    # =========================================================================
+    up_arrow_pressed = pygame.key.get_pressed()[pygame.K_UP]
+    down_arrow_pressed = pygame.key.get_pressed()[pygame.K_DOWN]
+
+    if current_difficulty == "EASY":
+        gravity = 0.022
+        engine_brake = 0.088
+    elif current_difficulty == "MEDIUM":
+        gravity = 0.038
+        engine_brake = 0.078
+    else:
+        gravity = 0.052
+        engine_brake = 0.065
+
     if prep_timer_frames > 0:
         altitude += 1.5
+        fall_velocity = 1.2
         prep_timer_frames -= 1
     else:
-        if current_difficulty == "EASY":
-            altitude += 2.0
-        elif current_difficulty == "MEDIUM":
-            altitude += 3.2
-        else: # HARD
-            altitude += 4.5   
-    
-    # 3. Graphics Rendering Operations
-    surface.fill((15, 15, 25)) 
-
-    update_and_draw_starfield(surface, altitude, left_wall, right_wall)
-    
-    # Loop and draw moving spike segments dynamically
-    for obs in obstacles:
-        screen_y = obs["y"] - int(altitude)
-        if -150 < screen_y < f_h + 150:
-            calculated_height = int(obs["width"] * 0.3)
-            
-            if obs["side"] == "LEFT":
-                scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
-                surface.blit(scaled_spike, (left_wall - 40, screen_y))
-            else:
-                scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
-                surface.blit(scaled_spike, (right_wall + 40 - obs["width"], screen_y))
+        if ship_fuel > 0:
+            if up_arrow_pressed:
+                # Apply retro braking forces, consume fuel, and spawn exhaust particles
+                fall_velocity = max(0.2, fall_velocity - engine_brake)
+                ship_fuel = max(0.0, ship_fuel - 0.28)
                 
-    # Render Green Touchdown Landing Pad
+                for _ in range(3):
+                    engine_x = ship_x + random.randint(-8, 8)
+                    engine_y = ship_y + 40
+                    p_vx = -ship_angle * 0.1 + random.uniform(-1.5, 1.5)
+                    thruster_particles.append({
+                        "x": float(engine_x), "y": float(engine_y),
+                        "vx": p_vx, "vy": random.uniform(5.0, 9.5),
+                        "life": 255, "type": random.choice(["plasma", "fire", "smoke"])
+                    })
+            elif down_arrow_pressed:
+                # Apply vertical downward overdrive thrust
+                fall_velocity += gravity * 2.2
+                ship_fuel = max(0.0, ship_fuel - 0.18)
+            else:
+                # Natural acceleration under gravity
+                fall_velocity += gravity
+        else:
+            # Out of fuel: pure gravity fall
+            fall_velocity += gravity
+
+        altitude += fall_velocity
+
+    # =========================================================================
+    # MARTIAN TERRAIN SCROLL RENDERING
+    # =========================================================================
+    surface.fill((10, 12, 18))
+    update_and_draw_starfield(surface, altitude, int(camera_offset_x * 0.25), f_w)
+
     pad_screen_y = victory_altitude - int(altitude)
-    if -100 < pad_screen_y < f_h + 100:
-        pygame.draw.rect(surface, (0, 255, 100), (left_wall, pad_screen_y, 350, 30))
-        pad_font = pygame.font.Font(twcenbold_path, 16)
-        pad_text = pad_font.render("---TOUCHDOWN ZONE---", True, (0, 0, 0))
-        surface.blit(pad_text, (screen_center_x - (pad_text.get_width() // 2), pad_screen_y + 6))
+    ground_level_y = pad_screen_y + 20
+    pad_width = int(f_w * 0.12)
+    scr_pad_x = pad_start_x - camera_offset_x
+    target_center_x = pad_start_x + (pad_width // 2)
 
-    update_and_draw_thrusters(surface)
+    if ground_level_y < f_h + 400:
+        # Background mountain silhouette coordinates for depth simulation
+        bg_points = [
+            (-f_w, f_h), (-f_w, ground_level_y + 120),
+            (pad_start_x * 0.5 - camera_offset_x, ground_level_y + 160),
+            (scr_pad_x - 80, ground_level_y + 90),
+            (scr_pad_x + pad_width // 2, ground_level_y + 100),
+            (scr_pad_x + pad_width + 80, ground_level_y + 80),
+            (f_w * 2, ground_level_y + 140), (f_w * 2, f_h)
+        ]
+        pygame.draw.polygon(surface, (24, 20, 26), bg_points)
+        pygame.draw.lines(surface, (36, 30, 40), False, bg_points[1:-1], width=1)
 
-    pygame.draw.rect(surface, (40, 40, 45), (0, 0, left_wall, f_h))
-    pygame.draw.rect(surface, (40, 40, 45), (right_wall, 0, f_w - right_wall, f_h))
-    
-    hud_font = pygame.font.Font(twcenbold_path, 18)
-    text_surface = hud_font.render(f"SYS-MODE: {current_difficulty}", True, (255, 255, 255))
-    surface.blit(text_surface, (f_w - text_surface.get_width() - 25, f_h - text_surface.get_height() - 25))
-    
-    # 4. Spaceship Modeling & Rendering Matrix
-    ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
-
-    for _ in range(2):
-        spawn_thruster_spark(ship_rect.x, ship_rect.y, ship_width=50, ship_height=90)
+        # Foreground terrain coordinates matching the randomized landing pad location
+        terrain_points = [
+            (-f_w, f_h), (-f_w, ground_level_y + 70),
+            (pad_start_x * 0.5 - camera_offset_x, ground_level_y + 110),
+            (scr_pad_x - 40, ground_level_y + 45),
+            (scr_pad_x, ground_level_y),
+            (scr_pad_x + pad_width, ground_level_y),
+            (scr_pad_x + pad_width + 40, ground_level_y + 35),
+            (scr_pad_x + pad_width + (f_w - pad_start_x) * 0.4 - camera_offset_x, ground_level_y + 95),
+            (f_w * 0.95 - camera_offset_x, ground_level_y + 50),
+            (f_w * 2, ground_level_y + 85), (f_w * 2, f_h)
+        ]
+        pygame.draw.polygon(surface, (18, 15, 22), terrain_points)
         
-    surface.blit(ship_surface, (ship_rect.x, ship_rect.y))
+        # Render a structural topographic line grid underneath the mountainsides
+        for i in range(1, len(terrain_points) - 2):
+            p1_x, p1_y = terrain_points[i]
+            p2_x, p2_y = terrain_points[i+1]
+            pygame.draw.line(surface, (28, 22, 32), (p1_x, p1_y + 30), (p2_x, p2_y + 30), width=1)
+            pygame.draw.line(surface, (22, 18, 26), (p1_x, p1_y + 60), (p2_x, p2_y + 60), width=1)
+
+        # High-contrast edge surface outline stroke
+        pygame.draw.lines(surface, (145, 65, 52), False, terrain_points[1:-1], width=3)
+
+        # Glowing target platform system overlays
+        pad_glow = pygame.Surface((pad_width, 15), pygame.SRCALPHA)
+        pygame.draw.rect(pad_glow, (0, 255, 150, 25), (0, 0, pad_width, 15))
+        surface.blit(pad_glow, (scr_pad_x, ground_level_y))
+        
+        pygame.draw.line(surface, (0, 255, 150), (scr_pad_x, ground_level_y), (scr_pad_x + pad_width, ground_level_y), width=5)
+        pygame.draw.line(surface, (0, 255, 150), (scr_pad_x, ground_level_y), (scr_pad_x, ground_level_y - 12), width=2)
+        pygame.draw.line(surface, (0, 255, 150), (scr_pad_x + pad_width, ground_level_y), (scr_pad_x + pad_width, ground_level_y - 12), width=2)
+
+    # -------------------------------------------------------------------------
+    # DYNAMIC RADAR TARGET TRACKING ARROW (Camera-Relative Screen Space Vector)
+    # -------------------------------------------------------------------------
+    time_ms = pygame.time.get_ticks()
+    bobbing_offset = int(math.sin(time_ms * 0.008) * 6)
+    arrow_center_y = ship_y - 110 + bobbing_offset
+
+    target_y = ground_level_y if ground_level_y < f_h else f_h
+    scr_target_center_x = scr_pad_x + (pad_width // 2)
     
-    # Draw Countdown Prepare Overlay Strings
+    # Calculate shortest wrapping horizontal screen distance vector to target
+    wrapped_dx = scr_target_center_x - ship_x
+    if wrapped_dx > (f_w / 2): wrapped_dx -= f_w
+    elif wrapped_dx < -(f_w / 2): wrapped_dx += f_w
+        
+    heading_angle = math.atan2(target_y - ship_y, wrapped_dx)
+    
+    # Pre-cache trigonometry vector multipliers to avoid costly real-time loops
+    cos_val = math.cos(heading_angle)
+    sin_val = math.sin(heading_angle)
+    
+    base_arrow_vertices = [(22, 0), (-2, -8), (2, 0), (-2, 8)]
+    rotated_vertices = [
+        (int(ship_x + (vx * cos_val - vy * sin_val)), int(arrow_center_y + (vx * sin_val + vy * cos_val)))
+        for vx, vy in base_arrow_vertices
+    ]
+        
+    is_aligned = abs(wrapped_dx) <= (pad_width // 2)
+    arrow_color = (0, 255, 150) if is_aligned else (0, 200, 255)
+    
+    # Draw vertical radar lock guidance track markers when misaligned
+    if not is_aligned:
+        for dash_y in range(arrow_center_y + 20, f_h - 40, 22):
+            pygame.draw.line(surface, (0, 200, 255, 30), (ship_x, dash_y), (ship_x, dash_y + 10), width=1)
+
+    pygame.draw.polygon(surface, arrow_color, rotated_vertices)
+    pygame.draw.polygon(surface, (255, 255, 255, 200), rotated_vertices, width=1)
+
+    # =========================================================================
+    # MULTI-TIER VEHICLE EXHAUST PARTICLE ARRAY MANAGEMENT
+    # =========================================================================
+    # Cap active particle buffer capacity to optimize rendering on low-end hardware
+    if len(thruster_particles) > 35:
+        thruster_particles = thruster_particles[-35:]
+
+    for p in thruster_particles[:]:
+        p["x"] += p["vx"]
+        p["y"] += p["vy"]
+        p["life"] -= 12
+        if p["life"] <= 0:
+            thruster_particles.remove(p)
+            continue
+        
+        radius = 2 if p["type"] == "plasma" else (3 if p["type"] == "fire" else 4)
+        p_color = (0, 240, 255, p["life"]) if p["type"] == "plasma" else ((255, 120, 40, p["life"]) if p["type"] == "fire" else (60, 65, 80, int(p["life"] * 0.4)))
+        
+        pygame.draw.circle(surface, p_color, (int(p["x"]), int(p["y"])), radius)
+
+    # Blit ship asset structure onto frame coordinate positions
+    ship_rect = pygame.Rect(ship_x - 25, ship_y - 45, 50, 90)
+    rotated_ship = pygame.transform.rotate(ship_surface, ship_angle)
+    surface.blit(rotated_ship, rotated_ship.get_rect(center=ship_rect.center).topleft)
+
+    # =========================================================================
+    # GLASS-MORPHISM FLIGHT OVERLAY HUD PANEL & MECHANICAL SPEED TAPE GAUGE
+    # =========================================================================
+    hud_surf = pygame.Surface((f_w, 80), pygame.SRCALPHA)
+    pygame.draw.rect(hud_surf, (14, 16, 24, 220), (0, 0, f_w, 75)) 
+    pygame.draw.line(hud_surf, (40, 48, 68), (0, 75), (f_w, 75), width=2) 
+    surface.blit(hud_surf, (0, 0))
+
+    hud_font = pygame.font.Font(twcenbold_path, 13)
+    display_v_speed = round(fall_velocity * 12.5, 1)
+    is_fatal_speed = display_v_speed > 45.0
+    
+    speed_color = (255, 60, 60) if is_fatal_speed else (0, 255, 150)
+    fuel_color = (255, 60, 60) if ship_fuel < 25.0 else (0, 200, 255)
+
+    lbl_alt = hud_font.render(f"RADAR ALTITUDE: {int(max(0, victory_altitude - altitude))} M", True, (160, 175, 195))
+    lbl_vel = hud_font.render(f"DESCENT VECTOR: -{display_v_speed} M/S", True, speed_color)
+    lbl_fuel = hud_font.render(f"FUEL LEVEL: {int(ship_fuel)}%", True, fuel_color)
+    
+    surface.blit(lbl_alt, (45, 28))
+    surface.blit(lbl_vel, (260, 28))
+    surface.blit(lbl_fuel, (520, 28))
+
+    # Progress width fill calculations for the visual speed bar gauge
+    gauge_x, gauge_y = 740, 24
+    pygame.draw.rect(surface, (25, 30, 45), (gauge_x, gauge_y, 140, 14), border_radius=3)
+    fill_width = int(min(140, (display_v_speed / 90.0) * 140))
+    pygame.draw.rect(surface, speed_color, (gauge_x, gauge_y, fill_width, 14), border_radius=3)
+    
+    # White structural threshold marker indicating fatal touchdown landing velocities
+    safety_tick_x = gauge_x + int((45.0 / 90.0) * 140)
+    pygame.draw.line(surface, (255, 255, 255), (safety_tick_x, gauge_y - 2), (safety_tick_x, gauge_y + 16), width=2)
+
     if prep_timer_frames > 0:
         seconds_left = (prep_timer_frames // 60) + 1
-        count_font = pygame.font.Font(twcenbold_path, 48)
-        count_string = f"PREPARE: {seconds_left}"
-        count_surface = count_font.render(count_string, True, (0, 240, 240))
-        surface.blit(count_surface, (screen_center_x - (count_surface.get_width() // 2), (f_h // 2) - 150))
+        count_font = pygame.font.Font(twcenbold_path, 40)
+        count_surface = count_font.render(f"CALIBRATING SYSTEMS: {seconds_left}", True, (0, 200, 255))
+        surface.blit(count_surface, (f_w // 2 - count_surface.get_width() // 2, (f_h // 2) - 140))
 
-    # 5. Collision Verification Engine Check Routine
-    if ship_rect.bottom >= pad_screen_y and ship_rect.top < pad_screen_y + 30:
-        if left_wall <= ship_rect.centerx <= right_wall:
+    # =========================================================================
+    # TOUCHDOWN LOCATION ACCURACY AND SPEED CRITERIA METRICS
+    # =========================================================================
+    if ship_rect.bottom >= ground_level_y and ship_rect.top < ground_level_y + 30:
+        if abs(wrapped_dx) <= (pad_width // 2):
+            if not is_fatal_speed:
+                game_running = False
+                asyncio.create_task(landing_success())
+            else:
+                game_running = False
+                asyncio.create_task(space_ship_crash())
+            return
+        else:
             game_running = False
-            # Instead of destroying modules wrap handlers into background task engines
-            asyncio.create_task(landing_success())
+            asyncio.create_task(space_ship_crash())
             return
 
-    # Check for boundary or mask-based spike collisions
-    crashed = False
-    if ship_rect.left <= left_wall or ship_rect.right >= right_wall:
-        crashed = True
-    else:
-        for obs in obstacles:
-            screen_y = obs["y"] - int(altitude)
-            calculated_height = int(obs["width"] * 0.3)
-            
-            if -150 < screen_y < f_h + 150:
-                if obs["side"] == "LEFT":
-                    spike_x = left_wall - 40
-                    scaled_spike = pygame.transform.scale(spike_left, (obs["width"], calculated_height))
-                else:
-                    spike_x = right_wall + 40 - obs["width"]
-                    scaled_spike = pygame.transform.scale(spike_right, (obs["width"], calculated_height))
-                
-                spike_mask = pygame.mask.from_surface(scaled_spike)
-                offset_x = spike_x - ship_rect.x
-                offset_y = screen_y - ship_rect.y
-                
-                if ship_mask.overlap(spike_mask, (offset_x, offset_y)):
-                    crashed = True
-                    break
-
-    # 6. Evaluate Endgame Redirect Routing States
-    if crashed:
-        game_running = False
-        asyncio.create_task(space_ship_crash())
+    if ground_level_y < f_h:
+        if ship_rect.bottom >= ground_level_y:
+            if abs(wrapped_dx) > (pad_width // 2):
+                game_running = False
+                asyncio.create_task(space_ship_crash())
 
 def start_landing_simulation_canvas():
     """Initializes the physics engine properties and obstacles natively inside the global state machine."""
     global current_stage, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
-    global move_left_active, move_right_active, prep_timer_frames, victory_altitude, is_emergency_active
+    global move_left_active, move_right_active, prep_timer_frames, victory_altitude, is_emergency_active, ship_fuel, pad_start_x
 
     is_emergency_active = False
     
@@ -1442,6 +1604,8 @@ def start_landing_simulation_canvas():
     velocity_y = 0.0
     ship_angle = 0.0
     game_running = True
+    ship_fuel = 100.0
+    pad_start_x = random.randint(int(screen.get_width() * 0.1), int(screen.get_width() * 0.8))
     thruster_particles.clear()
     
     # Initialize countdown and movement trackers
@@ -1616,7 +1780,7 @@ async def end_game_session():
     """Prints a rolling metric evaluation log and routes users to choice screens."""
     global is_playing_standalone_minigame, current_stage
 
-    trigger_screen_shake(intensity=16, duration=25)
+    trigger_screen_shake(intensity=10, duration=25)
 
     await typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", color=(88, 166, 255)) # Cyan
     
@@ -2146,6 +2310,8 @@ async def main():
         global is_emergency_active
         if is_emergency_active:
             draw_emergency_ambient_glow(screen)
+
+        apply_global_crt_filter(screen)
 
         pygame.display.flip()
         clock.tick(60)
