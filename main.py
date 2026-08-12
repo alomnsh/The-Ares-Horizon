@@ -8,6 +8,7 @@ import pygame
 import json
 import asyncio
 
+#Global Variables
 current_stage = "welcome"
 current_difficulty = "EASY"  
 is_boot_completed = False
@@ -25,6 +26,27 @@ fall_velocity = 0
 ship_fuel = 100.0
 pad_start_x = -1
 _cached_crt_overlay = None
+_cached_emergency_glow = None
+current_theme = "DARK"
+
+THEMES = {
+    "DARK": {
+        "BG_MAIN": (11, 14, 20),
+        "BG_PANEL": (22, 27, 34),
+        "TEXT_COLOR": (230, 237, 243),
+        "COLOR_CYAN": (88, 166, 255)
+    },
+    "LIGHT": {
+        "BG_MAIN": (240, 242, 245),
+        "BG_PANEL": (255, 255, 255),
+        "TEXT_COLOR": (20, 24, 33),
+        "COLOR_CYAN": (0, 102, 204)
+    }
+}
+
+_HIGH_PLASMA = pygame.Surface((3, 3), pygame.SRCALPHA); _HIGH_PLASMA.fill((0, 210, 255, 220))
+_LOW_PLASMA = pygame.Surface((3, 3), pygame.SRCALPHA); _LOW_PLASMA.fill((14, 116, 144, 140))
+_SMOKE_SURF = pygame.Surface((3, 3), pygame.SRCALPHA); _SMOKE_SURF.fill((71, 85, 105, 80))
 
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
@@ -58,6 +80,7 @@ def load_settings():
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
     global text_speed, is_minigame_unlocked
+    global BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
 
     if os.path.exists(SETTING_FILE):
         try:
@@ -85,6 +108,14 @@ def load_settings():
                     emergency_volume = float(raw_emergency[0]) if raw_emergency else 0.5
                 else:
                     emergency_volume = float(raw_emergency)
+
+                current_theme = data.get("current_theme", "DARK")
+
+                BG_MAIN = THEMES[current_theme]["BG_MAIN"]
+                BG_PANEL = THEMES[current_theme]["BG_PANEL"]
+                TEXT_COLOR = THEMES[current_theme]["TEXT_COLOR"]
+                COLOR_CYAN = THEMES[current_theme]["COLOR_CYAN"]
+
         except Exception:
             background_music_volume = 0.5
             emergency_volume = 0.25
@@ -121,7 +152,8 @@ def save_settings():
             "pre_mute_music_volume": pre_mute_music_volume,
             "pre_mute_emergency_volume": pre_mute_emergency_volume,
             "text_speed": text_speed,
-            "is_minigame_unlocked": is_minigame_unlocked
+            "is_minigame_unlocked": is_minigame_unlocked,
+            "current_theme": current_theme
         }
         with open(SETTING_FILE, "w") as f:
             json.dump(data, f, indent=4)
@@ -208,13 +240,23 @@ def update_emergency_from_slider(percentage):
         is_muted = False
     save_settings()
 
+def toggle_theme():
+    global current_theme, BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
+    current_theme = "LIGHT" if current_theme == "DARK" else "DARK"
+    
+    # Apply theme variables immediately
+    BG_MAIN = THEMES[current_theme]["BG_MAIN"]
+    BG_PANEL = THEMES[current_theme]["BG_PANEL"]
+    TEXT_COLOR = THEMES[current_theme]["TEXT_COLOR"]
+    COLOR_CYAN = THEMES[current_theme]["COLOR_CYAN"]
+    save_settings()
+
 def reset_all_settings():
-    """Forces all configurations settings back to default"""
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
-    global text_speed, is_minigame_unlocked
-
-    # Reset all data
+    global text_speed, is_minigame_unlocked, current_theme
+    global BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
+    
     background_music_volume = 0.5
     emergency_volume = 0.25
     is_muted = False
@@ -222,7 +264,14 @@ def reset_all_settings():
     pre_mute_music_volume = 0.5
     text_speed = DEFAULT_TYPING_SPEED
     is_minigame_unlocked = False
-
+    
+    # Force back to Dark Mode default
+    current_theme = "DARK"
+    BG_MAIN = THEMES["DARK"]["BG_MAIN"]
+    BG_PANEL = THEMES["DARK"]["BG_PANEL"]
+    TEXT_COLOR = THEMES["DARK"]["TEXT_COLOR"]
+    COLOR_CYAN = THEMES["DARK"]["COLOR_CYAN"]
+    
     set_mixer_volumes()
     save_settings()
 
@@ -250,12 +299,12 @@ async def open_settings_menu(main_screen):
     music_track_rect = pygame.Rect(menu_x + 40, menu_y + 80, 240, 14)
     emergency_track_rect = pygame.Rect(menu_x + 40, menu_y + 160, 240, 14)
     text_track_rect = pygame.Rect(menu_x + 40, menu_y + 240, 240, 14) 
-    
+    theme_box_rect = pygame.Rect(menu_x + 40, menu_y + 323, 46, 24)
     checkbox_rect = pygame.Rect(menu_x + 40, menu_y + 290, 20, 20)
-    reset_btn_rect = pygame.Rect(menu_x + 40, menu_y + 335, 240, 35)
-    confirm_yes_rect = pygame.Rect(menu_x + 40, menu_y + 335, 110, 35)
-    confirm_no_rect = pygame.Rect(menu_x + 170, menu_y + 335, 110, 35)
-    close_btn_rect = pygame.Rect(menu_x + 95, menu_y + 400, 130, 35)
+    reset_btn_rect = pygame.Rect(menu_x + 40, menu_y + 365, 240, 35)
+    confirm_yes_rect = pygame.Rect(menu_x + 40, menu_y + 365, 110, 35)
+    confirm_no_rect = pygame.Rect(menu_x + 170, menu_y + 365, 110, 35)
+    close_btn_rect = pygame.Rect(menu_x + 95, menu_y + 420, 130, 35)
     
     # State tracking variables for explicit holding locks
     is_dragging_music = False
@@ -286,6 +335,11 @@ async def open_settings_menu(main_screen):
                     if not show_reset_confirmation:
                         if checkbox_rect.collidepoint(event.pos):
                             toggle_mute()
+
+                        elif theme_box_rect.collidepoint(event.pos):
+                            trigger_click_sound()
+                            toggle_theme()
+
                         elif reset_btn_rect.collidepoint(event.pos):
                             trigger_click_sound()
                             show_reset_confirmation = True
@@ -343,8 +397,11 @@ async def open_settings_menu(main_screen):
 
         # Draw Layout Canvas Frame Window Card Container
         menu_bg_rect = pygame.Rect(menu_x, menu_y, menu_w, menu_h)
-        pygame.draw.rect(main_screen, (28, 28, 28), menu_bg_rect, border_radius=8)
-        pygame.draw.rect(main_screen, (48, 54, 61), menu_bg_rect, width=2, border_radius=8)
+        pygame.draw.rect(main_screen, BG_PANEL, menu_bg_rect, border_radius=8)
+        
+        border_outline_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
+        pygame.draw.rect(main_screen, border_outline_color, menu_bg_rect, width=2, border_radius=8)
+
         
         # Calculate dynamic text percentages 
         music_pct = int(background_music_volume * 100)
@@ -354,21 +411,29 @@ async def open_settings_menu(main_screen):
         text_speed_pct = int((1.0 - (text_speed / 0.15)) * 100)
         
         # Generate Text Strings with Percentages appended
-        title_txt = menu_font.render("SYSTEM SETTINGS", True, (255, 255, 255))
-        music_txt = menu_font.render(f"Background Music: {music_pct}%", True, (180, 180, 180))
-        emergency_txt = menu_font.render(f"Sound Effects: {emergency_pct}%", True, (180, 180, 180))
-        text_speed_txt = menu_font.render(f"Typewriting Speed: {text_speed_pct}%", True, (180, 180, 180))
-        mute_txt = menu_font.render("Mute All Sounds", True, (255, 255, 255))
-        close_txt = menu_font.render("Apply Changes", True, (255, 255, 255))
-        
+        title_txt = menu_font.render("SETTINGS MENU", True, TEXT_COLOR)
+        music_txt = menu_font.render("Music Volume", True, TEXT_COLOR)
+        emergency_txt = menu_font.render("Emergency Volume", True, TEXT_COLOR)
+        text_speed_txt = menu_font.render("Typing Speed", True, TEXT_COLOR)
+        mute_txt = menu_font.render("Mute All Sounds", True, TEXT_COLOR)
+        theme_txt = menu_font.render("Light Mode", True, TEXT_COLOR)
+        close_txt = menu_font.render("Apply Changes", True, TEXT_COLOR)
+
         main_screen.blit(title_txt, (menu_x + 95, menu_y + 15))
         main_screen.blit(music_txt, (menu_x + 40, menu_y + 55))
         main_screen.blit(emergency_txt, (menu_x + 40, menu_y + 135))
         main_screen.blit(text_speed_txt, (menu_x + 40, menu_y + 215))
         main_screen.blit(mute_txt, (menu_x + 75, menu_y + 290))
+        main_screen.blit(theme_txt, (menu_x + 95, menu_y + 325))
+
+                # Determine theme-dependent colors for tracking lanes and outer handle borders
+        track_bg = (45, 45, 45) if current_theme == "DARK" else (210, 214, 219)
+        handle_ring = (20, 20, 20) if current_theme == "DARK" else (240, 242, 245)
+        button_default_bg = (50, 50, 50) if current_theme == "DARK" else (210, 215, 220)
+        checkbox_bg = (51, 51, 51) if current_theme == "DARK" else (190, 195, 200)
 
         # --- RENDER MUSIC SLIDER ---
-        pygame.draw.rect(main_screen, (45, 45, 45), music_track_rect, border_radius=4)
+        pygame.draw.rect(main_screen, track_bg, music_track_rect, border_radius=4)
         h1_x = music_track_rect.x + int(background_music_volume * music_track_rect.width)
         
         music_color = (int(30 + (background_music_volume * 100)), int(80 + (background_music_volume * 175)), 40)
@@ -376,11 +441,11 @@ async def open_settings_menu(main_screen):
             fill1_rect = pygame.Rect(music_track_rect.x, music_track_rect.y, h1_x - music_track_rect.x, music_track_rect.height)
             pygame.draw.rect(main_screen, music_color, fill1_rect, border_radius=4)
         
-        pygame.draw.circle(main_screen, (20, 20, 20), (h1_x, music_track_rect.centery), 11)
+        pygame.draw.circle(main_screen, handle_ring, (h1_x, music_track_rect.centery), 11)
         pygame.draw.circle(main_screen, music_color, (h1_x, music_track_rect.centery), 9)
         
         # --- RENDER EMERGENCY SLIDER ---
-        pygame.draw.rect(main_screen, (45, 45, 45), emergency_track_rect, border_radius=4)
+        pygame.draw.rect(main_screen, track_bg, emergency_track_rect, border_radius=4)
         h2_x = emergency_track_rect.x + int(emergency_volume * emergency_track_rect.width)
         
         emergency_color = (int(200 + (emergency_volume * 55)), int(160 - (emergency_volume * 140)), 20)
@@ -388,11 +453,11 @@ async def open_settings_menu(main_screen):
             fill2_rect = pygame.Rect(emergency_track_rect.x, emergency_track_rect.y, h2_x - emergency_track_rect.x, emergency_track_rect.height)
             pygame.draw.rect(main_screen, emergency_color, fill2_rect, border_radius=4)
             
-        pygame.draw.circle(main_screen, (20, 20, 20), (h2_x, emergency_track_rect.centery), 11)
+        pygame.draw.circle(main_screen, handle_ring, (h2_x, emergency_track_rect.centery), 11)
         pygame.draw.circle(main_screen, emergency_color, (h2_x, emergency_track_rect.centery), 9)
         
         # --- RENDER TEXT SPEED SLIDER ---
-        pygame.draw.rect(main_screen, (45, 45, 45), text_track_rect, border_radius=4)
+        pygame.draw.rect(main_screen, track_bg, text_track_rect, border_radius=4)
         current_speed_pct = 1.0 - (text_speed / 0.15)
         h3_x = text_track_rect.x + int(current_speed_pct * text_track_rect.width)
         
@@ -401,32 +466,49 @@ async def open_settings_menu(main_screen):
             fill3_rect = pygame.Rect(text_track_rect.x, text_track_rect.y, h3_x - text_track_rect.x, text_track_rect.height)
             pygame.draw.rect(main_screen, text_speed_color, fill3_rect, border_radius=4)
             
-        pygame.draw.circle(main_screen, (20, 20, 20), (h3_x, text_track_rect.centery), 11)
+        pygame.draw.circle(main_screen, handle_ring, (h3_x, text_track_rect.centery), 11)
         pygame.draw.circle(main_screen, text_speed_color, (h3_x, text_track_rect.centery), 9)
         
         # --- RENDER MUTE CHECKBOX ---
-        pygame.draw.rect(main_screen, (51, 51, 51), checkbox_rect, border_radius=4)
+        pygame.draw.rect(main_screen, checkbox_bg, checkbox_rect, border_radius=4)
         if is_muted:
-            pygame.draw.rect(main_screen, (0, 255, 0), checkbox_rect.inflate(-8, -8), border_radius=2)
-            
+            pygame.draw.rect(main_screen, (0, 210, 120), checkbox_rect.inflate(-8, -8), border_radius=2)
+
+        # --- RENDER THEME SWITCH ---
+        if current_theme == "LIGHT":
+            pygame.draw.rect(main_screen, (0, 210, 120), theme_box_rect, border_radius=12)
+            handle_x = theme_box_rect.right - 14
+        else:
+            pygame.draw.rect(main_screen, (64, 74, 86), theme_box_rect, border_radius=12)
+            handle_x = theme_box_rect.left + 14
+
+        pygame.draw.circle(main_screen, (255, 255, 255), (handle_x, theme_box_rect.centery), 9)
+
         # --- RENDER THE RESET CONFIGURATION INTERFACE ---
         if not show_reset_confirmation:
-            pygame.draw.rect(main_screen, (70, 30, 30), reset_btn_rect, border_radius=5)
-            reset_txt = menu_font.render("Reset All Settings", True, (240, 160, 160))
-            text_x = reset_btn_rect.x + (reset_btn_rect.width - reset_txt.get_width()) //2
+            btn_bg = (70, 30, 30) if current_theme == "DARK" else (245, 215, 215)
+            btn_txt_color = (240, 160, 160) if current_theme == "DARK" else (180, 40, 40)
+            pygame.draw.rect(main_screen, btn_bg, reset_btn_rect, border_radius=5)
+            reset_txt = menu_font.render("Reset All Settings", True, btn_txt_color)
+            text_x = reset_btn_rect.x + (reset_btn_rect.width - reset_txt.get_width()) // 2
             main_screen.blit(reset_txt, (text_x, reset_btn_rect.y + 10))
         else:
-            pygame.draw.rect(main_screen, (30, 60, 30), confirm_yes_rect, border_radius=5)
-            pygame.draw.rect(main_screen, (70, 30, 30), confirm_no_rect, border_radius=5)
+            yes_bg = (30, 60, 30) if current_theme == "DARK" else (215, 240, 215)
+            yes_txt_color = (160, 240, 160) if current_theme == "DARK" else (30, 130, 30)
+            no_bg = (70, 30, 30) if current_theme == "DARK" else (245, 215, 215)
+            no_txt_color = (240, 160, 160) if current_theme == "DARK" else (180, 40, 40)
             
-            yes_txt = menu_font.render("CONFIRM", True, (160, 240, 160))
-            no_txt = menu_font.render("CANCEL", True, (240, 160, 160))
+            pygame.draw.rect(main_screen, yes_bg, confirm_yes_rect, border_radius=5)
+            pygame.draw.rect(main_screen, no_bg, confirm_no_rect, border_radius=5)
+            
+            yes_txt = menu_font.render("CONFIRM", True, yes_txt_color)
+            no_txt = menu_font.render("CANCEL", True, no_txt_color)
             
             main_screen.blit(yes_txt, (confirm_yes_rect.x + 28, confirm_yes_rect.y + 10))
             main_screen.blit(no_txt, (confirm_no_rect.x + 32, confirm_no_rect.y + 10))
             
         # --- RENDER CLOSE PANEL ACTION BUTTON ---
-        pygame.draw.rect(main_screen, (50, 50, 50), close_btn_rect, border_radius=5)
+        pygame.draw.rect(main_screen, button_default_bg, close_btn_rect, border_radius=5)
         text_x = close_btn_rect.x + (close_btn_rect.width - close_txt.get_width()) // 2
         text_y = close_btn_rect.y + (close_btn_rect.height - close_txt.get_height()) // 2
         main_screen.blit(close_txt, (text_x, text_y))
@@ -434,7 +516,6 @@ async def open_settings_menu(main_screen):
         pygame.display.flip()
         menu_clock.tick(60)
         
-        # Yield control back to browser compilation system layout safely
         await asyncio.sleep(0)
         
     is_game_paused = False
@@ -517,10 +598,10 @@ def stop_all_sounds():
         pass
 
 #THEME OF THE GAME
-BG_MAIN = (11, 14, 20)
-BG_PANEL = (22, 27, 34)      
-TEXT_COLOR = (230, 237, 243)  
-COLOR_CYAN = (88, 166, 255)   
+BG_MAIN = THEMES["DARK"]["BG_MAIN"]
+BG_PANEL = THEMES["DARK"]["BG_PANEL"]
+TEXT_COLOR = THEMES["DARK"]["TEXT_COLOR"]
+COLOR_CYAN = THEMES["DARK"]["COLOR_CYAN"]  
 COLOR_YELLOW = (242, 204, 96) 
 COLOR_RED = (219, 43, 31)     
 COLOR_GREEN = (126, 231, 135) 
@@ -593,34 +674,33 @@ def apply_global_crt_filter(surface):
     surface.blit(_cached_crt_overlay, (0, 0))
 
 def draw_emergency_ambient_glow(surface):
-    global is_emergency_active
-    
+    global is_emergency_active, _cached_emergency_glow
     if not is_emergency_active:
         return
-        
     scr_w, scr_h = surface.get_size()
     time_ms = pygame.time.get_ticks()
-    
-    # Creates an organic breathing wave curve
+
     pulse_wave = (math.sin(time_ms * 0.0035) + 1.0) / 2.0
     breathing_curve = math.pow(pulse_wave, 2.0)
     
-    # Balanced intensity
-    max_alpha = int(25 + (breathing_curve * 60))
-    
-    glow_surf = pygame.Surface((scr_w, scr_h), pygame.SRCALPHA)
-    
+    # Increased alpha range for a brighter glow effect
+    max_alpha = int(45 + (breathing_curve * 85))
     vignette_depth = 35
-    for i in range(vignette_depth):
-        factor = (vignette_depth - i) / float(vignette_depth)
-        layer_alpha = max(1, int(max_alpha * factor))
-        glow_color = (160, 15, 15, layer_alpha)
 
-        pygame.draw.rect(glow_surf, glow_color, (i, i, scr_w - i*2, scr_h - i*2), width=1)
-        
+    if _cached_emergency_glow is None or _cached_emergency_glow.get_size() != (scr_w, scr_h):
+        _cached_emergency_glow = pygame.Surface((scr_w, scr_h), pygame.SRCALPHA)
+        for i in range(vignette_depth):
+            factor = (vignette_depth - i) / float(vignette_depth)
+            layer_alpha = max(1, int(120 * factor))
+            glow_color = (200, 15, 15, layer_alpha)
+            pygame.draw.rect(_cached_emergency_glow, glow_color, (i, i, scr_w - i*2, scr_h - i*2), width=1)
+
+    glow_snapshot = _cached_emergency_glow.copy()
+    glow_snapshot.set_alpha(max_alpha)
+
     old_clip = surface.get_clip()
     surface.set_clip(None)
-    surface.blit(glow_surf, (0, 0))
+    surface.blit(glow_snapshot, (0, 0))
     surface.set_clip(old_clip)
 
 def draw_close_button(surface, mouse_pos):
@@ -661,20 +741,26 @@ def draw_close_button(surface, mouse_pos):
 
 def draw_glowing_rect(surface, base_color, rect, glow_radius = 8, max_alpha = 45):
     """Draws a core interface shape surrounded by an ambient alpha-gradient bloom"""
-
+    # Create one surface large enough for the full glow area instead of recreating it inside the loop
+    glow_w = rect.width + glow_radius * 2
+    glow_h = rect.height + glow_radius * 2
+    glow_surf = pygame.Surface((glow_w, glow_h), pygame.SRCALPHA)
+    
     for i in range(glow_radius, 0, -1):
-        glow_surf = pygame.Surface((rect.width + i*2, rect.height + i*2), pygame.SRCALPHA)
-
         alpha = int(max_alpha * (1.0 - (i / glow_radius)))
         glow_color = (base_color[0], base_color[1], base_color[2], alpha)
+        
+        # Calculate dynamic local bounds centered on our single glow surface
+        local_x = glow_radius - i
+        local_y = glow_radius - i
+        local_w = rect.width + i * 2
+        local_h = rect.height + i * 2
+        
+        pygame.draw.rect(glow_surf, glow_color, (local_x, local_y, local_w, local_h), border_radius=4)
+        
+    surface.blit(glow_surf, (rect.x - glow_radius, rect.y - glow_radius))
+    pygame.draw.rect(surface, base_color[:3], rect, border_radius=4)
 
-        pygame.draw.rect(glow_surf, glow_color, glow_surf.get_rect(), border_radius= 4)
-
-        surface.blit(glow_surf, (rect.x - i, rect.y - i))
-
-    pygame.draw.rect(surface, base_color, rect, border_radius=4)
-
-# Global styles setup for progress bars
 def draw_telemetry_dashboard(surface):
     global crew_safety, mission_budget, science_points
     
@@ -749,34 +835,35 @@ def draw_telemetry_dashboard(surface):
     surface.blit(points_label, (col3_center, 23))
 
 def draw_settings_button(surface, mouse_pos):
+    global current_theme, BG_PANEL
     current_h = surface.get_height()
     
     settings_btn_rect = pygame.Rect(15, current_h - 45, 115, 30)
     
-    # Handle hovering states
     if settings_btn_rect.collidepoint(mouse_pos):
-        button_color = (48, 54, 61)
-        glow_color = (126, 231, 135)
+        button_color = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+        glow_color = (126, 231, 135) if current_theme == "DARK" else (50, 180, 70)
         glow_max_alpha = 50           
         glow_radius = 8
     else:
-        button_color = (22, 27, 34)
-        glow_color = (46, 117, 52)
+        button_color = BG_PANEL
+        glow_color = (46, 117, 52) if current_theme == "DARK" else (220, 230, 220)
         glow_max_alpha = 20           
         glow_radius = 4
 
     for i in range(glow_radius, 0, -1):
         glow_surf = pygame.Surface((settings_btn_rect.width + i*2, settings_btn_rect.height + i*2), pygame.SRCALPHA)
         alpha = int(glow_max_alpha * (1.0 - (i / glow_radius)))
-        
         pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
         surface.blit(glow_surf, (settings_btn_rect.x - i, settings_btn_rect.y - i))
         
-    # Draw button background card frame with thin border
+    border_outline_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
+
     pygame.draw.rect(surface, button_color, settings_btn_rect, border_radius=4)
-    pygame.draw.rect(surface, (48, 54, 61), settings_btn_rect, width=1, border_radius=4)
+    pygame.draw.rect(surface, border_outline_color, settings_btn_rect, width=1, border_radius=4)
     
-    settings_text = ui_font.render("SETTINGS", True, (126, 231, 135))
+    text_color = (126, 231, 135) if current_theme == "DARK" else (30, 140, 50)
+    settings_text = ui_font.render("SETTINGS", True, text_color)
     text_x = settings_btn_rect.x + (settings_btn_rect.width - settings_text.get_width()) // 2
     text_y = settings_btn_rect.y + (settings_btn_rect.height - settings_text.get_height()) // 2
     surface.blit(settings_text, (text_x, text_y))
@@ -787,42 +874,46 @@ async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=Fals
     """Animates text into the terminal log list while responding instantly to text_speed changes."""
     global terminal_logs, text_speed, screen, clock, is_game_paused
     
-    # Append an entry holding a blank text canvas paired with color target
     terminal_logs.append(["", color])
     line_index = len(terminal_logs) - 1
-    
     max_chars_per_line = 300
-    current_line_text = ""
+    
+    words = text.split(" ")
+    current_line_buffer = []
+    current_length = 0
     char_counter = 0
     
-    for letter in text:
+    for word in words:
         try:
             while is_game_paused:
                 await asyncio.sleep(0.05)
+                
             current_sleep_delay = override_speed if override_speed is not None else text_speed
-
-            # Handle dynamic word wrapping
-            if len(current_line_text) >= max_chars_per_line and letter == " ":
-                terminal_logs[line_index][0] = current_line_text.strip()
+            
+            # Smart conditional lookahead bounds check
+            if current_length + len(word) >= max_chars_per_line:
+                terminal_logs[line_index][0] = " ".join(current_line_buffer).strip()
                 terminal_logs.append(["", color])
                 line_index = len(terminal_logs) - 1
-                current_line_text = ""
-                continue
+                current_line_buffer.clear()
+                current_length = 0
+                
+            current_line_buffer.append(word)
+            current_length += len(word) + 1
             
-            current_line_text += letter + "\u200a"
-            terminal_logs[line_index][0] = current_line_text
-            char_counter += 1
-
+            # Render updates systematically to reduce blit updates
+            terminal_logs[line_index][0] = " ".join(current_line_buffer)
+            char_counter += len(word)
+            
             if current_sleep_delay < 0.016:
-                if char_counter % 3 == 0:
+                if char_counter % 9 == 0:
                     await asyncio.sleep(0)
             else:
                 await asyncio.sleep(current_sleep_delay)
-                
         except Exception:
             return
             
-    terminal_logs[line_index][0] = current_line_text.strip()
+    terminal_logs[line_index][0] = " ".join(current_line_buffer).strip()
 
 def update_progress(text, add_newline=False, color=(88, 166, 255)):
     """Updates the terminal log in place, preserving colors."""
@@ -1295,29 +1386,29 @@ def spawn_thruster_spark(ship_x, ship_y, ship_width=50, ship_height=90):
 def update_and_draw_thrusters(surface):
     """Updates active exhaust particle physics matrices and renders them to the screen canvas."""
     global thruster_particles
-    for p in thruster_particles[:]:
-        # Translate position based on speed vectors
+    
+    # Fast in-place filtering loop to avoid list shifting overheads
+    surviving_particles = []
+    
+    for p in thruster_particles:
         p["x"] += p["vx"]
         p["y"] += p["vy"]
-        p["life"] -= 14 
+        p["life"] -= 14
         
-        # Remove completely faded particles
         if p["life"] <= 0:
-            thruster_particles.remove(p)
             continue
             
-        # Color shifting based on particle heat/lifespan
+        # Blit pre-cached structural surfaces instantly instead of instantiating new templates
         if p["life"] > 160:
-            spark_color = (0, 210, 255, p["life"])
+            surface.blit(_HIGH_PLASMA, (int(p["x"]), int(p["y"])))
         elif p["life"] > 80:
-            spark_color = (14, 116, 144, p["life"])
+            surface.blit(_LOW_PLASMA, (int(p["x"]), int(p["y"])))
         else:
-            spark_color = (71, 85, 105, p["life"])
+            surface.blit(_SMOKE_SURF, (int(p["x"]), int(p["y"])))
             
-        # Create a tiny 3x3 pixel square to draw the spark
-        spark_surf = pygame.Surface((3, 3), pygame.SRCALPHA)
-        spark_surf.fill(spark_color)
-        surface.blit(spark_surf, (int(p["x"]), int(p["y"])))
+        surviving_particles.append(p)
+        
+    thruster_particles = surviving_particles
 
 def run_physics_frame(surface):
     """Updates game mechanics, handles infinite horizontal screen wrapping, 
@@ -1683,9 +1774,8 @@ def start_landing_simulation_canvas():
     current_stage = "landing_simulation"
 
 def draw_difficulty_menu(surface, mouse_pos):
-    """Renders a responsive centered difficulty selection card mimicking your Tkinter styles."""
-    global current_difficulty
-    
+    """Renders a responsive centered difficulty selection card using dynamic themes."""
+    global current_difficulty, BG_PANEL, TEXT_COLOR, current_theme
     scr_w = surface.get_width()
     scr_h = surface.get_height()
     
@@ -1694,49 +1784,64 @@ def draw_difficulty_menu(surface, mouse_pos):
     card_x = (scr_w - card_w) // 2
     card_y = (scr_h - card_h) // 2
     
-    # 2. Draw base dialog bounding box frame
+    # 2. Draw base dialog box frame (DYNAMIC BG)
     card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
-    pygame.draw.rect(surface, (22, 27, 34), card_rect, border_radius=8)
-    pygame.draw.rect(surface, (48, 54, 61), card_rect, width=2, border_radius=8) 
+    pygame.draw.rect(surface, BG_PANEL, card_rect, border_radius=8)
     
-    # 3. Draw Title Label Text Header
+    # Dynamic border color selection based on active theme
+    border_outline_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
+    pygame.draw.rect(surface, border_outline_color, card_rect, width=2, border_radius=8)
+    
+    # 3. Draw Title Label Text Header (DYNAMIC TEXT)
     title_font = pygame.font.Font(twcenbold_path, 16)
-    title_surf = title_font.render("CHOOSE DIFFICULTY", True, (230, 237, 243))
+    title_surf = title_font.render("CHOOSE DIFFICULTY", True, TEXT_COLOR)
     title_x = card_x + (card_w - title_surf.get_width()) // 2
     surface.blit(title_surf, (title_x, card_y + 35))
     
     # 4. Button Geometry Constants
     btn_w, btn_h = 220, 40
     btn_x = card_x + (card_w - btn_w) // 2
-    
     easy_rect = pygame.Rect(btn_x, card_y + 110, btn_w, btn_h)
-    med_rect  = pygame.Rect(btn_x, card_y + 180, btn_w, btn_h)
+    med_rect = pygame.Rect(btn_x, card_y + 180, btn_w, btn_h)
     hard_rect = pygame.Rect(btn_x, card_y + 250, btn_w, btn_h)
     
-    # --- RENDER EASY MODE BUTTON (COLOR_CYAN) ---
+    # Dynamic font text color matching button content clarity
+    btn_text_color = (11, 14, 20) if current_theme == "DARK" else (255, 255, 255)
+    
+    # --- RENDER EASY MODE BUTTON (COLOR_CYAN Variations) ---
     is_easy_hover = easy_rect.collidepoint(mouse_pos)
-    easy_bg = (130, 200, 255) if is_easy_hover else (88, 166, 255)
+    if current_theme == "DARK":
+        easy_bg = (130, 200, 255) if is_easy_hover else (88, 166, 255)
+    else:
+        easy_bg = (0, 76, 153) if is_easy_hover else (0, 102, 204)
+        
     pygame.draw.rect(surface, easy_bg, easy_rect, border_radius=4)
-    easy_txt = font_console.render("EASY MODE", True, (11, 14, 20))
+    easy_txt = font_console.render("EASY MODE", True, btn_text_color)
     surface.blit(easy_txt, (easy_rect.x + (btn_w - easy_txt.get_width()) // 2, easy_rect.y + (btn_h - easy_txt.get_height()) // 2))
     
-    # --- RENDER MEDIUM MODE BUTTON (YELLOW) ---
+    # --- RENDER MEDIUM MODE BUTTON (YELLOW Variations) ---
     is_med_hover = med_rect.collidepoint(mouse_pos)
-    med_bg = (255, 255, 140) if is_med_hover else (242, 204, 96)
+    if current_theme == "DARK":
+        med_bg = (255, 220, 120) if is_med_hover else (242, 204, 96)
+    else:
+        med_bg = (204, 153, 0) if is_med_hover else (219, 165, 32)
+        
     pygame.draw.rect(surface, med_bg, med_rect, border_radius=4)
-    med_txt = font_console.render("MEDIUM MODE", True, (11, 14, 20))
+    med_txt = font_console.render("MEDIUM MODE", True, btn_text_color)
     surface.blit(med_txt, (med_rect.x + (btn_w - med_txt.get_width()) // 2, med_rect.y + (btn_h - med_txt.get_height()) // 2))
     
-    # --- RENDER HARD MODE BUTTON (COLOR_RED) ---
+    # --- RENDER HARD MODE BUTTON (RED Variations) ---
     is_hard_hover = hard_rect.collidepoint(mouse_pos)
-    hard_bg = (255, 90, 80) if is_hard_hover else (219, 43, 31)
+    if current_theme == "DARK":
+        hard_bg = (255, 80, 70) if is_hard_hover else (219, 43, 31)
+    else:
+        hard_bg = (153, 15, 10) if is_hard_hover else (185, 25, 15)
+        
     pygame.draw.rect(surface, hard_bg, hard_rect, border_radius=4)
-    hard_txt = font_console.render("HARD MODE", True, (255, 255, 255))
+    hard_txt = font_console.render("HARD MODE", True, btn_text_color)
     surface.blit(hard_txt, (hard_rect.x + (btn_w - hard_txt.get_width()) // 2, hard_rect.y + (btn_h - hard_txt.get_height()) // 2))
-    
-    # Return button hitboxes so mouse click handlers can intercept selections
-    return easy_rect, med_rect, hard_rect
 
+    return easy_rect, med_rect, hard_rect
 
 def landing_minigame_difficulty():
     """Triggers the responsive difficulty selection layout screen state."""
@@ -1831,7 +1936,7 @@ def launch_standalone_minigame():
 
 def draw_welcome_screen(surface, mouse_pos):
     """Draws a responsive welcome canvas menu layout with dynamic minigame branching states."""
-    global is_minigame_unlocked, current_stage
+    global is_minigame_unlocked, current_stage, current_theme, BG_PANEL, TEXT_COLOR
     
     scr_w = surface.get_width()
     scr_h = surface.get_height()
@@ -1841,7 +1946,7 @@ def draw_welcome_screen(surface, mouse_pos):
     sub_font = pygame.font.Font(twcenbold_path, 13)
     
     title_surf = title_font.render("THE ARES HORIZON", True, (126, 231, 135))
-    subtitle_surf = sub_font.render("MISSION CONTROL TERMINAL", True, (230, 237, 243))
+    subtitle_surf = sub_font.render("MISSION CONTROL TERMINAL", True, TEXT_COLOR)
     
     surface.blit(title_surf, ((scr_w - title_surf.get_width()) // 2, scr_h // 2 - 160))
     surface.blit(subtitle_surf, ((scr_w - subtitle_surf.get_width()) // 2, scr_h // 2 - 120))
@@ -1850,6 +1955,8 @@ def draw_welcome_screen(surface, mouse_pos):
     btn_start_rect = None
     btn_story_rect = None
     btn_minigame_rect = None
+
+    border_outline_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
 
     # ----------------------------------------------------
     # BRANCH A: SINGLE BIG START BUTTON LAYOUT (LOCKED STATE)
@@ -1860,12 +1967,12 @@ def draw_welcome_screen(surface, mouse_pos):
         
         # Hover vs Idle highlighting check
         if btn_start_rect.collidepoint(mouse_pos):
-            bg_color = (48, 54, 61)
-            glow_color = (0, 180, 216)
+            bg_color = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+            glow_color = (0, 180, 216) if current_theme == "DARK" else (0, 130, 200)
             glow_max_alpha, glow_radius = 65, 12
         else:
-            bg_color = (22, 27, 34)
-            glow_color = (14, 116, 144)
+            bg_color = BG_PANEL
+            glow_color = (14, 116, 144) if current_theme == "DARK" else (200, 205, 210)
             glow_max_alpha, glow_radius = 25, 6
 
         for i in range(glow_radius, 0, -1):
@@ -1875,9 +1982,9 @@ def draw_welcome_screen(surface, mouse_pos):
             surface.blit(glow_surf, (btn_start_rect.x - i, btn_start_rect.y - i))
         
         pygame.draw.rect(surface, bg_color, btn_start_rect, border_radius=4)
-        pygame.draw.rect(surface, (48, 54, 61), btn_start_rect, width=1, border_radius=4)
+        pygame.draw.rect(surface, border_outline_color, btn_start_rect, width=1, border_radius=4)
         
-        text_surf = ui_font.render("START GAME", True, (230, 237, 243))
+        text_surf = ui_font.render("START GAME", True, TEXT_COLOR)
         surface.blit(text_surf, (btn_start_rect.x + (w - text_surf.get_width()) // 2, 
                                  btn_start_rect.y + (h - text_surf.get_height()) // 2))
 
@@ -1898,12 +2005,12 @@ def draw_welcome_screen(surface, mouse_pos):
         btn_minigame_rect = pygame.Rect(scr_w // 2 + center_gap, scr_h // 2, w, h)
 
         if btn_story_rect.collidepoint(mouse_pos):
-            bg_story = (48, 54, 61)
-            glow_story_color = (247, 127, 0)
+            bg_story = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+            glow_story_color = (247, 127, 0) if current_theme == "DARK" else (210, 105, 0)
             g_story_alpha, g_story_radius = 55, 8
         else:
-            bg_story = (22, 27, 34)
-            glow_story_color = (130, 70, 10)
+            bg_story = BG_PANEL
+            glow_story_color = (130, 70, 10) if current_theme == "DARK" else (230, 220, 210)
             g_story_alpha, g_story_radius = 20, 4
 
         for i in range(g_story_radius, 0, -1):
@@ -1913,21 +2020,20 @@ def draw_welcome_screen(surface, mouse_pos):
             surface.blit(glow_surf, (btn_story_rect.x - i, btn_story_rect.y - i))
         
         # Draw Play Story Button Frame
-        bg_story = (48, 54, 61) if btn_story_rect.collidepoint(mouse_pos) else (22, 27, 34)
         pygame.draw.rect(surface, bg_story, btn_story_rect, border_radius=4)
-        pygame.draw.rect(surface, (48, 54, 61), btn_story_rect, width=1, border_radius=4)
+        pygame.draw.rect(surface, border_outline_color, btn_story_rect, width=1, border_radius=4)
         
-        story_txt = ui_font.render("PLAY STORY", True, (230, 237, 243))
+        story_txt = ui_font.render("PLAY STORY", True, TEXT_COLOR)
         surface.blit(story_txt, (btn_story_rect.x + (w - story_txt.get_width()) // 2, 
                                  btn_story_rect.y + (h - story_txt.get_height()) // 2))
 
         if btn_minigame_rect.collidepoint(mouse_pos):
-            bg_mini = (48, 54, 61)
-            glow_mini_color = (0, 180, 216)
+            bg_mini = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+            glow_mini_color = (0, 180, 216) if current_theme == "DARK" else (0, 130, 200)
             g_mini_alpha, g_mini_radius = 60, 10
         else:
-            bg_mini = (22, 27, 34)
-            glow_mini_color = (14, 116, 144)
+            bg_mini = BG_PANEL
+            glow_mini_color = (14, 116, 144) if current_theme == "DARK" else (210, 215, 220)
             g_mini_alpha, g_mini_radius = 20, 4
             
         for i in range(g_mini_radius, 0, -1):
@@ -1937,15 +2043,14 @@ def draw_welcome_screen(surface, mouse_pos):
             surface.blit(glow_surf, (btn_minigame_rect.x - i, btn_minigame_rect.y - i))
         
         # Draw Launch Minigame Button Frame
-        bg_mini = (48, 54, 61) if btn_minigame_rect.collidepoint(mouse_pos) else (22, 27, 34)
         pygame.draw.rect(surface, bg_mini, btn_minigame_rect, border_radius=4)
-        pygame.draw.rect(surface, (48, 54, 61), btn_minigame_rect, width=1, border_radius=4)
+        pygame.draw.rect(surface, border_outline_color, btn_minigame_rect, width=1, border_radius=4)
         
-        mini_txt = ui_font.render("LAUNCH MINIGAME", True, (88, 166, 255))
+        mini_color = (88, 166, 255) if current_theme == "DARK" else (0, 102, 204)
+        mini_txt = ui_font.render("LAUNCH MINIGAME", True, mini_color)
         surface.blit(mini_txt, (btn_minigame_rect.x + (w - mini_txt.get_width()) // 2, 
                                 btn_minigame_rect.y + (h - mini_txt.get_height()) // 2))
 
-    # Return hitboxes to allow the main mouse event click listener to evaluate them
     return btn_start_rect, btn_story_rect, btn_minigame_rect
 
 # A centralized data dictionary mapping game choices to their strings
@@ -1983,7 +2088,6 @@ STAGE_CONTENT = {
 }
 
 def draw_choice_interface(surface, mouse_pos):
-    """Draws narrative choices stacked neatly above the bottom margin of the terminal window, with fully centered, letter-spaced labels and choice title."""
     global current_stage
     
     if current_stage not in STAGE_CONTENT:
@@ -1993,12 +2097,14 @@ def draw_choice_interface(surface, mouse_pos):
     scr_h = surface.get_height()
     content = STAGE_CONTENT[current_stage]
     
-    # 1. Capture Main Terminal Bounding Box Position Math
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
     
-    title_color = (219, 43, 31) if current_stage == "restart" else (242, 204, 96)
+    # Adapt choice title color based on current mode
+    if current_stage == "restart":
+        title_color = (219, 43, 31)
+    else:
+        title_color = (242, 204, 96) if current_theme == "DARK" else (204, 153, 0)
     
-    # Add letter-spacing padding to the choice title string
     padded_title = "".join([char + "\u200a" for char in content["title"]])
     title_surface = ui_font.render(padded_title, True, title_color)
     
@@ -2006,7 +2112,6 @@ def draw_choice_interface(surface, mouse_pos):
     title_y = console_rect.bottom - 130 
     surface.blit(title_surface, (title_x, title_y))
     
-    # 3. Dynamic Button Geometry Constants
     btn_w = console_rect.width - 40 
     btn_h = 35
     btn_x = console_rect.x + 20
@@ -2021,52 +2126,51 @@ def draw_choice_interface(surface, mouse_pos):
     else:
         glow_base_color = (247, 127, 0)
     
-    # ----------------------------------------------------
     # --- RENDER CHOICE BUTTON 1 ---
-    # ----------------------------------------------------
     if b1_rect.collidepoint(mouse_pos):
-        bg1, fg1 = (48, 54, 61), (255, 255, 255)
+        bg1 = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+        fg1 = (255, 255, 255) if current_theme == "DARK" else (20, 24, 33)
         g1_max_alpha, g1_radius = 55, 8
     else:
-        bg1 = (22, 27, 34)
-        fg1 = content.get("color2", (245, 210, 110))
+        bg1 = BG_PANEL
+        fg1 = content.get("color2", (245, 210, 110)) if current_theme == "DARK" else (140, 100, 10)
         g1_max_alpha, g1_radius = 20, 4
 
+    glow1_w, glow1_h = b1_rect.width + g1_radius * 2, b1_rect.height + g1_radius * 2
+    glow1_surf = pygame.Surface((glow1_w, glow1_h), pygame.SRCALPHA)
     for i in range(g1_radius, 0, -1):
-        glow_surf = pygame.Surface((b1_rect.width + i*2, b1_rect.height + i*2), pygame.SRCALPHA)
         alpha = int(g1_max_alpha * (1.0 - (i / g1_radius)))
-        pygame.draw.rect(glow_surf, (*glow_base_color, alpha), glow_surf.get_rect())
-        surface.blit(glow_surf, (b1_rect.x - i, b1_rect.y - i))
+        pygame.draw.rect(glow1_surf, (*glow_base_color, alpha), (g1_radius - i, g1_radius - i, b1_rect.width + i * 2, b1_rect.height + i * 2), border_radius=4)
+    surface.blit(glow1_surf, (b1_rect.x - g1_radius, b1_rect.y - g1_radius))
         
     pygame.draw.rect(surface, bg1, b1_rect, border_radius=4)
-    pygame.draw.rect(surface, (48, 54, 61), b1_rect, width=1, border_radius=4)
+    pygame.draw.rect(surface, (48, 54, 61) if current_theme == "DARK" else (180, 185, 190), b1_rect, width=1, border_radius=4)
     padded_c1 = "".join([char + "\u200a" for char in content["c1"]])
     text1_surf = active_font.render(padded_c1, True, fg1)
     text1_x = b1_rect.x + (btn_w - text1_surf.get_width()) // 2
     text1_y = b1_rect.y + (btn_h - text1_surf.get_height()) // 2
     surface.blit(text1_surf, (text1_x, text1_y))
 
-    # ----------------------------------------------------
     # --- RENDER CHOICE BUTTON 2 ---
-    # ----------------------------------------------------
     if b2_rect.collidepoint(mouse_pos):
-        bg2, fg2 = (48, 54, 61), (255, 255, 255)
+        bg2 = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
+        fg2 = (255, 255, 255) if current_theme == "DARK" else (20, 24, 33)
         g2_max_alpha, g2_radius = 55, 8
     else:
-        bg2 = (22, 27, 34)
-        fg2 = content.get("color2", (245, 210, 110))
+        bg2 = BG_PANEL
+        fg2 = content.get("color2", (245, 210, 110)) if current_theme == "DARK" else (140, 100, 10)
         g2_max_alpha, g2_radius = 20, 4
 
+    glow2_w, glow2_h = b2_rect.width + g2_radius * 2, b2_rect.height + g2_radius * 2
+    glow2_surf = pygame.Surface((glow2_w, glow2_h), pygame.SRCALPHA)
     for i in range(g2_radius, 0, -1):
-        glow_surf = pygame.Surface((b2_rect.width + i*2, b2_rect.height + i*2), pygame.SRCALPHA)
         alpha = int(g2_max_alpha * (1.0 - (i / g2_radius)))
-        pygame.draw.rect(glow_surf, (*glow_base_color, alpha), glow_surf.get_rect())
-        surface.blit(glow_surf, (b2_rect.x - i, b2_rect.y - i))
+        pygame.draw.rect(glow2_surf, (*glow_base_color, alpha), (g2_radius - i, g2_radius - i, b2_rect.width + i * 2, b2_rect.height + i * 2), border_radius=4)
+    surface.blit(glow2_surf, (b2_rect.x - g2_radius, b2_rect.y - g2_radius))
     
     pygame.draw.rect(surface, bg2, b2_rect, border_radius=4)
-    pygame.draw.rect(surface, (48, 54, 61), b2_rect, width=1, border_radius=4)
+    pygame.draw.rect(surface, (48, 54, 61) if current_theme == "DARK" else (180, 185, 190), b2_rect, width=1, border_radius=4)
     
-    # Add letter-spacing padding to choice 2 string before measuring width
     padded_c2 = "".join([char + "\u200a" for char in content["c2"]])
     text2_surf = active_font.render(padded_c2, True, fg2)
     text2_x = b2_rect.x + (btn_w - text2_surf.get_width()) // 2 
@@ -2075,33 +2179,34 @@ def draw_choice_interface(surface, mouse_pos):
     
     return b1_rect, b2_rect
 
-# Holds a running list of string messages displayed on the screen console
-terminal_logs = [
-    ["ARES HORIZON OPERATING SYSTEM v2.1.0", (126, 231, 135)],
-]
-
 def draw_terminal_console(surface):
-    """Renders a responsive text log console container, leaving bottom padding space for choices."""
-    global terminal_logs, current_stage
+    global terminal_logs, current_stage, current_theme, BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
     
     scr_w = surface.get_width()
     scr_h = surface.get_height()
     
-    # 1. Main Terminal Window Rectangle Layout Container
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
+    glow_radius = 12
 
-    glow_color = (0, 180, 216)
-
-    for i in range(12, 0, -1):
-        glow_surf = pygame.Surface((console_rect.width + i*2, console_rect.height + i*2), pygame.SRCALPHA)
-        alpha = int(35 * (1.0 - (i / 12)))
+    # Fast single-surface glow allocation
+    glow_w, glow_h = console_rect.width + glow_radius * 2, console_rect.height + glow_radius * 2
+    glow_surf = pygame.Surface((glow_w, glow_h), pygame.SRCALPHA)
+    
+    for i in range(glow_radius, 0, -1):
+        alpha = int(35 * (1.0 - (i / glow_radius)))
+        glow_color = (*COLOR_CYAN, alpha)
+        local_x = glow_radius - i
+        local_y = glow_radius - i
+        local_w = console_rect.width + i * 2
+        local_h = console_rect.height + i * 2
+        pygame.draw.rect(glow_surf, glow_color, (local_x, local_y, local_w, local_h), border_radius=4)
         
-        pygame.draw.rect(glow_surf, (*glow_color, alpha), glow_surf.get_rect())
-        surface.blit(glow_surf, (console_rect.x - i, console_rect.y - i))
+    surface.blit(glow_surf, (console_rect.x - glow_radius, console_rect.y - glow_radius))
         
-    # Draw backdrop card graphics
-    pygame.draw.rect(surface, (15, 18, 23), console_rect)          
-    pygame.draw.rect(surface, (48, 54, 61), console_rect, width=1) 
+    # Adaptive theme backgrounds and borders
+    pygame.draw.rect(surface, BG_PANEL, console_rect, border_radius=4)          
+    border_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
+    pygame.draw.rect(surface, border_color, console_rect, width=1, border_radius=4) 
     
     line_spacing = 30
     padding_x, padding_y = 15, 15
@@ -2116,8 +2221,13 @@ def draw_terminal_console(surface):
         line_text = line_data[0]
         line_color = line_data[1]
         
+        # Invert default white text when using light mode layout
+        if current_theme == "LIGHT" and (line_color == (255, 255, 255) or line_color == (230, 237, 243)):
+            line_color = TEXT_COLOR
+            
         text_surface = font_console.render(line_text, True, line_color)
         surface.blit(text_surface, (console_rect.x + padding_x, start_y + (i * line_spacing)))
+
 
 # --- GLOBAL HITBOX BOUNDS ---
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
@@ -2286,7 +2396,7 @@ async def main():
         
         draw_close_button(game_canvas, mouse_pos)
 
-        screen.fill((10, 12, 16))
+        screen.fill(BG_MAIN)
 
         global shake_duration, shake_intensity, camera_offset_x, camera_offset_y
         if shake_duration > 0:

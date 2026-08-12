@@ -5,5 +5,6 @@
     "pre_mute_music_volume": 0.5,
     "pre_mute_emergency_volume": 0.41,
     "text_speed": 0.0,
-    "is_minigame_unlocked": true
+    "is_minigame_unlocked": true,
+    "current_theme": "LIGHT"
 }
