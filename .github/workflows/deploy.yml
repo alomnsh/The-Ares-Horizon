@@ -29,7 +29,7 @@ jobs:
         run: |
           python -m pip install --upgrade pip
           python -m pip install pygbag
-          python -m pygbag --template canvas.tmpl --build .
+          python -m pygbag --template canvas --no_opt --build .
 
       - name: Houston. We Have Liftoff
         uses: JamesIves/github-pages-deploy-action@v4
