@@ -621,22 +621,19 @@ pygame.font.init()
 pygame.init()
 
 screen_info = pygame.display.Info()
-
-# 2. Launch directly into the monitor's native hardware resolution
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = screen_info.current_w
+WINDOW_HEIGHT = screen_info.current_h
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
 is_fullscreen = False
-
 clock = pygame.time.Clock()
 
 ui_font = pygame.font.Font(ocra_path, 16)
 font_console = pygame.font.Font(twcen_path, 20)
 
-close_btn_rect = pygame.Rect(WINDOW_WIDTH-140, 15, 115, 30)
+close_btn_rect = pygame.Rect(WINDOW_WIDTH - 140, 15, 115, 30)
 
 game_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
