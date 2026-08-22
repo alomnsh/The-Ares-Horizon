@@ -623,8 +623,8 @@ pygame.init()
 screen_info = pygame.display.Info()
 
 # 2. Launch directly into the monitor's native hardware resolution
-WINDOW_WIDTH = screen_info.current_w
-WINDOW_HEIGHT = screen_info.current_h
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
 
 screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
