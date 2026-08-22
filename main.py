@@ -7,6 +7,7 @@ import random
 import pygame
 import json
 import asyncio
+import builtins
 
 #Global Variables
 current_stage = "welcome"
@@ -625,17 +626,17 @@ screen_info = pygame.display.Info()
 WINDOW_WIDTH = screen_info.current_w
 WINDOW_HEIGHT = screen_info.current_h
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
-is_fullscreen = True
+is_fullscreen = False
 
 clock = pygame.time.Clock()
 
 ui_font = pygame.font.Font(ocra_path, 16)
 font_console = pygame.font.Font(twcen_path, 20)
 
-close_btn_rect = pygame.Rect(820, 15, 115, 30)
+close_btn_rect = pygame.Rect(WINDOW_WIDTH-140, 15, 115, 30)
 
 game_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
@@ -723,7 +724,7 @@ def draw_close_button(surface, mouse_pos):
         glow_max_alpha = 25
         glow_radius = 5
 
-    for i in range(glow_radius, 0, -1):
+    for i in builtins.range(glow_radius, 0, -1):
         glow_surf = pygame.Surface((close_btn_rect.width + i*2, close_btn_rect.height + i*2), pygame.SRCALPHA)
         alpha = int(glow_max_alpha * (1.0 - (i / glow_radius)))
         
@@ -1229,8 +1230,8 @@ async def handle_choice3a(choice):
     current_stage = "boot_sequence"
 
     if choice == "1":
-        # Fires up the minigame
-        landing_minigame_difficulty()
+        loop = asyncio.get_event_loop()
+        loop.call_soon(landing_minigame_difficulty)
         
         if crew_safety >= 100:
             crew_safety = 100
@@ -1662,25 +1663,24 @@ def run_physics_frame(surface):
     # =========================================================================
     # TOUCHDOWN LOCATION ACCURACY AND SPEED CRITERIA METRICS
     # =========================================================================
-    if ship_rect.bottom >= ground_level_y and ship_rect.top < ground_level_y + 30:
-        if abs(wrapped_dx) <= (pad_width // 2):
-            if not is_fatal_speed:
-                game_running = False
-                asyncio.create_task(landing_success())
-            else:
-                game_running = False
-                asyncio.create_task(space_ship_crash())
-            return
-        else:
-            game_running = False
-            asyncio.create_task(space_ship_crash())
-            return
+    if ship_rect.bottom >= ground_level_y:
+        ship_center_x = ship_rect.centerx + camera_offset_x
+        pad_center_x = pad_start_x + (pad_width // 2)
 
-    if ground_level_y < f_h:
-        if ship_rect.bottom >= ground_level_y:
-            if abs(wrapped_dx) > (pad_width // 2):
-                game_running = False
-                asyncio.create_task(space_ship_crash())
+        world_dx = pad_center_x - ship_center_x
+        if world_dx > (f_w /2): world_dx -= f_w
+        elif world_dx < -(f_w /2): world_dx += f_w
+
+        is_on_pad = abs(world_dx) <= (pad_width // 2)
+
+        game_running= False
+
+        if is_on_pad and not is_fatal_speed:
+            asyncio.create_task(landing_success())
+        else:
+            asyncio.create_task(space_ship_crash())
+
+        return
 
 def start_landing_simulation_canvas():
     """Initializes the physics engine properties and obstacles natively inside the global state machine."""
@@ -1874,6 +1874,9 @@ async def landing_success():
 
     # Commit the true value of is_minigame_unlocked cleanly to storage
     save_settings()
+    trigger_mission_success_sound()
+
+    terminal_logs.clear()
 
     trigger_mission_success_sound()
     await typewriter("HEROIC VICTORY!!!", color=(126, 231, 135))
@@ -1883,18 +1886,16 @@ async def landing_success():
 
 async def end_game_session():
     """Prints a rolling metric evaluation log and routes users to choice screens."""
-    global is_playing_standalone_minigame, current_stage
+    global is_playing_standalone_minigame, current_stage, crew_safety, mission_budget, science_points, was_last_run_victory
 
-    trigger_screen_shake(intensity=10, duration=25)
+    if crew_safety < 100:
+        trigger_screen_shake(intensity=10, duration=25)
 
     await typewriter(f"\nFinal Session Summary-> Crew Safety: {crew_safety}% | Budget: {mission_budget}% | Science Points: {science_points}", color=(88, 166, 255)) # Cyan
-    
-    # Check if they came from the standalone button path shortcut
-    if is_playing_standalone_minigame:
-        # Redirect directly back to the minigame difficulty choice panel selection
-        landing_minigame_difficulty()
-    else:
-        current_stage = "restart"
+
+    current_stage = "restart"
+
+    await asyncio.sleep(0)
 
 
 def reboot_mission():
@@ -1913,7 +1914,6 @@ def reboot_mission():
         current_stage = "welcome"
     else:
         # Players failed/crashed: skip the welcome screens and launch directly into Chapter 1
-        # Trigger async typing animation timeline smoothly inside background task queues
         asyncio.create_task(game_restart_screen())
 
 
