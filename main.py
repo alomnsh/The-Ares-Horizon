@@ -620,11 +620,10 @@ active_timers = []
 pygame.font.init()
 pygame.init()
 
-screen_info = pygame.display.Info()
-WINDOW_WIDTH = screen_info.current_w
-WINDOW_HEIGHT = screen_info.current_h
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.RESIZABLE)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED | pygame.RESIZABLE)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
 is_fullscreen = False
@@ -1767,7 +1766,6 @@ def start_landing_simulation_canvas():
 
     initialize_space_starfield(count=65)
 
-    # 7. ROUTE ENGINE STATE MACHINE: Advance instantly into active minigame loop context
     current_stage = "landing_simulation"
 
 def draw_difficulty_menu(surface, mouse_pos):
@@ -1781,15 +1779,15 @@ def draw_difficulty_menu(surface, mouse_pos):
     card_x = (scr_w - card_w) // 2
     card_y = (scr_h - card_h) // 2
     
-    # 2. Draw base dialog box frame (DYNAMIC BG)
+    # 2. Draw base dialog box frame 
     card_rect = pygame.Rect(card_x, card_y, card_w, card_h)
     pygame.draw.rect(surface, BG_PANEL, card_rect, border_radius=8)
     
-    # Dynamic border color selection based on active theme
+    # border color selection based on active theme
     border_outline_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
     pygame.draw.rect(surface, border_outline_color, card_rect, width=2, border_radius=8)
     
-    # 3. Draw Title Label Text Header (DYNAMIC TEXT)
+    # 3. Draw Title Label Text Header
     title_font = pygame.font.Font(twcenbold_path, 16)
     title_surf = title_font.render("CHOOSE DIFFICULTY", True, TEXT_COLOR)
     title_x = card_x + (card_w - title_surf.get_width()) // 2
@@ -1802,10 +1800,10 @@ def draw_difficulty_menu(surface, mouse_pos):
     med_rect = pygame.Rect(btn_x, card_y + 180, btn_w, btn_h)
     hard_rect = pygame.Rect(btn_x, card_y + 250, btn_w, btn_h)
     
-    # Dynamic font text color matching button content clarity
+    # Font text color matching button content clarity
     btn_text_color = (11, 14, 20) if current_theme == "DARK" else (255, 255, 255)
     
-    # --- RENDER EASY MODE BUTTON (COLOR_CYAN Variations) ---
+    # --- RENDER EASY MODE BUTTON ---
     is_easy_hover = easy_rect.collidepoint(mouse_pos)
     if current_theme == "DARK":
         easy_bg = (130, 200, 255) if is_easy_hover else (88, 166, 255)
@@ -1816,7 +1814,7 @@ def draw_difficulty_menu(surface, mouse_pos):
     easy_txt = font_console.render("EASY MODE", True, btn_text_color)
     surface.blit(easy_txt, (easy_rect.x + (btn_w - easy_txt.get_width()) // 2, easy_rect.y + (btn_h - easy_txt.get_height()) // 2))
     
-    # --- RENDER MEDIUM MODE BUTTON (YELLOW Variations) ---
+    # --- RENDER MEDIUM MODE BUTTON ---
     is_med_hover = med_rect.collidepoint(mouse_pos)
     if current_theme == "DARK":
         med_bg = (255, 220, 120) if is_med_hover else (242, 204, 96)
@@ -1827,7 +1825,7 @@ def draw_difficulty_menu(surface, mouse_pos):
     med_txt = font_console.render("MEDIUM MODE", True, btn_text_color)
     surface.blit(med_txt, (med_rect.x + (btn_w - med_txt.get_width()) // 2, med_rect.y + (btn_h - med_txt.get_height()) // 2))
     
-    # --- RENDER HARD MODE BUTTON (RED Variations) ---
+    # --- RENDER HARD MODE BUTTON ---
     is_hard_hover = hard_rect.collidepoint(mouse_pos)
     if current_theme == "DARK":
         hard_bg = (255, 80, 70) if is_hard_hover else (219, 43, 31)
@@ -1899,27 +1897,20 @@ def reboot_mission():
     """Wipes active session data and determines narrative progression paths."""
     global crew_safety, mission_budget, science_points, try_again_counter, was_last_run_victory, current_stage
     
-    # Reset tracking state metrics back to standard defaults
+    # Reset metrics back to defaults
     crew_safety = 100
     mission_budget = 100
     science_points = 0
     try_again_counter += 1
 
-    if was_last_run_victory:
-        # Bounce winners back out to the main menu screen to view their newly unlocked pathway buttons
-        was_last_run_victory = False 
-        current_stage = "welcome"
-    else:
-        # Players failed/crashed: skip the welcome screens and launch directly into Chapter 1
-        asyncio.create_task(game_restart_screen())
+    current_stage = "welcome"
 
 
 def launch_story_mode():
     """Initializes a normal chronological gameplay campaign playthrough."""
     global is_playing_standalone_minigame
     is_playing_standalone_minigame = False 
-    
-    # Swaps state to trigger typing strings letter-by-letter
+
     asyncio.create_task(game_restart_screen())
 
 
@@ -1927,8 +1918,7 @@ def launch_standalone_minigame():
     """Bypasses introductory story frames and skips straight to testing flight metrics."""
     global is_playing_standalone_minigame
     is_playing_standalone_minigame = True  
-    
-    # Direct route into minigame difficulty prompt state layout
+
     landing_minigame_difficulty()
 
 def draw_welcome_screen(surface, mouse_pos):
@@ -2050,7 +2040,7 @@ def draw_welcome_screen(surface, mouse_pos):
 
     return btn_start_rect, btn_story_rect, btn_minigame_rect
 
-# A centralized data dictionary mapping game choices to their strings
+# A dictionary mapping game choices to their strings
 STAGE_CONTENT = {
     "stage1": {
         "title": "AWAITING STRATEGIC DIRECTIVE INSTRUCTIONS...",
@@ -2096,7 +2086,7 @@ def draw_choice_interface(surface, mouse_pos):
     
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
     
-    # Adapt choice title color based on current mode
+    # choice title color based on current mode
     if current_stage == "restart":
         title_color = (219, 43, 31)
     else:
@@ -2185,7 +2175,6 @@ def draw_terminal_console(surface):
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
     glow_radius = 12
 
-    # Fast single-surface glow allocation
     glow_w, glow_h = console_rect.width + glow_radius * 2, console_rect.height + glow_radius * 2
     glow_surf = pygame.Surface((glow_w, glow_h), pygame.SRCALPHA)
     
@@ -2242,7 +2231,6 @@ async def main():
         # Track the absolute grid position coordinates of the user mouse pointer
         mouse_pos = pygame.mouse.get_pos()
         
-        # --- PYGAME EVENT LOOP ---
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
@@ -2251,14 +2239,15 @@ async def main():
             # 1. KEYBOARD CONTINUOUS INPUT TRACKING LAYER
             # ----------------------------------------------------
             elif event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_F11:
+                if event.key == pygame.K_f:
                     is_fullscreen = not is_fullscreen
-                    if is_fullscreen:
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.SCALED)
-                    else:
-                        screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED)
+                    pygame.display.toggle_fullscreen()
+
+                elif event.type == pygame.K_ESCAPE and is_fullscreen:
+                    is_fullscreen = False
+                    pygame.display.toggle_fullscreen()
                 
-                # Check directional maneuvers if the immersive landing simulator is active
+                # Check maneuvers if thelanding simulator is active
                 elif current_stage == "landing_simulation":
                     if event.key == pygame.K_LEFT:
                         move_left_active = True
@@ -2277,7 +2266,7 @@ async def main():
             # ----------------------------------------------------
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    # Close Game Titlebar Button Box Check
+                    # Close Game Button Box Check
                     current_close_rect = pygame.Rect(screen.get_width() - 130, 15, 115, 30)
                     if current_close_rect.collidepoint(event.pos):
                         running = False
@@ -2288,14 +2277,13 @@ async def main():
                         toggle_mute()
                         continue
 
-                    # Responsive Bottom-Left Settings Menu Action Box Check
+                    # Settings Menu Action Box Check
                     current_h = screen.get_height()
                     current_settings_rect = pygame.Rect(15, current_h - 45, 115, 30)
                     if current_settings_rect.collidepoint(event.pos):
                         await open_settings_menu(screen)
                         continue
 
-                    # --- SCENE SPECIFIC ROUTING INTERCEPTS ---
                     # Welcome Menu Clicks
                     if current_stage == "welcome":
                         start_r, story_r, mini_r = draw_welcome_screen(screen, mouse_pos)
@@ -2402,7 +2390,7 @@ async def main():
             camera_offset_y = random.randint(-shake_intensity, shake_intensity)
             shake_duration -= 1
             
-            # Smoothly damp down the rumble intensity as the shake nears its timeline end
+            # Smoothly damp down the rumble intensity as the shake nears its end
             if shake_duration == 0:
                 shake_intensity = 0
                 camera_offset_x = 0
