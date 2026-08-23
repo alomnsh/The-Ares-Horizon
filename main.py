@@ -624,7 +624,7 @@ screen_info = pygame.display.Info()
 WINDOW_WIDTH = screen_info.current_w
 WINDOW_HEIGHT = screen_info.current_h
 
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.RESIZABLE)
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.FULLSCREEN | pygame.RESIZABLE)
 pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
 
 is_fullscreen = False
