@@ -182,9 +182,9 @@ space_warning_file = os.path.join(script_directory, "assets/Spacecraft Warning.o
 click_file = os.path.join(script_directory, "assets/Click.ogg")
 mission_success_file = os.path.join(script_directory, "assets/Mission Success.ogg")
 mission_failed_file = os.path.join(script_directory, "assets/Mission Failed.ogg")
-ocra_path = os.path.join(script_directory, "ocra.TTF")
-twcen_path = os.path.join(script_directory, "twcen.TTF")
-twcenbold_path = os.path.join(script_directory, "twcenbold.TTF")
+ocra_path = os.path.join(script_directory, "assets/font/ocra.TTF")
+twcen_path = os.path.join(script_directory, "assets/fonts/twcen.TTF")
+twcenbold_path = os.path.join(script_directory, "assets/fonts/twcenbold.TTF")
 
 # Start background music loop
 try:
