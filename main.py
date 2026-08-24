@@ -1706,7 +1706,7 @@ def start_landing_simulation_canvas():
 
     # 3. Load and scale custom Spaceship design
     try:
-        raw_ship = pygame.image.load("Spaceship.png").convert_alpha()
+        raw_ship = pygame.image.load("assets/images/Spaceship.png").convert_alpha()
         ship_surface = pygame.transform.scale(raw_ship, (50, 90))
         ship_mask = pygame.mask.from_surface(ship_surface)
     except pygame.error:
@@ -1716,7 +1716,7 @@ def start_landing_simulation_canvas():
 
     # 4. Load single native 200x60px Spike image & mirror it
     try:
-        raw_spike = pygame.image.load("Small Spike.png").convert_alpha()
+        raw_spike = pygame.image.load("assets/images/Small Spike.png").convert_alpha()
         spike_left = pygame.transform.scale(raw_spike, (200, 60))
         spike_right = pygame.transform.flip(spike_left, True, False)
     except pygame.error:
