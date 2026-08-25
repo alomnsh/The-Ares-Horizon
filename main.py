@@ -174,14 +174,14 @@ except Exception:
 warning_sound = False
 space_warning_sound = False
 
-bg_music_file = os.path.join(script_directory, "assets/Dream Sequence.ogg")
-warning_file = os.path.join(script_directory, "assets/Warning.ogg")
-pull_up_file = os.path.join(script_directory, "assets/Pull Up.ogg")
-roger_that_file = os.path.join(script_directory, "assets/Roger That.ogg")
-space_warning_file = os.path.join(script_directory, "assets/Spacecraft Warning.ogg")
-click_file = os.path.join(script_directory, "assets/Click.ogg")
-mission_success_file = os.path.join(script_directory, "assets/Mission Success.ogg")
-mission_failed_file = os.path.join(script_directory, "assets/Mission Failed.ogg")
+bg_music_file = os.path.join(script_directory, "assets/sounds/Dream Sequence.ogg")
+warning_file = os.path.join(script_directory, "assets/sounds/Warning.ogg")
+pull_up_file = os.path.join(script_directory, "assets/sounds/Pull Up.ogg")
+roger_that_file = os.path.join(script_directory, "assets/sounds/Roger That.ogg")
+space_warning_file = os.path.join(script_directory, "assets/sounds/Spacecraft Warning.ogg")
+click_file = os.path.join(script_directory, "assets/sounds/Click.ogg")
+mission_success_file = os.path.join(script_directory, "assets/sounds/Mission Success.ogg")
+mission_failed_file = os.path.join(script_directory, "assets/sounds/Mission Failed.ogg")
 ocra_path = os.path.join(script_directory, "assets/fonts/ocra.TTF")
 twcen_path = os.path.join(script_directory, "assets/fonts/twcen.TTF")
 twcenbold_path = os.path.join(script_directory, "assets/fonts/twcenbold.TTF")
