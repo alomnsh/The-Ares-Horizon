@@ -1,4 +1,4 @@
-name: Deploy Pygame to GitHub Pages
+name: Deploy Pygame to GitHub Pages. Houston We have Liftoff
 
 on:
   push:
