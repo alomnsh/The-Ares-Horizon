@@ -4,9 +4,6 @@ A choice python adventure game where the player is a Flight Director at NASA tyr
 
 ## How to Play
 
-### Option 1 (Beta Testing Demo, for stardance raters)
-[Link](https://alomnsh.github.io/The-Ares-Horizon/)
-
 ### Option 2: Quick Play (Windows Only - No Setup Required)
 1. Go to the **[Releases](https://github.com/alomnsh/The-Ares-Horizon-Adventure-Game/releases/tag/v2.0.0)** page.
 2. Download the `The.Ares.Horizon.exe` double-click the file to start playing
