@@ -496,6 +496,7 @@ async def open_settings_menu(main_screen):
         
     is_game_paused = False
 
+# ALL AUDIO FUNCTIONS
 def trigger_warning_sound():
     global warning_sound, emergency_volume
     if not warning_sound:
@@ -562,7 +563,6 @@ def trigger_mission_failed_sound():
     except Exception:
         pass
 
-# Stop all sound function
 def stop_all_sounds():
     global space_warning_sound, warning_sound
     space_warning_sound = False
@@ -616,6 +616,7 @@ shake_intensity = 0
 camera_offset_x = 0
 camera_offset_y = 0
 
+# Shakes the screen 
 def trigger_screen_shake(intensity=8, duration=15):
     global shake_intensity, shake_duration
     # Only overwrite if the new shake is stronger than a shake currently
@@ -623,6 +624,7 @@ def trigger_screen_shake(intensity=8, duration=15):
         shake_intensity = intensity
         shake_duration = duration
 
+# A CRT line applying function
 def apply_global_crt_filter(surface):
     global _cached_crt_overlay
     f_w = surface.get_width()
@@ -636,6 +638,7 @@ def apply_global_crt_filter(surface):
 
     surface.blit(_cached_crt_overlay, (0, 0))
 
+# Draws the red glow when there is an emergency
 def draw_emergency_ambient_glow(surface):
     global is_emergency_active, _cached_emergency_glow
     if not is_emergency_active:
@@ -665,6 +668,7 @@ def draw_emergency_ambient_glow(surface):
     surface.blit(glow_snapshot, (0, 0))
     surface.set_clip(old_clip)
 
+# The close button on the top right
 def draw_close_button(surface, mouse_pos):
     current_w = surface.get_width()
     
@@ -699,6 +703,7 @@ def draw_close_button(surface, mouse_pos):
     
     return close_btn_rect
 
+# The glowing effect on the buttons and screen
 def draw_glowing_rect(surface, base_color, rect, glow_radius = 8, max_alpha = 45):
     # Create one surface large enough for the full glow area
     glow_w = rect.width + glow_radius * 2
@@ -720,6 +725,7 @@ def draw_glowing_rect(surface, base_color, rect, glow_radius = 8, max_alpha = 45
     surface.blit(glow_surf, (rect.x - glow_radius, rect.y - glow_radius))
     pygame.draw.rect(surface, base_color[:3], rect, border_radius=4)
 
+# The progress bars to the top
 def draw_telemetry_dashboard(surface):
     global crew_safety, mission_budget, science_points
     
@@ -777,6 +783,7 @@ def draw_telemetry_dashboard(surface):
     points_label = ui_font.render(points_str, True, COLOR_GREEN)
     surface.blit(points_label, (col3_center, 23))
 
+# The settings button in the bottom left
 def draw_settings_button(surface, mouse_pos):
     global current_theme, BG_PANEL
     current_h = surface.get_height()
@@ -813,6 +820,7 @@ def draw_settings_button(surface, mouse_pos):
     
     return settings_btn_rect
 
+# The typing function, the typing seen on the screen
 async def typewriter(text, color=(126, 231, 135), override_speed=None, bold=False):
     global terminal_logs, text_speed, screen, clock, is_game_paused
     
