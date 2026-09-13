@@ -53,7 +53,6 @@ _SMOKE_SURF = pygame.Surface((3, 3), pygame.SRCALPHA); _SMOKE_SURF.fill((71, 85,
 if "DISPLAY" not in os.environ:
     os.environ["DISPLAY"] = ":1"
 
-# If key is pressed it is true, if it is released it is false
 def handle_press(event):
     global key_states
     if event.keysym in key_states:
@@ -877,6 +876,7 @@ def update_progress(text, add_newline=False, color=(88, 166, 255)):
     if add_newline:
         terminal_logs.append(["", color])
 
+# The screen after you press try again
 async def game_restart_screen():
     global try_again_counter, current_stage, terminal_logs, is_boot_completed, is_emergency_active
     
@@ -909,6 +909,7 @@ async def game_restart_screen():
     
     current_stage = "stage1"
 
+# Loading screen, needs work
 async def run_boot_sequence():
     global draw_boot_bar, boot_bar_pct
     trigger_click_sound()
@@ -919,6 +920,7 @@ async def run_boot_sequence():
 # TODO ADD A LOADING SCREEN
     await trigger_game_start()
 
+# Start of the story line
 async def trigger_game_start():
     global current_stage, terminal_logs, is_boot_completed, is_emergency_active
 
@@ -959,6 +961,7 @@ async def handle_choice1(choice):
     
     current_stage = "boot_sequence"
 
+    # Launch now path
     if choice == "1":
         await typewriter("\nIGNITION! The rocket vibrates violently as it punches through the wind", color=(230, 237, 243))
         await typewriter("Minutes later you reach the edge of the atmosphere and enter orbit, but the stress caused by the wind resulted in an issue", color=(230, 237, 243))
@@ -987,6 +990,7 @@ async def handle_choice1(choice):
         
         current_stage = "stage2a"
 
+    # Delay launch path
     elif choice == "2":
         await typewriter("\nYou stand down on the launch. The crew exits the spacecraft", color=(230, 237, 243))
         await typewriter("Weeks later, you launch on a much longer and not as ideal route", color=(230, 237, 243))
@@ -1025,6 +1029,7 @@ async def handle_choice2a(choice):
     terminal_logs.clear()
     current_stage = "boot_sequence"
 
+    # If chose to push engines
     if choice == "1":
         await typewriter("\nRisky Move, the engines fire hard. The pressure stabilizes just in time.", color=(230, 237, 243))
         await typewriter("Months pass in deep space, and the crew finally arrives at the Red Planet", color=(230, 237, 243))
@@ -1043,6 +1048,7 @@ async def handle_choice2a(choice):
         # Call landing function if survived
         await display_mars_landing_sequence(stage_label=3)
 
+    # If chose to abort
     elif choice == "2":
         await typewriter("The emergency escape system rips apart from the capsule", color=(230, 237, 243))
         await typewriter("The crew safely splash down in the Atlantic Ocean", color=(230, 237, 243))
@@ -1051,7 +1057,7 @@ async def handle_choice2a(choice):
         mission_budget = 0
         await end_game_session()
 
-
+# Last story line before the mini-game
 async def display_mars_landing_sequence(stage_label=3):
     global crew_safety, mission_budget, science_points, current_stage
     
@@ -1085,6 +1091,7 @@ async def handle_choice3a(choice):
 
         science_points += 50
 
+    # If chose to trust the computer
     elif choice == "2":
         trigger_pullup_sound()
         await typewriter("\nCRASH DOWN! The system clips a massive hidden boulder", color=(219, 43, 31))
@@ -1109,6 +1116,7 @@ async def handle_choice2b(choice):
     terminal_logs.clear()
     current_stage = "boot_sequence"
 
+    # If chose to upload a patch
     if choice == "1":
         await typewriter("The patch works! The navigation is back up again", color=(230, 237, 243))
         await typewriter("However the reboot drained 60% of your spacecraft power reserves", color=(219, 43, 31))
@@ -1128,6 +1136,7 @@ async def handle_choice2b(choice):
         
         current_stage = "stage3b"
 
+    # If chose to let the crew work it out
     elif choice == "2":
         await typewriter("LOST ORBIT! The math is too complex with the light-lag delay", color=(219, 43, 31))
         await typewriter("The crew misses the Mars window completely, drifting into the solar system with no way of communication", color=(219, 43, 31))
@@ -1148,12 +1157,14 @@ async def handle_choice3b(choice):
     terminal_logs.clear()
     current_stage = "boot_sequence"
 
+    # Wait for charge
     if choice == "1":
         await typewriter("The solar sails catch enough sunlight to recharge", color=(126, 231, 135))
         science_points += 40
         
         await display_mars_landing_sequence(stage_label=4)
 
+    # Do emergency burn
     elif choice == "2":
         await typewriter("\nBURN OUT! The extreme cold freezes the fuel valves during descent.", color=(219, 43, 31))
         await typewriter("The engines fail 100 meters up. The ship impacts the surface.", color=(219, 43, 31))
@@ -1166,6 +1177,7 @@ async def handle_choice3b(choice):
 
 #LANDING MINI GAME!! 
 
+# The background stars
 def space_starfield(count=60):
     global starfield_matrix
     starfield_matrix.clear()
@@ -1202,6 +1214,7 @@ def update_and_draw_starfield(surface, current_altitude, left_bound, right_bound
 
         pygame.draw.rect(surface, star_color, (pixel_x, pixel_y, star["size"], star["size"]))
 
+# Thrust particles
 def spawn_thruster_spark(ship_x, ship_y, ship_width=50, ship_height=90):
     global thruster_particles
     # Calculate the exact nozzle area of the spaceship
@@ -1241,6 +1254,7 @@ def update_and_draw_thrusters(surface):
         
     thruster_particles = surviving_particles
 
+# The main physics engine
 def run_physics_frame(surface):
     global altitude, ship_angle, ship_x, ship_y, game_running, current_difficulty
     global prep_timer_frames, current_stage, fall_velocity, ship_fuel, pad_start_x
@@ -1481,6 +1495,7 @@ def run_physics_frame(surface):
 
         return
 
+# TODO Clean this up and remove no essential things
 def start_landing_simulation_canvas():
     global current_stage, altitude, velocity_y, ship_angle, game_running
     global ship_x, ship_y, obstacles, ship_surface, ship_mask, spike_left, spike_right, current_difficulty
@@ -1568,6 +1583,7 @@ def start_landing_simulation_canvas():
 
     current_stage = "landing_simulation"
 
+# The difficulty menu
 def draw_difficulty_menu(surface, mouse_pos):
     global current_difficulty, BG_PANEL, TEXT_COLOR, current_theme
     scr_w = surface.get_width()
@@ -1630,6 +1646,7 @@ def draw_difficulty_menu(surface, mouse_pos):
 
     return easy_rect, med_rect, hard_rect
 
+# Call for the mini game difficulty mene
 def landing_minigame_difficulty():
     global current_stage
     current_stage = "difficulty_menu"
@@ -1638,6 +1655,7 @@ def landing_minigame_difficulty():
 was_last_run_victory = False
 is_playing_standalone_minigame = False
 
+# If you crashed the ship
 async def space_ship_crash():
     global crew_safety, mission_budget
     trigger_screen_shake(intensity=16, duration=25)
@@ -1648,7 +1666,7 @@ async def space_ship_crash():
     mission_budget = 0
     await end_game_session()
 
-
+# If the landing is a success
 async def landing_success():
     global is_minigame_unlocked, was_last_run_victory
 
@@ -1665,7 +1683,7 @@ async def landing_success():
     await typewriter("You flew beautifully!! The crew and the ship are safe!!!", color=(126, 231, 135))
     await end_game_session()
 
-
+# End Session Function
 async def end_game_session():
     global is_playing_standalone_minigame, current_stage, crew_safety, mission_budget, science_points, was_last_run_victory
 
@@ -1690,20 +1708,21 @@ def reboot_mission():
 
     current_stage = "welcome"
 
-
+# Either launch the story or the mini game
 def launch_story_mode():
     global is_playing_standalone_minigame
     is_playing_standalone_minigame = False 
 
     asyncio.create_task(game_restart_screen())
 
-
+# Launch the mini game instead of the story mode
 def launch_standalone_minigame():
     global is_playing_standalone_minigame
     is_playing_standalone_minigame = True  
 
     landing_minigame_difficulty()
 
+# Draw the start screen
 def draw_welcome_screen(surface, mouse_pos):
     global is_minigame_unlocked, current_stage, current_theme, BG_PANEL, TEXT_COLOR
     
@@ -1729,7 +1748,7 @@ def draw_welcome_screen(surface, mouse_pos):
         w, h = 240, 65
         btn_start_rect = pygame.Rect((scr_w - w) // 2, scr_h // 2 - 20, w, h)
         
-        # Hover vs Idle check
+        # Hover or Idle check
         if btn_start_rect.collidepoint(mouse_pos):
             bg_color = (48, 54, 61) if current_theme == "DARK" else (210, 215, 220)
             glow_color = (0, 180, 216) if current_theme == "DARK" else (0, 130, 200)
@@ -1753,16 +1772,13 @@ def draw_welcome_screen(surface, mouse_pos):
                                  btn_start_rect.y + (h - text_surf.get_height()) // 2))
 
     else:
-        # Prompt Label
         lbl_surf = ui_font.render("CHOOSE YOUR PATHWAY:", True, (242, 204, 96))
         surface.blit(lbl_surf, ((scr_w - lbl_surf.get_width()) // 2, scr_h // 2 - 50))
         
         w, h = 210, 55
         center_gap = 30
         
-        # Left button position (Play Story)
         btn_story_rect = pygame.Rect(scr_w // 2 - w - center_gap, scr_h // 2, w, h)
-        # Right button position (Launch Minigame)
         btn_minigame_rect = pygame.Rect(scr_w // 2 + center_gap, scr_h // 2, w, h)
 
         if btn_story_rect.collidepoint(mouse_pos):
@@ -1780,7 +1796,6 @@ def draw_welcome_screen(surface, mouse_pos):
             pygame.draw.rect(glow_surf, (*glow_story_color, alpha), glow_surf.get_rect())
             surface.blit(glow_surf, (btn_story_rect.x - i, btn_story_rect.y - i))
         
-        # Draw Play Story Button Frame
         pygame.draw.rect(surface, bg_story, btn_story_rect, border_radius=4)
         pygame.draw.rect(surface, border_outline_color, btn_story_rect, width=1, border_radius=4)
         
@@ -1803,7 +1818,6 @@ def draw_welcome_screen(surface, mouse_pos):
             pygame.draw.rect(glow_surf, (*glow_mini_color, alpha), glow_surf.get_rect())
             surface.blit(glow_surf, (btn_minigame_rect.x - i, btn_minigame_rect.y - i))
         
-        # Draw Launch Minigame Button Frame
         pygame.draw.rect(surface, bg_mini, btn_minigame_rect, border_radius=4)
         pygame.draw.rect(surface, border_outline_color, btn_minigame_rect, width=1, border_radius=4)
         
@@ -1848,6 +1862,7 @@ STAGE_CONTENT = {
     }
 }
 
+# Draw the buttons
 def draw_choice_interface(surface, mouse_pos):
     global current_stage
     
@@ -1860,7 +1875,7 @@ def draw_choice_interface(surface, mouse_pos):
     
     console_rect = pygame.Rect(25, 80, scr_w - 50, scr_h - 170)
     
-    # choice title color based on current mode
+    # title color based on current mode
     if current_stage == "restart":
         title_color = (219, 43, 31)
     else:
@@ -1938,6 +1953,7 @@ def draw_choice_interface(surface, mouse_pos):
     
     return b1_rect, b2_rect
 
+# Draw the terminal where the typewriter types
 def draw_terminal_console(surface):
     global terminal_logs, current_stage, current_theme, BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
     
@@ -1960,8 +1976,7 @@ def draw_terminal_console(surface):
         pygame.draw.rect(glow_surf, glow_color, (local_x, local_y, local_w, local_h), border_radius=4)
         
     surface.blit(glow_surf, (console_rect.x - glow_radius, console_rect.y - glow_radius))
-        
-    # Adaptive theme backgrounds and borders
+
     pygame.draw.rect(surface, BG_PANEL, console_rect, border_radius=4)          
     border_color = (48, 54, 61) if current_theme == "DARK" else (180, 185, 190)
     pygame.draw.rect(surface, border_color, console_rect, width=1, border_radius=4) 
@@ -1979,7 +1994,6 @@ def draw_terminal_console(surface):
         line_text = line_data[0]
         line_color = line_data[1]
         
-        # Invert default white text when using light mode layout
         if current_theme == "LIGHT" and (line_color == (255, 255, 255) or line_color == (230, 237, 243)):
             line_color = TEXT_COLOR
             
@@ -1991,6 +2005,7 @@ def draw_terminal_console(surface):
 close_btn_rect = pygame.Rect(820, 15, 115, 30)
 mute_btn_rect  = pygame.Rect(695, 15, 115, 30)
 
+# The main root
 async def main():
     global screen, is_fullscreen, current_stage, move_left_active, move_right_active
     
@@ -1999,7 +2014,7 @@ async def main():
     
     running = True
     while running:
-        # Track the absolute grid position coordinates of the user mouse pointer
+        # Track the position of the user mouse
         mouse_pos = pygame.mouse.get_pos()
         
         for event in pygame.event.get():
@@ -2015,7 +2030,7 @@ async def main():
                     is_fullscreen = False
                     pygame.display.toggle_fullscreen()
                 
-                # Check maneuvers if thelanding simulator is active
+                # Check keys if thelanding simulator is active
                 elif current_stage == "landing_simulation":
                     if event.key == pygame.K_LEFT:
                         move_left_active = True
@@ -2031,25 +2046,21 @@ async def main():
 
             elif event.type == pygame.MOUSEBUTTONDOWN:
                 if event.button == 1:
-                    # Close Game Button Box Check
                     current_close_rect = pygame.Rect(screen.get_width() - 130, 15, 115, 30)
                     if current_close_rect.collidepoint(event.pos):
                         running = False
                         continue
 
-                    # Mute Sound Toggle Button Box Check
                     if mute_btn_rect.collidepoint(event.pos):
                         toggle_mute()
                         continue
 
-                    # Settings Menu Action Box Check
                     current_h = screen.get_height()
                     current_settings_rect = pygame.Rect(15, current_h - 45, 115, 30)
                     if current_settings_rect.collidepoint(event.pos):
                         await open_settings_menu(screen)
                         continue
 
-                    # Welcome Menu Clicks
                     if current_stage == "welcome":
                         start_r, story_r, mini_r = draw_welcome_screen(screen, mouse_pos)
                         if start_r and start_r.collidepoint(event.pos):
@@ -2063,7 +2074,6 @@ async def main():
                             trigger_click_sound()
                             launch_standalone_minigame()
                     
-                    # Difficulty Selector Window Menu Clicks
                     elif current_stage == "difficulty_menu":
                         easy_r, med_r, hard_r = draw_difficulty_menu(screen, mouse_pos)
                         if easy_r.collidepoint(event.pos):
@@ -2106,7 +2116,6 @@ async def main():
         if current_stage not in ["welcome"]:
             draw_telemetry_dashboard(game_canvas)
 
-        # MAPPING ENGINES
         if current_stage == "welcome":
             draw_welcome_screen(game_canvas, mouse_pos)
             
@@ -2149,7 +2158,7 @@ async def main():
             camera_offset_y = random.randint(-shake_intensity, shake_intensity)
             shake_duration -= 1
             
-            # Smoothly damp down the rumble intensity as the shake nears its end
+            # Decrease the intensity as the shake gets near the end
             if shake_duration == 0:
                 shake_intensity = 0
                 camera_offset_x = 0
