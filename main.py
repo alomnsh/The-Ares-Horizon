@@ -10,6 +10,11 @@ import asyncio
 import builtins
 
 #Global Variables
+gamestart="yes"
+crew_safety = 100
+mission_budget = 100
+science_points = 0
+try_again_counter = 1
 current_stage = "welcome"
 current_difficulty = "EASY"  
 is_boot_completed = False
@@ -29,8 +34,15 @@ pad_start_x = -1
 _cached_crt_overlay = None
 _cached_emergency_glow = None
 current_theme = "DARK"
+shake_duration = 0
+shake_intensity = 0
+camera_offset_x = 0
+camera_offset_y = 0
+COLOR_YELLOW = (242, 204, 96) 
+COLOR_RED = (219, 43, 31)     
+COLOR_GREEN = (126, 231, 135) 
 
-# Dark and light them
+# Dark and light themw
 THEMES = {
     "DARK": {
         "BG_MAIN": (11, 14, 20),
@@ -168,6 +180,7 @@ except Exception:
 warning_sound = False
 space_warning_sound = False
 
+# This where the program finds with file is which file and where its at
 bg_music_file = os.path.join(script_directory, "assets/sounds/Dream Sequence.ogg")
 warning_file = os.path.join(script_directory, "assets/sounds/Warning.ogg")
 pull_up_file = os.path.join(script_directory, "assets/sounds/Pull Up.ogg")
@@ -179,6 +192,25 @@ mission_failed_file = os.path.join(script_directory, "assets/sounds/Mission Fail
 ocra_path = os.path.join(script_directory, "assets/fonts/ocra.TTF")
 twcen_path = os.path.join(script_directory, "assets/fonts/twcen.TTF")
 twcenbold_path = os.path.join(script_directory, "assets/fonts/twcenbold.TTF")
+
+pygame.font.init()
+pygame.init()
+
+WINDOW_WIDTH = 1280
+WINDOW_HEIGHT = 720
+
+screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED | pygame.RESIZABLE)
+pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
+
+is_fullscreen = False
+clock = pygame.time.Clock()
+
+ui_font = pygame.font.Font(ocra_path, 16)
+font_console = pygame.font.Font(twcen_path, 20)
+
+close_btn_rect = pygame.Rect(WINDOW_WIDTH - 140, 15, 115, 30)
+
+game_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
 
 try:
     pygame.mixer.music.load(bg_music_file)
@@ -196,6 +228,7 @@ def set_mixer_volumes():
     except Exception:
         pass
 
+# The function that activates when the mute button is toggled in the settings
 def toggle_mute():
     global is_muted, background_music_volume, emergency_volume
     global pre_mute_music_volume, pre_mute_emergency_volume
@@ -214,6 +247,7 @@ def toggle_mute():
     set_mixer_volumes()
     save_settings()
 
+# The functions that updates the volume in real time when the slider is moved in the settings
 def update_music_from_slider(percentage):
     global background_music_volume, is_muted
     background_music_volume = round(percentage, 2)
@@ -233,6 +267,7 @@ def update_emergency_from_slider(percentage):
         is_muted = False
     save_settings()
 
+# The function that toggle the theme for light to dark or from dark to light
 def toggle_theme():
     global current_theme, BG_MAIN, BG_PANEL, TEXT_COLOR, COLOR_CYAN
     current_theme = "LIGHT" if current_theme == "DARK" else "DARK"
@@ -244,6 +279,7 @@ def toggle_theme():
     COLOR_CYAN = THEMES[current_theme]["COLOR_CYAN"]
     save_settings()
 
+# The function that is called when the reset all settings button is pressed
 def reset_all_settings():
     global background_music_volume, emergency_volume, is_muted
     global pre_mute_emergency_volume, pre_mute_music_volume
@@ -268,6 +304,7 @@ def reset_all_settings():
     set_mixer_volumes()
     save_settings()
 
+# The main settings function
 async def open_settings_menu(main_screen):
     global background_music_volume, emergency_volume, is_muted
     global text_speed, is_game_paused
@@ -495,7 +532,7 @@ async def open_settings_menu(main_screen):
         
     is_game_paused = False
 
-# ALL AUDIO FUNCTIONS
+# all the sound functions
 def trigger_warning_sound():
     global warning_sound, emergency_volume
     if not warning_sound:
@@ -572,48 +609,7 @@ def stop_all_sounds():
     except Exception:
         pass
 
-#THEME OF THE GAME
-BG_MAIN = THEMES["DARK"]["BG_MAIN"]
-BG_PANEL = THEMES["DARK"]["BG_PANEL"]
-TEXT_COLOR = THEMES["DARK"]["TEXT_COLOR"]
-COLOR_CYAN = THEMES["DARK"]["COLOR_CYAN"]  
-COLOR_YELLOW = (242, 204, 96) 
-COLOR_RED = (219, 43, 31)     
-COLOR_GREEN = (126, 231, 135) 
-
-
-#Game Stats and Points
-gamestart="yes"
-crew_safety = 100
-mission_budget = 100
-science_points = 0
-try_again_counter = 1
-
 active_timers = []
-
-pygame.font.init()
-pygame.init()
-
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
-
-screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT), pygame.SCALED | pygame.RESIZABLE)
-pygame.display.set_caption("The Ares Horizon - Mission Control Terminal")
-
-is_fullscreen = False
-clock = pygame.time.Clock()
-
-ui_font = pygame.font.Font(ocra_path, 16)
-font_console = pygame.font.Font(twcen_path, 20)
-
-close_btn_rect = pygame.Rect(WINDOW_WIDTH - 140, 15, 115, 30)
-
-game_canvas = pygame.Surface((WINDOW_WIDTH, WINDOW_HEIGHT))
-
-shake_duration = 0
-shake_intensity = 0
-camera_offset_x = 0
-camera_offset_y = 0
 
 # Shakes the screen 
 def trigger_screen_shake(intensity=8, duration=15):
@@ -1698,13 +1694,14 @@ async def end_game_session():
 
 
 def reboot_mission():
-    global crew_safety, mission_budget, science_points, try_again_counter, was_last_run_victory, current_stage
+    global crew_safety, mission_budget, science_points, try_again_counter, was_last_run_victory, current_stage, is_emergency_active
     
     # Reset back to defaults
     crew_safety = 100
     mission_budget = 100
     science_points = 0
     try_again_counter += 1
+    is_emergency_active = False
 
     current_stage = "welcome"
 
