@@ -20,7 +20,7 @@ You can delete this data at any time by clearing your browser's site data or del
 ## 3. Third-Party Infrastructure (GitHub Pages)
 Because the web version of the game is hosted using GitHub Pages, GitHub may automatically collect standard web server logs (such as your IP address, browser type, and timestamp) for security purposes and to keep the service running. 
 
-This data is handled strictly by GitHub and is subject to the [GitHub Privacy Statement](https://github.com).
+This data is handled strictly by GitHub and is subject to the [GitHub Privacy Statement](https://docs.github.com/en/site-policy).
 
 ## 4. Contact
 If you have any questions about this Privacy Policy, please open a discussion or contact the contributors through GitHub.
