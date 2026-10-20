@@ -1,6 +1,6 @@
 # Privacy Policy: The Ares Horizon
 
-Updated: August 24, 2026
+Updated: October 20, 2026
 
 Your privacy is important to us. This Privacy Policy explains how *The Ares Horizon* handles data when you play the game through GitHub Pages or download standalone desktop releases.
 
@@ -13,7 +13,7 @@ Your privacy is important to us. This Privacy Policy explains how *The Ares Hori
 ## 2. Local Storage & Game Saves
 To keep track of your game (such as settings, terminal logs, or mission progress):
 * **Web Version (GitHub Pages):** The game may use your browser's local storage mechanisms to save data. This data stays entirely inside your browser cache and is never sent to servers.
-* **Desktop Releases:** Standalone downloads save configuration and progress files locally on your physical machine.
+* **Desktop Releases:** Standalone downloads of the software save configuration and progress files locally on your physical machine.
 
 You can delete this data at any time by clearing your browser's site data or deleting the local game save files on your computer.
 
